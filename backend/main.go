@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"planeo/api/config"
+	"planeo/api/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -17,7 +18,7 @@ func main() {
 
 	// Start server
 	port := os.Getenv("PORT")
-	fmt.Println("Starting server on Port " + port)
+	logger.Log("Starting server on port: %s", port)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
