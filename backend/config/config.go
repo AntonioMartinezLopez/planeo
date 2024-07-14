@@ -7,7 +7,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var variables = []string{"PORT"}
+var variables = []string{"PORT", "JWKS_URL"}
 
 func LoadConfig() {
 	err := godotenv.Load()
