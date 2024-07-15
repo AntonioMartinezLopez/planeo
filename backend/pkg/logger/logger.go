@@ -2,7 +2,7 @@ package logger
 
 import (
 	"os"
-	jsonhelper "planeo/api/pkg/json"
+	jsonHelper "planeo/api/pkg/json"
 	"strings"
 
 	"github.com/rs/zerolog"
@@ -39,7 +39,7 @@ func Info(message string, args ...interface{}) {
 }
 
 func DebugJson(message string, data interface{}) {
-	logger.Debug().RawJSON(message, jsonhelper.ServeJson(data)).Msg("")
+	logger.Debug().RawJSON(message, jsonHelper.ServeJson(data)).Msg("")
 }
 
 func Debug(message string, args ...interface{}) {

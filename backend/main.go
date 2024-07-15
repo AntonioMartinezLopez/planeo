@@ -1,15 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	"os"
+	"planeo/api/api/router"
 	"planeo/api/config"
-	"planeo/api/pkg/jwt"
 	"planeo/api/pkg/logger"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"time"
 )
 
 func main() {
@@ -17,15 +13,16 @@ func main() {
 	// Load configuration
 	config.LoadConfig()
 
-	// Start server
-	port := os.Getenv("PORT")
-	logger.Log("Starting server on port: %s", port)
+	// Initialize Router
+	router := router.SetupRouter()
+	server := http.Server{
+		Addr:              config.ServerConfig(),
+		Handler:           router,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(jwt.JwtValidator)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
-	})
-	http.ListenAndServe(fmt.Sprintf(":%s", port), r)
+	logger.Fatal("%v", server.ListenAndServe())
 }

@@ -1,16 +1,15 @@
-package jwt
+package middlewares
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	jsonHelper "planeo/api/pkg/json"
 	"strings"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jws"
 )
@@ -41,13 +40,24 @@ type OauthAccessClaims struct {
 	Permissions []string
 }
 
+func (c OauthAccessClaims) HasScope(expectedScope string) bool {
+	for i := range c.Permissions {
+		if c.Permissions[i] == expectedScope {
+			return true
+		}
+	}
+	return false
+}
+
+type AccessClaimsContextKey struct{}
+type AccessTokenContextKey struct{}
+
 func JwtValidator(next http.Handler) http.Handler {
 	jwksURL := os.Getenv("JWKS_URL")
 	keySet := newJWKSet(jwksURL)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// extract authorization header
 		reqToken := r.Header.Get("Authorization")
 
 		if len(reqToken) == 0 {
@@ -63,45 +73,28 @@ func JwtValidator(next http.Handler) http.Handler {
 
 		reqToken = strings.TrimSpace(splitToken[1])
 
-		fmt.Println(reqToken)
-
 		verifiedAccessToken, err := jws.Verify(
 			[]byte(reqToken),
 			jws.WithKeySet(keySet, jws.WithInferAlgorithmFromKey(true)),
 		)
 
 		if err != nil {
-			jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, errors.New("wrong authenticaton header format"))
+			jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, err)
+			return
 		}
 
 		accessClaims := &OauthAccessClaims{}
-		parseError := jsonHelper.DecodeJSON(bytes.NewReader(verifiedAccessToken), accessClaims)
+		parseError := json.Unmarshal(verifiedAccessToken, accessClaims)
 
 		if parseError != nil {
-
+			jsonHelper.HttpErrorResponse(w, http.StatusInternalServerError, parseError)
+			return
 		}
 
-		// // extract user claims from header set by api gateway (did the authentication step)
-		// userClaims := r.Header.Get("X-Auth-User-Claims")
-		// if userClaims == "" {
-		// 	jsonhelper.HttpErrorResponse(w, http.StatusUnauthorized, errors.New("Missing user claims"))
-		// 	return
-		// }
-
-		// // decode user claims
-		// decodedUserClaims := Claims{}
-		// err := json.Unmarshal([]byte(userClaims), &decodedUserClaims)
-
-		// if err != nil {
-		// 	jsonHelper.HttpErrorResponse(w, http.StatusInternalServerError, err)
-		// 	return
-		// }
-
-		// // extend context with user claim information
-		// ctx := context.WithValue(r.Context(), "user-claims", decodedUserClaims)
+		ctx := context.WithValue(r.Context(), AccessClaimsContextKey{}, accessClaims)
+		ctx = context.WithValue(ctx, AccessTokenContextKey{}, reqToken)
 
 		// pass to next handler with extended context body
-		// next.ServeHTTP(w, r.WithContext(ctx))
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
