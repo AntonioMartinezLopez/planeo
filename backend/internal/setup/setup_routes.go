@@ -1,8 +1,10 @@
-package router
+package setup
 
 import (
 	"net/http"
-	"planeo/api/api/middlewares"
+
+	"planeo/api/internal/middlewares"
+	"planeo/api/internal/task"
 	jsonHelper "planeo/api/pkg/json"
 
 	"github.com/go-chi/chi/v5"
@@ -17,7 +19,7 @@ func registerRoutes(rootRouter *chi.Mux) {
 	rootRouter.Route("/api", func(r chi.Router) {
 		r.Use(middlewares.JwtValidator)
 		// Add new sub routers
-		TaskRouter(r)
+		task.TaskRouter(r)
 	})
 }
 

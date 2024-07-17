@@ -1,14 +1,12 @@
-package router
+package task
 
 import (
-	"planeo/api/api/handler"
-
 	"github.com/go-chi/chi/v5"
 )
 
 func TaskRouter(router chi.Router) {
 
-	taskHandler := handler.NewTaskHandler()
+	taskHandler := NewTaskHandler()
 
 	router.Route("/task", func(r chi.Router) {
 		r.Get("/{id}", taskHandler.GetTask)

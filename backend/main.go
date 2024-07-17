@@ -2,8 +2,9 @@ package main
 
 import (
 	"net/http"
-	"planeo/api/api/router"
 	"planeo/api/config"
+	"planeo/api/internal/setup"
+
 	"planeo/api/pkg/logger"
 	"time"
 )
@@ -14,7 +15,7 @@ func main() {
 	config.LoadConfig()
 
 	// Initialize Router
-	router := router.SetupRouter()
+	router := setup.SetupRouter()
 	server := http.Server{
 		Addr:              config.ServerConfig(),
 		Handler:           router,
