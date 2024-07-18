@@ -1,0 +1,16 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:alpine3.20
+    environment:
+      POSTGRES_USER: planeo
+      POSTGRES_PASSWORD: planeo
+      POSTGRES_DB: planeo
+    ports:
+      - "5432:5432"
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
