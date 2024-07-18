@@ -3,6 +3,7 @@ package setup
 import (
 	"net/http"
 
+	"planeo/api/internal/announcement"
 	"planeo/api/internal/middlewares"
 	"planeo/api/internal/task"
 	jsonHelper "planeo/api/pkg/json"
@@ -20,6 +21,7 @@ func registerRoutes(rootRouter *chi.Mux) {
 		r.Use(middlewares.JwtValidator)
 		// Add new sub routers
 		task.TaskRouter(r)
+		announcement.AnnouncementRouter(r)
 	})
 }
 

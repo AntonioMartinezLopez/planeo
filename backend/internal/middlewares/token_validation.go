@@ -91,7 +91,7 @@ func JwtValidator(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), AccessClaimsContextKey{}, accessClaims)
+		ctx := context.WithValue(r.Context(), AccessClaimsContextKey{}, *accessClaims)
 		ctx = context.WithValue(ctx, AccessTokenContextKey{}, reqToken)
 
 		// pass to next handler with extended context body
