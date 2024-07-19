@@ -4,7 +4,7 @@
 cleanup() {
     echo "Caught Ctrl+C, stopping all processes..."
     # Stop docker compose here
-    docker compose down -v
+    docker compose -f ./dev/docker-compose.yaml down -v
     # Kill all child processes
     pkill -P $$
     exit 0
@@ -21,6 +21,7 @@ BACKEND_DIR="backend"
 echo "Starting backend application"
 cd "../$BACKEND_DIR"
 air . &
+cd ..
 
 # Wait for all background processes to finish
 wait
