@@ -26,6 +26,5 @@ func LoadConfig() {
 
 func ServerConfig() string {
 	appServerUrl := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
-	logger.Log("Server Running at %s", appServerUrl)
 	return appServerUrl
 }

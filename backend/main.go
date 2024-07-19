@@ -14,10 +14,15 @@ func main() {
 	// Load configuration
 	config.LoadConfig()
 
+	// server configuration
+	serverConfig := config.ServerConfig()
+	logger.Log("Server Running at %s", serverConfig)
+
 	// Initialize Router
 	router := setup.SetupRouter()
+
 	server := http.Server{
-		Addr:              config.ServerConfig(),
+		Addr:              serverConfig,
 		Handler:           router,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
