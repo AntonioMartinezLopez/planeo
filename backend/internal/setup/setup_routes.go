@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"net/http"
+	"os"
 	"strings"
 
 	cfg "planeo/api/config"
@@ -16,6 +17,8 @@ import (
 )
 
 func registerRoutes(api huma.API) {
+
+	api.UseMiddleware(middlewares.NewAuthMiddleware(api, os.Getenv("JWKS_URL")))
 
 	type Message struct {
 		Alive bool `json:"alive" path:"status" doc:"Status of the API server" `
@@ -87,6 +90,25 @@ func SetupRouter() *chi.Mux {
 	router.Route("/api", func(r chi.Router) {
 
 		config := huma.DefaultConfig("My API", "1.0.0")
+		config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
+			// // Example Authorization Code flow.
+			"myAuth": {
+				Type: "oauth2",
+				Flows: &huma.OAuthFlows{
+					AuthorizationCode: &huma.OAuthFlow{
+						AuthorizationURL: "https://dev-3jftnb3rml6xpid5.eu.auth0.com/oauth/authorize",
+						TokenURL:         "https://dev-3jftnb3rml6xpid5.eu.auth0.com/oauth/token",
+
+						Scopes: map[string]string{
+							"openid":  "Scope for requesting OpenID token",
+							"profile": "Scope for including user profile",
+							"email":   "Scope for providing email information",
+						},
+					},
+				},
+			},
+		}
+
 		config.Servers = []*huma.Server{
 			{URL: getApiUrl()},
 		}

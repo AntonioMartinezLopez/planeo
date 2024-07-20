@@ -3,6 +3,7 @@ module planeo/api
 go 1.22.5
 
 require (
+	github.com/danielgtaylor/huma/v2 v2.19.0
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/goccy/go-json v0.10.3
 	github.com/joho/godotenv v1.5.1
@@ -11,7 +12,6 @@ require (
 )
 
 require (
-	github.com/danielgtaylor/huma/v2 v2.19.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

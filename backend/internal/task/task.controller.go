@@ -16,6 +16,9 @@ func TaskRouter(api huma.API) {
 		Method:      http.MethodGet,
 		Path:        "/task/{id}",
 		Summary:     "Get Task",
+		Security: []map[string][]string{
+			{"myAuth": {"openid", "email", "profile"}},
+		},
 	}, func(ctx context.Context, input *GetTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := taskService.GetTask(input.Id)
