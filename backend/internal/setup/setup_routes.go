@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -90,16 +91,15 @@ func SetupRouter() *chi.Mux {
 
 	router.Route("/api", func(r chi.Router) {
 
-		config := huma.DefaultConfig("My API", "1.0.0")
+		config := huma.DefaultConfig("Planeo API", "0.0.1")
 		config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 			// // Example Authorization Code flow.
 			"myAuth": {
 				Type: "oauth2",
 				Flows: &huma.OAuthFlows{
 					AuthorizationCode: &huma.OAuthFlow{
-						AuthorizationURL: "https://dev-3jftnb3rml6xpid5.eu.auth0.com/oauth/authorize",
-						TokenURL:         "https://dev-3jftnb3rml6xpid5.eu.auth0.com/oauth/token",
-
+						AuthorizationURL: fmt.Sprintf("%s/oauth/authorize", os.Getenv("OAUTH_ISSUER")),
+						TokenURL:         fmt.Sprintf("%s/oauth/token", os.Getenv("OAUTH_ISSUER")),
 						Scopes: map[string]string{
 							"openid":  "Scope for requesting OpenID token",
 							"profile": "Scope for including user profile",

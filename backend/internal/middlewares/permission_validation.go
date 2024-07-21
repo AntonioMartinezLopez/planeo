@@ -1,31 +1,28 @@
 package middlewares
 
 import (
-	"errors"
 	"net/http"
-	jsonHelper "planeo/api/pkg/json"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
-func PermissionValidator(permission string) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func PermissionMiddleware(api huma.API, permission string) func(ctx huma.Context, next func(huma.Context)) {
 
-			// get permission from context
-			accessClaims, assertionCorrect := r.Context().Value(AccessClaimsContextKey{}).(OauthAccessClaims)
+	return func(ctx huma.Context, next func(huma.Context)) {
+		accessClaims, assertionCorrect := ctx.Context().Value(AccessClaimsContextKey{}).(OauthAccessClaims)
 
-			if !assertionCorrect {
-				jsonHelper.HttpErrorResponse(w, http.StatusInternalServerError, errors.New("no permissions found"))
-				return
-			}
+		if !assertionCorrect {
+			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
+			return
+		}
 
-			hasScope := accessClaims.HasScope(permission)
+		hasScope := accessClaims.HasScope(permission)
 
-			if !hasScope {
-				jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, errors.New("not authorized"))
-				return
-			}
+		if !hasScope {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
 
-			next.ServeHTTP(w, r)
-		})
+		next(ctx)
 	}
 }

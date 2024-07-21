@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"net/http"
+	"planeo/api/internal/middlewares"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -19,6 +20,7 @@ func TaskRouter(api huma.API) {
 		Security: []map[string][]string{
 			{"myAuth": {"openid", "email", "profile"}},
 		},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(api, "read:task")},
 	}, func(ctx context.Context, input *GetTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := taskService.GetTask(input.Id)
