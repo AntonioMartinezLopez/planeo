@@ -1,6 +1,9 @@
 package task
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type TaskService struct{}
 
@@ -8,8 +11,13 @@ func NewTaskService() *TaskService {
 	return &TaskService{}
 }
 
-func (s *TaskService) GetTask(id string) string {
-	return fmt.Sprintf("GetTask endpoint. Id called: %s", id)
+func (s *TaskService) GetTask(id string) (string, error) {
+	if id == "1" {
+		return fmt.Sprintf("GetTask endpoint. Id called: %s", id), errors.New(
+			"instance not found",
+		)
+	}
+	return fmt.Sprintf("GetTask endpoint. Id called: %s", id), nil
 }
 
 func (s *TaskService) CreateTask() string {
