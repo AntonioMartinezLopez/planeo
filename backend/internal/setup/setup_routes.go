@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	cfg "planeo/api/config"
+	"planeo/api/internal/announcement"
 	"planeo/api/internal/middlewares"
 	"planeo/api/internal/task"
 
@@ -17,9 +18,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func registerRoutes(api huma.API) {
+type Controller interface {
+	InitializeRoutes()
+}
 
-	jwksURL := strings.Join([]string{os.Getenv("OAUTH_ISSUER"), "/.well-known/jwks.json"}, "")
+func registerControllers(api huma.API, controllers []Controller) {
+	jwksURL := fmt.Sprintf("%s/.well-known/jwks.json", os.Getenv("OAUTH_ISSUER"))
 	api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL))
 
 	type Message struct {
@@ -43,33 +47,10 @@ func registerRoutes(api huma.API) {
 		return resp, nil
 	})
 
-	// protect routes with middleware
-
-	// Add new routes
-	task.TaskRouter(api)
-
-	// rootRouter.Route("/api", func(r chi.Router) {
-	// 	r.Use(middlewares.JwtValidator)
-	// 	// Add new sub routers
-	// 	task.TaskRouter(r)
-	// 	announcement.AnnouncementRouter(r)
-	// })
-
-	// // GreetingOutput represents the greeting operation response.
-	// type GreetingOutput struct {
-	// 	Body struct {
-	// 		Message string `json:"message" example:"Hello, world!" doc:"Greeting message"`
-	// 	}
-	// }
-
-	// // Register GET /greeting/{name} handler.
-	// huma.Get(api, "/greeting/{name}", func(ctx context.Context, input *struct {
-	// 	Name string `path:"name" maxLength:"35" example:"world" doc:"Name to greet"`
-	// }) (*GreetingOutput, error) {
-	// 	resp := &GreetingOutput{}
-	// 	resp.Body.Message = fmt.Sprintf("Hello, %s!", input.Name)
-	// 	return resp, nil
-	// })
+	// initialize new routes
+	for _, controller := range controllers {
+		controller.InitializeRoutes()
+	}
 
 }
 
@@ -114,7 +95,10 @@ func SetupRouter() *chi.Mux {
 			{URL: getApiUrl()},
 		}
 		api := humachi.New(r, config)
-		registerRoutes(api)
+		registerControllers(api, []Controller{
+			task.NewTaskController(&api),
+			announcement.NewAnnouncementController(&api),
+		})
 
 	})
 
