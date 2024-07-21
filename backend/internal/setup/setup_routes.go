@@ -9,8 +9,9 @@ import (
 
 	cfg "planeo/api/config"
 	"planeo/api/internal/announcement"
+	"planeo/api/internal/group"
+	task "planeo/api/internal/group-task"
 	"planeo/api/internal/middlewares"
-	"planeo/api/internal/task"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
@@ -96,6 +97,7 @@ func SetupRouter() *chi.Mux {
 		}
 		api := humachi.New(r, config)
 		registerControllers(api, []Controller{
+			group.NewGroupController(&api),
 			task.NewTaskController(&api),
 			announcement.NewAnnouncementController(&api),
 		})
