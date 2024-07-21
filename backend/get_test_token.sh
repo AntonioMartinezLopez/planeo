@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set the .env file path
-ENV_FILE=".auth"
+ENV_FILE=".env"
 
 # Check if the .env file exists
 if [ ! -f "$ENV_FILE" ]; then
@@ -13,7 +13,7 @@ fi
 source "$ENV_FILE"
 
 # Check if CLIENT_ID and CLIENT_SECRET are set
-if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
+if [ -z "$OAUTH_CLIENT_ID" ] || [ -z "$OAUTH_CLIENT_SECRET" ]; then
     echo "CLIENT_ID or CLIENT_SECRET not set in $ENV_FILE. Exiting."
     exit 1
 fi
@@ -27,15 +27,15 @@ echo
 
 # Perform the curl request
 response=$(curl --silent --request POST \
-    --url 'https://dev-3jftnb3rml6xpid5.eu.auth0.com/oauth/token' \
+    --url "$OAUTH_ISSUER/oauth/token" \
     --header 'content-type: application/x-www-form-urlencoded' \
     --data grant_type=password \
     --data "username=${username}" \
     --data "password=${password}" \
     --data 'scope=openid profile email' \
     --data 'audience=https://api.planeo.de' \
-    --data "client_id=${CLIENT_ID}" \
-    --data "client_secret=${CLIENT_SECRET}")
+    --data "client_id=${OAUTH_CLIENT_ID}" \
+    --data "client_secret=${OAUTH_CLIENT_SECRET}")
 
 # Check for error in response
 if echo "$response" | jq -e '.error' > /dev/null; then

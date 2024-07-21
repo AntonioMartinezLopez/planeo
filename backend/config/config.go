@@ -8,7 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var variables = []string{"HOST", "PORT", "JWKS_URL"}
+var variables = []string{"HOST", "PORT", "OAUTH_ISSUER", "OAUTH_CLIENT_ID", "OAUTH_CLIENT_SECRET"}
 
 func LoadConfig() {
 	err := godotenv.Load()

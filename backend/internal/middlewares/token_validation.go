@@ -2,11 +2,8 @@ package middlewares
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"os"
-	jsonHelper "planeo/api/pkg/json"
 	"strings"
 	"time"
 
@@ -39,10 +36,12 @@ func newJWKSet(jwkUrl string) jwk.Set {
 }
 
 type OauthAccessClaims struct {
-	Permissions []string
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	UserId      string `json:"userid"`
+	Permissions []string `json:"permissions"`
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	UserId      string   `json:"userid"`
+	Issuer      string   `json:"iss"`
+	Audiences   []string `json:"aud"`
 }
 
 func (c OauthAccessClaims) HasScope(expectedScope string) bool {
@@ -54,63 +53,30 @@ func (c OauthAccessClaims) HasScope(expectedScope string) bool {
 	return false
 }
 
+func (c OauthAccessClaims) HasAudience(expectedAudience string) bool {
+	for i := range c.Audiences {
+		if c.Audiences[i] == expectedAudience {
+			return true
+		}
+	}
+	return false
+}
+
+func (c OauthAccessClaims) HasIssuer(expectedIssuer string) bool {
+	return c.Issuer == expectedIssuer
+}
+
 type AccessClaimsContextKey struct{}
 type AccessTokenContextKey struct{}
 
-func AuthMiddleware(next http.Handler) http.Handler {
-	jwksURL := os.Getenv("JWKS_URL")
-	keySet := newJWKSet(jwksURL)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		reqToken := r.Header.Get("Authorization")
-
-		if len(reqToken) == 0 {
-			jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, errors.New("missing access token"))
-			return
-		}
-
-		splitToken := strings.Split(reqToken, "Bearer")
-		if len(splitToken) != 2 {
-			jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, errors.New("wrong authenticaton header format"))
-			return
-		}
-
-		reqToken = strings.TrimSpace(splitToken[1])
-
-		verifiedAccessToken, err := jws.Verify(
-			[]byte(reqToken),
-			jws.WithKeySet(keySet, jws.WithInferAlgorithmFromKey(true)),
-		)
-
-		if err != nil {
-			jsonHelper.HttpErrorResponse(w, http.StatusUnauthorized, err)
-			return
-		}
-
-		accessClaims := &OauthAccessClaims{}
-		parseError := json.Unmarshal(verifiedAccessToken, accessClaims)
-
-		if parseError != nil {
-			jsonHelper.HttpErrorResponse(w, http.StatusInternalServerError, parseError)
-			return
-		}
-
-		ctx := context.WithValue(r.Context(), AccessClaimsContextKey{}, *accessClaims)
-		ctx = context.WithValue(ctx, AccessTokenContextKey{}, reqToken)
-
-		// pass to next handler with extended context body
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 // NewAuthMiddleware creates a middleware that will authorize requests based on
 // the required scopes for the operation.
-func NewAuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next func(huma.Context)) {
+func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next func(huma.Context)) {
 	keySet := newJWKSet(jwksURL)
 
 	return func(ctx huma.Context, next func(huma.Context)) {
-		// var anyOfNeededScopes []string
+
+		// 1. check whether auth needs to be applied
 		isAuthorizationRequired := false
 		for _, opScheme := range ctx.Operation().Security {
 			var ok bool
@@ -125,25 +91,12 @@ func NewAuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next
 			return
 		}
 
+		// 2. extract token and verfiy
 		token := strings.TrimPrefix(ctx.Header("Authorization"), "Bearer ")
 		if len(token) == 0 {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
-
-		// // Parse and validate the JWT.
-		// parsed, err := jwt.ParseString(token,
-		// 	jwt.WithKeySet(keySet),
-		// 	jwt.WithValidate(true),
-		// 	jwt.WithIssuer("https://dev-3jftnb3rml6xpid5.eu.auth0.com/"),
-		// 	jwt.WithAudience("my-audience"),
-		// )
-
-		// fmt.Println(parsed.PrivateClaims().)
-		// if err != nil {
-		// 	huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
-		// 	return
-		// }
 
 		verifiedAccessToken, err := jws.Verify(
 			[]byte(token),
@@ -158,13 +111,21 @@ func NewAuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next
 		accessClaims := &OauthAccessClaims{}
 		parseError := json.Unmarshal(verifiedAccessToken, accessClaims)
 
-		fmt.Println(string(verifiedAccessToken))
-
 		if parseError != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, parseError.Error())
 			return
 		}
 
+		// 3. verfiy audience and Issuer
+		isAudienceCorrect := accessClaims.HasAudience("https://api.planeo.de")
+		isIssuerCorrect := accessClaims.HasIssuer(os.Getenv("OAUTH_ISSUER"))
+
+		if !isAudienceCorrect || isIssuerCorrect {
+			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
+			return
+		}
+
+		// 4. add information to context
 		ctx = huma.WithValue(ctx, AccessClaimsContextKey{}, *accessClaims)
 		ctx = huma.WithValue(ctx, AccessTokenContextKey{}, token)
 

@@ -18,7 +18,8 @@ import (
 
 func registerRoutes(api huma.API) {
 
-	api.UseMiddleware(middlewares.NewAuthMiddleware(api, os.Getenv("JWKS_URL")))
+	jwksURL := strings.Join([]string{os.Getenv("OAUTH_ISSUER"), "/.well-known/jwks.json"}, "")
+	api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL))
 
 	type Message struct {
 		Alive bool `json:"alive" path:"status" doc:"Status of the API server" `
