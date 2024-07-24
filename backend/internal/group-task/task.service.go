@@ -20,6 +20,10 @@ func (s *TaskService) GetTask(id string) (string, error) {
 	return fmt.Sprintf("GetTask endpoint. Id called: %s", id), nil
 }
 
+func (s *TaskService) GetTasks() string {
+	return "GetTasks endpoint"
+}
+
 func (s *TaskService) CreateTask() string {
 	return "CreateTask endpoint"
 }

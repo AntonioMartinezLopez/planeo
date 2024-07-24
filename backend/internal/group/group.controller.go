@@ -26,7 +26,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-group",
 		Method:      http.MethodGet,
-		Path:        "/group/{groupId}",
+		Path:        "/groups/{groupId}",
 		Summary:     "Get Group",
 		Tags:        []string{"Group"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:group")},
@@ -44,7 +44,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-group",
 		Method:      http.MethodPost,
-		Path:        "/group",
+		Path:        "/groups",
 		Summary:     "Create Group",
 		Tags:        []string{"Group"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:group")},
@@ -58,7 +58,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-group",
 		Method:      http.MethodPut,
-		Path:        "/group/{groupId}",
+		Path:        "/groups/{groupId}",
 		Summary:     "Update Group",
 		Tags:        []string{"Group"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:group")},
@@ -72,7 +72,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-group",
 		Method:      http.MethodDelete,
-		Path:        "/group/{groupId}",
+		Path:        "/groups/{groupId}",
 		Summary:     "Delete Group",
 		Tags:        []string{"Group"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:group")},

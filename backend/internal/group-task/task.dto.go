@@ -7,8 +7,8 @@ type TaskOutput struct {
 }
 
 type GetTaskInput struct {
-	GetGroupInput
-	TaskId string `path:"taskId" doc:"ID of the task"`
+	GroupId string `path:"groupId" doc:"ID of the group to which the given task belongs"`
+	TaskId  string `path:"taskId" doc:"ID of the task"`
 }
 
 type CreateTaskInput struct{}
