@@ -26,9 +26,9 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-task",
 		Method:      http.MethodGet,
-		Path:        "/groups/{groupId}/tasks/{id}",
+		Path:        "/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Get Task",
-		Tags:        []string{"Task"},
+		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},
 	}), func(ctx context.Context, input *GetTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
@@ -46,7 +46,7 @@ func (t *TaskController) InitializeRoutes() {
 		Method:      http.MethodPost,
 		Path:        "/groups/{groupId}/tasks",
 		Summary:     "Create Task",
-		Tags:        []string{"Task"},
+		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:task")},
 	}), func(ctx context.Context, input *CreateTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
@@ -58,9 +58,9 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-task",
 		Method:      http.MethodPut,
-		Path:        "/groups/{groupId}/tasks/{id}",
+		Path:        "/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Update Task",
-		Tags:        []string{"Task"},
+		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:task")},
 	}), func(ctx context.Context, input *UpdateTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
@@ -72,9 +72,9 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-task",
 		Method:      http.MethodDelete,
-		Path:        "/groups/{groupId}/tasks/{id}",
+		Path:        "/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Delete Task",
-		Tags:        []string{"Task"},
+		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:task")},
 	}), func(ctx context.Context, input *DeleteTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
@@ -88,9 +88,9 @@ func (t *TaskController) InitializeRoutes() {
 		Method:      http.MethodGet,
 		Path:        "/groups/{groupId}/tasks",
 		Summary:     "Get Tasks",
-		Tags:        []string{"Task"},
+		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},
-	}), func(ctx context.Context, input *GetTaskInput) (*TaskOutput, error) {
+	}), func(ctx context.Context, input *GetTasksInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := t.taskService.GetTasks()
 		resp.Body.Message = result

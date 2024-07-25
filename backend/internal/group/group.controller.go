@@ -28,7 +28,7 @@ func (t *GroupController) InitializeRoutes() {
 		Method:      http.MethodGet,
 		Path:        "/groups/{groupId}",
 		Summary:     "Get Group",
-		Tags:        []string{"Group"},
+		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:group")},
 	}), func(ctx context.Context, input *GetGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
@@ -46,7 +46,7 @@ func (t *GroupController) InitializeRoutes() {
 		Method:      http.MethodPost,
 		Path:        "/groups",
 		Summary:     "Create Group",
-		Tags:        []string{"Group"},
+		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:group")},
 	}), func(ctx context.Context, input *CreateGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
@@ -60,7 +60,7 @@ func (t *GroupController) InitializeRoutes() {
 		Method:      http.MethodPut,
 		Path:        "/groups/{groupId}",
 		Summary:     "Update Group",
-		Tags:        []string{"Group"},
+		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:group")},
 	}), func(ctx context.Context, input *UpdateGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
@@ -74,7 +74,7 @@ func (t *GroupController) InitializeRoutes() {
 		Method:      http.MethodDelete,
 		Path:        "/groups/{groupId}",
 		Summary:     "Delete Group",
-		Tags:        []string{"Group"},
+		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:group")},
 	}), func(ctx context.Context, input *DeleteGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
@@ -83,4 +83,17 @@ func (t *GroupController) InitializeRoutes() {
 		return resp, nil
 	})
 
+	huma.Register(*t.api, operations.WithAuth(huma.Operation{
+		OperationID: "get-groups",
+		Method:      http.MethodGet,
+		Path:        "/groups",
+		Summary:     "Get Groups",
+		Tags:        []string{"Groups"},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:group")},
+	}), func(ctx context.Context, input *struct{}) (*GroupOutput, error) {
+		resp := &GroupOutput{}
+		result := t.groupService.GetGroups()
+		resp.Body.Message = result
+		return resp, nil
+	})
 }

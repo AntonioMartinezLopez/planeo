@@ -31,3 +31,7 @@ func (s *GroupService) UpdateGroup(id string) string {
 func (s *GroupService) DeleteGroup(id string) string {
 	return "DeleteGroup endpoint"
 }
+
+func (s *GroupService) GetGroups() string {
+	return "GetGroups endpoint"
+}
