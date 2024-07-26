@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries:
+      - "author-queries.sql"
+      - "books-queries.sql"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "tutorial"
+        out: "tutorial"
+        sql_package: "pgx/v5"
