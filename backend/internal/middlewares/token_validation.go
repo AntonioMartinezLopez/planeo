@@ -20,7 +20,7 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 		isAuthorizationRequired := false
 		for _, opScheme := range ctx.Operation().Security {
 			var ok bool
-			if _, ok = opScheme["myAuth"]; ok {
+			if _, ok = opScheme["bearer"]; ok {
 				isAuthorizationRequired = true
 				break
 			}
@@ -56,7 +56,13 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 			return
 		}
 
-		// 3. verfiy audience and Issuer
+		// 3. Check expiration
+		if accessClaims.IsExpired() {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token expired")
+			return
+		}
+
+		// 4. verfiy audience and Issuer
 		isAudienceCorrect := accessClaims.HasAudience("https://api.planeo.de")
 		isIssuerCorrect := accessClaims.HasIssuer(issuer)
 
@@ -65,7 +71,7 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 			return
 		}
 
-		// 4. add information to context
+		// 5. add information to context
 		ctx = huma.WithValue(ctx, AccessClaimsContextKey{}, *accessClaims)
 		ctx = huma.WithValue(ctx, AccessTokenContextKey{}, token)
 

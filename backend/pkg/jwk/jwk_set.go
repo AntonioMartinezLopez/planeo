@@ -23,7 +23,7 @@ func NewJWKSet(jwkUrl string) jwk.Set {
 	// fetch once on application startup
 	_, err = jwkCache.Refresh(ctx, jwkUrl)
 	if err != nil {
-		panic("failed to fetch on startup")
+		panic("failed to fetch JWKS on startup")
 	}
 	// create the cached key set
 	return jwk.NewCachedSet(jwkCache, jwkUrl)

@@ -76,7 +76,7 @@ func SetupRouter() *chi.Mux {
 		config := huma.DefaultConfig("Planeo API", "0.0.1")
 		config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 			// // Example Authorization Code flow.
-			"myAuth": {
+			"bearer": {
 				Type: "oauth2",
 				Flows: &huma.OAuthFlows{
 					AuthorizationCode: &huma.OAuthFlow{
