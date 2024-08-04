@@ -1,6 +1,9 @@
 package middlewares
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 type OauthAccessClaims struct {
 	Permissions    []string `json:"permissions"`
@@ -10,6 +13,7 @@ type OauthAccessClaims struct {
 	Issuer         string   `json:"iss"`
 	Audiences      []string `json:"aud"`
 	ExpirationTime int64    `json:"exp"`
+	Roles          []string `json:"roles"`
 }
 
 func (c OauthAccessClaims) HasScope(expectedScope string) bool {
@@ -37,6 +41,10 @@ func (c OauthAccessClaims) HasIssuer(expectedIssuer string) bool {
 func (c OauthAccessClaims) IsExpired() bool {
 	currentTime := time.Now().Unix()
 	return currentTime > c.ExpirationTime
+}
+
+func (c OauthAccessClaims) IsRole(role string) bool {
+	return slices.Contains(c.Roles, role)
 }
 
 type AccessClaimsContextKey struct{}
