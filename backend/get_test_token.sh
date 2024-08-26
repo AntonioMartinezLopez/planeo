@@ -27,7 +27,7 @@ echo
 
 # Perform the curl request
 response=$(curl --silent --request POST \
-    --url "$OAUTH_ISSUER/oauth/token" \
+    --url "$OAUTH_ISSUER/protocol/openid-connect/token" \
     --header 'content-type: application/x-www-form-urlencoded' \
     --data grant_type=password \
     --data "username=${username}" \
@@ -53,3 +53,14 @@ else
     echo "ID Token: $id_token"
     echo
 fi
+
+echo "check permissions..."
+response_permissions=$(curl --silent --request POST \
+    --url "$OAUTH_ISSUER/protocol/openid-connect/token" \
+    --header 'content-type: application/x-www-form-urlencoded' \
+    --header "Authorization: Bearer ${access_token}" \
+    --data grant_type=urn:ietf:params:oauth:grant-type:uma-ticket \
+    --data "response_mode=permissions" \
+    --data "audience=${OAUTH_CLIENT_ID}" )
+
+echo "Permissions: $response_permissions"
