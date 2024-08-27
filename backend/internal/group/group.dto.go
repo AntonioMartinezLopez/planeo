@@ -7,10 +7,13 @@ type GroupOutput struct {
 }
 
 type GetGroupInput struct {
-	GroupId string `path:"groupId" doc:"ID of the Group"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	GroupId      string `path:"groupId" doc:"ID of the Group"`
 }
 
-type CreateGroupInput struct{}
+type CreateGroupInput struct {
+	Organization string `path:"organization" doc:"ID of the organization"`
+}
 type UpdateGroupInput struct {
 	GetGroupInput
 }

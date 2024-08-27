@@ -16,6 +16,24 @@ trap cleanup SIGINT
 # start docker containers
 docker compose up --build -d --remove-orphans
 
+# URL to check
+URL="http://localhost:8080/realms/local/protocol/openid-connect/certs"
+
+# Loop until a 200 response is received
+while true; do
+  # Send a HEAD request and capture the HTTP status code
+  STATUS=$(curl -o /dev/null -s -w "%{http_code}" "$URL")
+  
+  # Check if the status code is 200
+  if [ "$STATUS" -eq 200 ]; then
+    echo "Received 200 response from $URL"
+    break
+  else
+    echo "Waiting for 200 response... Current status: $STATUS"
+    sleep 5 # Wait for 5 seconds before checking again
+  fi
+done
+
 # start backend
 BACKEND_DIR="backend"
 echo "Starting backend application"

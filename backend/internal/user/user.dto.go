@@ -7,10 +7,13 @@ type UserOutput struct {
 }
 
 type GetUserInput struct {
-	UserId string `path:"userId" doc:"ID of the User"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	UserId       string `path:"userId" doc:"ID of the User"`
 }
 
-type CreateUserInput struct{}
+type CreateUserInput struct {
+	Organization string `path:"organization" doc:"ID of the organization"`
+}
 type UpdateUserInput struct {
 	GetUserInput
 }

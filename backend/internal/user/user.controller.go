@@ -26,7 +26,7 @@ func (t *UserController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,
-		Path:        "/users/{userId}",
+		Path:        "/{organization}/users/{userId}",
 		Summary:     "Get User",
 		Tags:        []string{"Users"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:user")},
@@ -44,7 +44,7 @@ func (t *UserController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-user",
 		Method:      http.MethodPost,
-		Path:        "/users",
+		Path:        "/{organization}/users",
 		Summary:     "Create User",
 		Tags:        []string{"Users"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:user")},
@@ -58,7 +58,7 @@ func (t *UserController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-user",
 		Method:      http.MethodPut,
-		Path:        "/users/{userId}",
+		Path:        "/{organization}/users/{userId}",
 		Summary:     "Update User",
 		Tags:        []string{"Users"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:user")},
@@ -72,7 +72,7 @@ func (t *UserController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-user",
 		Method:      http.MethodDelete,
-		Path:        "/users/{userId}",
+		Path:        "/{organization}/users/{userId}",
 		Summary:     "Delete User",
 		Tags:        []string{"Users"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:user")},
@@ -86,7 +86,7 @@ func (t *UserController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-users",
 		Method:      http.MethodGet,
-		Path:        "/users",
+		Path:        "/{organization}/users",
 		Summary:     "Get Users",
 		Tags:        []string{"Users"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:users")},

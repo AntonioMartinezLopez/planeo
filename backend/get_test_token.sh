@@ -33,7 +33,6 @@ response=$(curl --silent --request POST \
     --data "username=${username}" \
     --data "password=${password}" \
     --data 'scope=openid profile email' \
-    --data 'audience=https://api.planeo.de' \
     --data "client_id=${OAUTH_CLIENT_ID}" \
     --data "client_secret=${OAUTH_CLIENT_SECRET}")
 

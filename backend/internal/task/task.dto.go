@@ -7,16 +7,19 @@ type TaskOutput struct {
 }
 
 type GetTaskInput struct {
-	GroupId string `path:"groupId" doc:"ID of the group to which the given task belongs"`
-	TaskId  string `path:"taskId" doc:"ID of the task"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	GroupId      string `path:"groupId" doc:"ID of the group to which the given task belongs"`
+	TaskId       string `path:"taskId" doc:"ID of the task"`
 }
 
 type GetTasksInput struct {
-	GroupId string `path:"groupId" doc:"ID of the group to which the given task belongs"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	GroupId      string `path:"groupId" doc:"ID of the group to which the given task belongs"`
 }
 
 type CreateTaskInput struct {
-	GroupId string `path:"groupId" doc:"ID of the group to which the given task belongs"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	GroupId      string `path:"groupId" doc:"ID of the group to which the given task belongs"`
 }
 
 type UpdateTaskInput struct {

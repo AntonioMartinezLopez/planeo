@@ -7,10 +7,13 @@ type AnnouncementOutput struct {
 }
 
 type GetAnnouncementInput struct {
-	Id string `path:"id" doc:"ID of the task"`
+	Organization string `path:"organization" doc:"ID of the organization"`
+	Id           string `path:"id" doc:"ID of the task"`
 }
 
-type CreateAnnouncementInput struct{}
+type CreateAnnouncementInput struct {
+	Organization string `path:"organization" doc:"ID of the organization"`
+}
 type UpdateAnnouncementInput struct {
 	GetAnnouncementInput
 }

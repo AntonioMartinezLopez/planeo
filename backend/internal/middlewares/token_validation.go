@@ -63,10 +63,11 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 		}
 
 		// 4. verfiy audience and Issuer
-		isAudienceCorrect := accessClaims.HasAudience("https://api.planeo.de")
+		organization := strings.Split(ctx.URL().Path, "/")[2]
+		isCorrectAuthorizedParty := accessClaims.IsCorrectAzp(organization)
 		isIssuerCorrect := accessClaims.HasIssuer(issuer)
 
-		if !isAudienceCorrect || isIssuerCorrect {
+		if !isIssuerCorrect || !isCorrectAuthorizedParty {
 			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
 			return
 		}

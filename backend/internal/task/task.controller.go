@@ -26,7 +26,7 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-task",
 		Method:      http.MethodGet,
-		Path:        "/groups/{groupId}/tasks/{taskId}",
+		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Get Task",
 		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},
@@ -44,7 +44,7 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-task",
 		Method:      http.MethodPost,
-		Path:        "/groups/{groupId}/tasks",
+		Path:        "/{organization}/groups/{groupId}/tasks",
 		Summary:     "Create Task",
 		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:task")},
@@ -58,7 +58,7 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-task",
 		Method:      http.MethodPut,
-		Path:        "/groups/{groupId}/tasks/{taskId}",
+		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Update Task",
 		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:task")},
@@ -72,7 +72,7 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-task",
 		Method:      http.MethodDelete,
-		Path:        "/groups/{groupId}/tasks/{taskId}",
+		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Delete Task",
 		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:task")},
@@ -86,7 +86,7 @@ func (t *TaskController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-tasks",
 		Method:      http.MethodGet,
-		Path:        "/groups/{groupId}/tasks",
+		Path:        "/{organization}/groups/{groupId}/tasks",
 		Summary:     "Get Tasks",
 		Tags:        []string{"Tasks"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},

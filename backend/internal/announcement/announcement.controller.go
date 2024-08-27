@@ -26,7 +26,7 @@ func (a *AnnouncementController) InitializeRoutes() {
 	huma.Register(*a.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-announcement",
 		Method:      http.MethodGet,
-		Path:        "/announcement/{id}",
+		Path:        "/{organization}/announcement/{id}",
 		Summary:     "Get Announcement",
 		Tags:        []string{"Announcement"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*a.api, "read:announcement")},
@@ -41,7 +41,7 @@ func (a *AnnouncementController) InitializeRoutes() {
 	huma.Register(*a.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-announcement",
 		Method:      http.MethodPost,
-		Path:        "/announcement",
+		Path:        "/{organization}/announcement",
 		Summary:     "Create Announcement",
 		Tags:        []string{"Announcement"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*a.api, "create:announcement")},
@@ -55,7 +55,7 @@ func (a *AnnouncementController) InitializeRoutes() {
 	huma.Register(*a.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-announcement",
 		Method:      http.MethodPut,
-		Path:        "/announcement/{id}",
+		Path:        "/{organization}/announcement/{id}",
 		Summary:     "Update Announcement",
 		Tags:        []string{"Announcement"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*a.api, "update:announcement")},
@@ -69,7 +69,7 @@ func (a *AnnouncementController) InitializeRoutes() {
 	huma.Register(*a.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-announcement",
 		Method:      http.MethodDelete,
-		Path:        "/announcement/{id}",
+		Path:        "/{organization}/announcement/{id}",
 		Summary:     "Delete Announcement",
 		Tags:        []string{"Announcement"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*a.api, "delete:announcement")},

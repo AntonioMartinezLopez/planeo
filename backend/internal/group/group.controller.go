@@ -26,7 +26,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-group",
 		Method:      http.MethodGet,
-		Path:        "/groups/{groupId}",
+		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Get Group",
 		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:group")},
@@ -44,7 +44,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-group",
 		Method:      http.MethodPost,
-		Path:        "/groups",
+		Path:        "/{organization}/groups",
 		Summary:     "Create Group",
 		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:group")},
@@ -58,7 +58,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-group",
 		Method:      http.MethodPut,
-		Path:        "/groups/{groupId}",
+		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Update Group",
 		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:group")},
@@ -72,7 +72,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-group",
 		Method:      http.MethodDelete,
-		Path:        "/groups/{groupId}",
+		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Delete Group",
 		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:group")},
@@ -86,7 +86,7 @@ func (t *GroupController) InitializeRoutes() {
 	huma.Register(*t.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-groups",
 		Method:      http.MethodGet,
-		Path:        "/groups",
+		Path:        "/{organization}/groups",
 		Summary:     "Get Groups",
 		Tags:        []string{"Groups"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:group")},
