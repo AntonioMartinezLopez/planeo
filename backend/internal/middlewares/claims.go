@@ -6,19 +6,23 @@ import (
 )
 
 type OauthAccessClaims struct {
-	// Permissions    []string `json:"permissions"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	UserId string `json:"userid"`
-	Issuer string `json:"iss"`
-	// Audiences      *[]string `json:"aud,omitempty"`
-	AuthorizedParty string   `json:"azp"`
-	ExpirationTime  int64    `json:"exp"`
-	Roles           []string `json:"roles"`
+	Name           string   `json:"name"`
+	Email          string   `json:"email"`
+	UserId         string   `json:"userid"`
+	Issuer         string   `json:"iss"`
+	Groups         []string `json:"groups"`
+	ExpirationTime int64    `json:"exp"`
+	Roles          []string `json:"roles"`
 }
 
-func (c OauthAccessClaims) IsCorrectAzp(organization string) bool {
-	return c.AuthorizedParty == organization
+func (c OauthAccessClaims) IsWithinOrganisation(organization string) bool {
+	organizationWithPrefix := "/" + organization
+	for _, group := range c.Groups {
+		if group == organizationWithPrefix {
+			return true
+		}
+	}
+	return false
 }
 
 func (c OauthAccessClaims) HasIssuer(expectedIssuer string) bool {
