@@ -29,7 +29,7 @@ func (t *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users/{userId}",
 		Summary:     "Get User",
 		Tags:        []string{"Users"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:user")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "user", "read")},
 	}), func(ctx context.Context, input *GetUserInput) (*UserOutput, error) {
 		resp := &UserOutput{}
 		result, err := t.userService.GetUser(input.UserId)
@@ -47,7 +47,7 @@ func (t *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users",
 		Summary:     "Create User",
 		Tags:        []string{"Users"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:user")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "user", "create")},
 	}), func(ctx context.Context, input *CreateUserInput) (*UserOutput, error) {
 		resp := &UserOutput{}
 		result := t.userService.CreateUser()
@@ -61,7 +61,7 @@ func (t *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users/{userId}",
 		Summary:     "Update User",
 		Tags:        []string{"Users"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:user")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "user", "update")},
 	}), func(ctx context.Context, input *UpdateUserInput) (*UserOutput, error) {
 		resp := &UserOutput{}
 		result := t.userService.UpdateUser(input.UserId)
@@ -75,7 +75,7 @@ func (t *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users/{userId}",
 		Summary:     "Delete User",
 		Tags:        []string{"Users"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:user")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "user", "delete")},
 	}), func(ctx context.Context, input *DeleteUserInput) (*UserOutput, error) {
 		resp := &UserOutput{}
 		result := t.userService.DeleteUser(input.UserId)
@@ -89,7 +89,7 @@ func (t *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users",
 		Summary:     "Get Users",
 		Tags:        []string{"Users"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:users")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "user", "read")},
 	}), func(ctx context.Context, input *struct{}) (*UserOutput, error) {
 		resp := &UserOutput{}
 		result := t.userService.GetUsers()

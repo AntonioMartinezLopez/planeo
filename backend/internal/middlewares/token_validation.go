@@ -26,8 +26,7 @@ func isAuthorizationRequired(ctx huma.Context) bool {
 	return isAuthorizationRequired
 }
 
-func verifyToken(ctx huma.Context, keySet jwk.Set) ([]byte, error) {
-	token := strings.TrimPrefix(ctx.Header("Authorization"), "Bearer ")
+func verifyToken(token string, keySet jwk.Set) ([]byte, error) {
 	if len(token) == 0 {
 		return nil, errors.New("missing auth token")
 	}
@@ -79,7 +78,8 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 			return
 		}
 
-		verifiedAccessToken, err := verifyToken(ctx, keySet)
+		token := strings.TrimPrefix(ctx.Header("Authorization"), "Bearer ")
+		verifiedAccessToken, err := verifyToken(token, keySet)
 
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, err.Error())
@@ -106,9 +106,8 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 			return
 		}
 
-		// 5. add information to context
 		ctx = huma.WithValue(ctx, AccessClaimsContextKey{}, *accessClaims)
-		ctx = huma.WithValue(ctx, AccessTokenContextKey{}, string(verifiedAccessToken))
+		ctx = huma.WithValue(ctx, AccessTokenContextKey{}, token)
 
 		next(ctx)
 	}

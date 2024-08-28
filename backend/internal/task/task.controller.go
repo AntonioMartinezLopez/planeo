@@ -29,7 +29,7 @@ func (t *TaskController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Get Task",
 		Tags:        []string{"Tasks"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "task", "read")},
 	}), func(ctx context.Context, input *GetTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result, err := t.taskService.GetTask(input.TaskId)
@@ -47,7 +47,7 @@ func (t *TaskController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}/tasks",
 		Summary:     "Create Task",
 		Tags:        []string{"Tasks"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "create:task")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "task", "create")},
 	}), func(ctx context.Context, input *CreateTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := t.taskService.CreateTask()
@@ -61,7 +61,7 @@ func (t *TaskController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Update Task",
 		Tags:        []string{"Tasks"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "update:task")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "task", "update")},
 	}), func(ctx context.Context, input *UpdateTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := t.taskService.UpdateTask(input.TaskId)
@@ -75,7 +75,7 @@ func (t *TaskController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}/tasks/{taskId}",
 		Summary:     "Delete Task",
 		Tags:        []string{"Tasks"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "delete:task")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "task", "delete")},
 	}), func(ctx context.Context, input *DeleteTaskInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := t.taskService.DeleteTask(input.TaskId)
@@ -89,7 +89,7 @@ func (t *TaskController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}/tasks",
 		Summary:     "Get Tasks",
 		Tags:        []string{"Tasks"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "read:task")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*t.api, "task", "read")},
 	}), func(ctx context.Context, input *GetTasksInput) (*TaskOutput, error) {
 		resp := &TaskOutput{}
 		result := t.taskService.GetTasks()

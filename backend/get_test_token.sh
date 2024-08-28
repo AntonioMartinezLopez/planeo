@@ -56,7 +56,6 @@ fi
 echo "check permissions..."
 response_permissions=$(curl --silent --request POST \
     --url "$OAUTH_ISSUER/protocol/openid-connect/token" \
-    --header 'content-type: application/x-www-form-urlencoded' \
     --header "Authorization: Bearer ${access_token}" \
     --data grant_type=urn:ietf:params:oauth:grant-type:uma-ticket \
     --data "response_mode=permissions" \
