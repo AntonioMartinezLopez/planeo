@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"planeo/api/pkg/request"
 	"slices"
@@ -25,20 +24,33 @@ func fetchUserPermissions(token string) (*[]Permission, error) {
 	oauthClientID := os.Getenv("OAUTH_CLIENT_ID")
 	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", oauthIssuer)
 
-	data := url.Values{}
-	data.Set("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket")
-	data.Set("response_mode", "permissions")
-	data.Set("audience", oauthClientID)
+	data := map[string]string{
+		"grant_type":    "urn:ietf:params:oauth:grant-type:uma-ticket",
+		"response_mode": "permissions",
+		"audience":      oauthClientID,
+	}
 
 	headers := map[string]string{
 		"Content-Type":  "application/x-www-form-urlencoded",
 		"Authorization": fmt.Sprintf("Bearer %s", token),
 	}
 
-	response, err := request.HttpRequestWithRetry(request.POST, requestURL, data, headers)
+	requestParams := request.HttpRequestParams{
+		Method:      request.POST,
+		URL:         requestURL,
+		Headers:     headers,
+		Body:        data,
+		ContentType: request.ApplicationFormURLEncoded,
+	}
+
+	response, err := request.HttpRequestWithRetry(requestParams)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if response.StatusCode != 200 {
+		return nil, fmt.Errorf("permissions fetching was not successful: %d", response.StatusCode)
 	}
 
 	defer response.Body.Close()
@@ -73,11 +85,10 @@ func PermissionMiddleware(api huma.API, resourceName string, permission string) 
 
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())
+			return
 		}
 
 		for _, perm := range *permissions {
-			println(resourceName == strings.ToLower(perm.ResourceName))
-			println(slices.Contains(perm.Scopes, permission))
 			if (resourceName == strings.ToLower(perm.ResourceName)) && (slices.Contains(perm.Scopes, permission)) {
 				next(ctx)
 				return
