@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
+	cfg "planeo/api/config"
 	"planeo/api/pkg/request"
 	"slices"
 	"strings"
@@ -20,8 +20,8 @@ type Permission struct {
 }
 
 func fetchUserPermissions(token string) (*[]Permission, error) {
-	oauthIssuer := os.Getenv("OAUTH_ISSUER")
-	oauthClientID := os.Getenv("OAUTH_CLIENT_ID")
+	oauthIssuer := cfg.Config.OAuthIssuer
+	oauthClientID := cfg.Config.OAuthClientID
 	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", oauthIssuer)
 
 	data := map[string]string{

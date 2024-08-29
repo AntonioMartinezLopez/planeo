@@ -11,9 +11,6 @@ import (
 
 func main() {
 
-	// Load configuration
-	config.LoadConfig()
-
 	// server configuration
 	serverConfig := config.ServerConfig()
 	logger.Log("Server Running at %s", serverConfig)

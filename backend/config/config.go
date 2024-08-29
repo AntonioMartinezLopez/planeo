@@ -8,7 +8,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var variables = []string{"HOST", "PORT", "OAUTH_ISSUER", "OAUTH_CLIENT_ID", "OAUTH_CLIENT_SECRET"}
+type ApplicationConfiguration struct {
+	Host              string
+	Port              string
+	OAuthIssuer       string
+	OAuthClientID     string
+	OAuthClientSecret string
+}
+
+var Config *ApplicationConfiguration
 
 func LoadConfig() {
 	err := godotenv.Load()
@@ -16,15 +24,29 @@ func LoadConfig() {
 		logger.Error("Error loading .env file: %v", err)
 	}
 
-	for _, env := range variables {
-		_, envExists := os.LookupEnv(env)
-		if !envExists {
-			logger.Fatal("Missing env variable '%s'. Aborting...\n", env)
-		}
+	Config = &ApplicationConfiguration{
+		Host:              readEnvFile("HOST"),
+		Port:              readEnvFile("HOST"),
+		OAuthIssuer:       readEnvFile("OAUTH_ISSUER"),
+		OAuthClientID:     readEnvFile("OAUTH_CLIENT_ID"),
+		OAuthClientSecret: readEnvFile("OAUTH_CLIENT_SECRET"),
 	}
+}
+
+func readEnvFile(envName string) string {
+	envVariable, envExists := os.LookupEnv(envName)
+	if !envExists {
+		logger.Fatal("Missing env variable '%s'. Aborting...\n", envName)
+	}
+
+	return envVariable
 }
 
 func ServerConfig() string {
 	appServerUrl := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
 	return appServerUrl
+}
+
+func init() {
+	LoadConfig()
 }

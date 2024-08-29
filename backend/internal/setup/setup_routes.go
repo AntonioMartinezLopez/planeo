@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	cfg "planeo/api/config"
@@ -25,7 +24,7 @@ type Controller interface {
 }
 
 func registerControllers(api huma.API, controllers []Controller) {
-	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", os.Getenv("OAUTH_ISSUER"))
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", cfg.Config.OAuthIssuer)
 	api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL))
 
 	type Message struct {
@@ -81,8 +80,8 @@ func SetupRouter() *chi.Mux {
 				Type: "oauth2",
 				Flows: &huma.OAuthFlows{
 					AuthorizationCode: &huma.OAuthFlow{
-						AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", os.Getenv("OAUTH_ISSUER")),
-						TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", os.Getenv("OAUTH_ISSUER")),
+						AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", cfg.Config.OAuthIssuer),
+						TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", cfg.Config.OAuthIssuer),
 						Scopes: map[string]string{
 							"openid":  "Scope for requesting OpenID token",
 							"profile": "Scope for including user profile",
