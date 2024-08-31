@@ -19,15 +19,14 @@ type Permission struct {
 	ResourceName string   `json:"rsname"`
 }
 
-func fetchUserPermissions(token string) (*[]Permission, error) {
+func fetchUserPermissions(token string, clientId string) (*[]Permission, error) {
 	oauthIssuer := cfg.Config.OAuthIssuer
-	oauthClientID := cfg.Config.OAuthClientID
 	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", oauthIssuer)
 
 	data := map[string]string{
 		"grant_type":    "urn:ietf:params:oauth:grant-type:uma-ticket",
 		"response_mode": "permissions",
-		"audience":      oauthClientID,
+		"audience":      clientId,
 	}
 
 	headers := map[string]string{
@@ -81,7 +80,8 @@ func PermissionMiddleware(api huma.API, resourceName string, permission string) 
 			return
 		}
 
-		permissions, err := fetchUserPermissions(accessToken)
+		organization := strings.Split(ctx.URL().Path, "/")[2]
+		permissions, err := fetchUserPermissions(accessToken, organization)
 
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())

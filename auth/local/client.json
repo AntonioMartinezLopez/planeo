@@ -9,7 +9,7 @@
   "enabled": true,
   "alwaysDisplayInConsole": false,
   "clientAuthenticatorType": "client-secret",
-  "secret": "YgHq0rasKEbWASPW7tWzX2rE0RlUk2eI",
+  "secret": "t4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu",
   "redirectUris": [
     "/*"
   ],
@@ -31,8 +31,11 @@
     "oidc.ciba.grant.enabled": "false",
     "client.secret.creation.time": "1723305537",
     "backchannel.logout.session.required": "true",
+    "jwks.url": "certs",
+    "post.logout.redirect.uris": "+",
     "display.on.consent.screen": "false",
     "oauth2.device.authorization.grant.enabled": "false",
+    "use.jwks.url": "false",
     "backchannel.logout.revoke.offline.tokens": "false"
   },
   "authenticationFlowBindingOverrides": {},
@@ -40,28 +43,15 @@
   "nodeReRegistrationTimeout": -1,
   "protocolMappers": [
     {
-      "name": "Client Host",
-      "protocol": "openid-connect",
-      "protocolMapper": "oidc-usersessionmodel-note-mapper",
-      "consentRequired": false,
-      "config": {
-        "user.session.note": "clientHost",
-        "id.token.claim": "true",
-        "introspection.token.claim": "true",
-        "access.token.claim": "true",
-        "claim.name": "clientHost",
-        "jsonType.label": "String"
-      }
-    },
-    {
       "name": "Client IP Address",
       "protocol": "openid-connect",
       "protocolMapper": "oidc-usersessionmodel-note-mapper",
       "consentRequired": false,
       "config": {
         "user.session.note": "clientAddress",
-        "id.token.claim": "true",
         "introspection.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
         "access.token.claim": "true",
         "claim.name": "clientAddress",
         "jsonType.label": "String"
@@ -74,10 +64,26 @@
       "consentRequired": false,
       "config": {
         "user.session.note": "client_id",
-        "id.token.claim": "true",
         "introspection.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
         "access.token.claim": "true",
         "claim.name": "client_id",
+        "jsonType.label": "String"
+      }
+    },
+    {
+      "name": "Client Host",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usersessionmodel-note-mapper",
+      "consentRequired": false,
+      "config": {
+        "user.session.note": "clientHost",
+        "introspection.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "clientHost",
         "jsonType.label": "String"
       }
     }
@@ -85,8 +91,9 @@
   "defaultClientScopes": [
     "web-origins",
     "acr",
-    "roles",
     "profile",
+    "roles",
+    "groups",
     "basic",
     "email"
   ],

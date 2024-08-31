@@ -9,11 +9,13 @@ import (
 )
 
 type ApplicationConfiguration struct {
-	Host              string
-	Port              string
-	OAuthIssuer       string
-	OAuthClientID     string
-	OAuthClientSecret string
+	Host                string
+	Port                string
+	OAuthIssuer         string
+	KcAdminClientID     string
+	KcAdminClientSecret string
+	KcAdminUsername     string
+	KcAdminPassword     string
 }
 
 var Config *ApplicationConfiguration
@@ -25,11 +27,13 @@ func LoadConfig() {
 	}
 
 	Config = &ApplicationConfiguration{
-		Host:              readEnvFile("HOST"),
-		Port:              readEnvFile("HOST"),
-		OAuthIssuer:       readEnvFile("OAUTH_ISSUER"),
-		OAuthClientID:     readEnvFile("OAUTH_CLIENT_ID"),
-		OAuthClientSecret: readEnvFile("OAUTH_CLIENT_SECRET"),
+		Host:                readEnvFile("HOST"),
+		Port:                readEnvFile("HOST"),
+		OAuthIssuer:         readEnvFile("OAUTH_ISSUER"),
+		KcAdminClientID:     readEnvFile("KC_ADMIN_CLIENT_ID"),
+		KcAdminClientSecret: readEnvFile("KC_ADMIN_CLIENT_SECRET"),
+		KcAdminUsername:     readEnvFile("KC_ADMIN_USERNAME"),
+		KcAdminPassword:     readEnvFile("KC_ADMIN_PASSWORD"),
 	}
 }
 

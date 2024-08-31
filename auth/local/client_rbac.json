@@ -1,0 +1,498 @@
+{
+  "allowRemoteResourceManagement": true,
+  "policyEnforcementMode": "ENFORCING",
+  "resources": [
+    {
+      "name": "Label",
+      "ownerManagedAccess": false,
+      "displayName": "label",
+      "attributes": {},
+      "uris": [
+        "*/labels"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Conversation",
+      "ownerManagedAccess": false,
+      "displayName": "conversation",
+      "attributes": {},
+      "uris": [
+        "*/conversations"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Reminder",
+      "ownerManagedAccess": false,
+      "displayName": "reminder",
+      "attributes": {},
+      "uris": [
+        "*/reminder"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Organization",
+      "ownerManagedAccess": false,
+      "displayName": "organization",
+      "attributes": {},
+      "uris": [
+        "*/management"
+      ],
+      "scopes": [
+        {
+          "name": "manage"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Default Resource",
+      "type": "urn:local_dev:resources:default",
+      "ownerManagedAccess": false,
+      "attributes": {},
+      "uris": [
+        "/*"
+      ]
+    },
+    {
+      "name": "Task",
+      "ownerManagedAccess": false,
+      "displayName": "task",
+      "attributes": {},
+      "uris": [
+        "*/tasks"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Announcement",
+      "ownerManagedAccess": false,
+      "displayName": "announcement",
+      "attributes": {},
+      "uris": [
+        "*/announcement"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    },
+    {
+      "name": "Group",
+      "ownerManagedAccess": false,
+      "displayName": "group",
+      "attributes": {},
+      "uris": [
+        "*/groups"
+      ],
+      "scopes": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "update"
+        },
+        {
+          "name": "delete"
+        },
+        {
+          "name": "create"
+        }
+      ],
+      "icon_uri": ""
+    }
+  ],
+  "policies": [
+    {
+      "name": "User",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"local/User\",\"required\":true}]"
+      }
+    },
+    {
+      "name": "Planner",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"local/Planner\",\"required\":true}]"
+      }
+    },
+    {
+      "name": "Admin",
+      "description": "",
+      "type": "role",
+      "logic": "POSITIVE",
+      "decisionStrategy": "UNANIMOUS",
+      "config": {
+        "fetchRoles": "false",
+        "roles": "[{\"id\":\"local/Admin\",\"required\":true}]"
+      }
+    },
+    {
+      "name": "task:update",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "defaultResourceType": "Task",
+        "resources": "[\"Task\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "task:delete",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Task\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "group:read",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Group\"]",
+        "scopes": "[\"read\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "group:create",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Group\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "group:update",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Group\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "group:delete",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Group\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "label:create",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Label\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "label:read",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Label\"]",
+        "scopes": "[\"read\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "label:update",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Label\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "label:delete",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Label\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "reminder:read",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Reminder\"]",
+        "scopes": "[\"read\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "announcement",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Announcement\"]",
+        "scopes": "[\"delete\",\"update\",\"create\",\"read\"]",
+        "applyPolicies": "[\"Admin\"]"
+      }
+    },
+    {
+      "name": "reminder:create",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Reminder\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "reminder:update",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Reminder\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "task:create",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Task\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "task:read",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "defaultResourceType": "Task",
+        "resources": "[\"Task\"]",
+        "scopes": "[\"read\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "conversation:read",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Conversation\"]",
+        "scopes": "[\"read\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "reminder:delete",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Reminder\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"Planner\"]"
+      }
+    },
+    {
+      "name": "conversation:create",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Conversation\"]",
+        "scopes": "[\"create\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "conversation:update",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Conversation\"]",
+        "scopes": "[\"update\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "conversation:delete",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Conversation\"]",
+        "scopes": "[\"delete\"]",
+        "applyPolicies": "[\"User\",\"Planner\"]"
+      }
+    },
+    {
+      "name": "organization:manage",
+      "description": "",
+      "type": "scope",
+      "logic": "POSITIVE",
+      "decisionStrategy": "AFFIRMATIVE",
+      "config": {
+        "resources": "[\"Organization\"]",
+        "scopes": "[\"manage\"]",
+        "applyPolicies": "[\"Admin\"]"
+      }
+    }
+  ],
+  "scopes": [
+    {
+      "name": "read",
+      "iconUri": ""
+    },
+    {
+      "name": "update",
+      "iconUri": ""
+    },
+    {
+      "name": "delete",
+      "iconUri": ""
+    },
+    {
+      "name": "create",
+      "iconUri": ""
+    },
+    {
+      "name": "manage",
+      "iconUri": ""
+    }
+  ],
+  "decisionStrategy": "UNANIMOUS"
+}
