@@ -48,35 +48,27 @@
     "realm" : [],
     "client" : {
       "local" : [ {
-        "id" : "087e5415-a8d6-4c35-bc9e-fea01df7a049",
         "name" : "uma_protection",
         "composite" : false,
         "clientRole" : true,
-        "containerId" : "5f93c1bd-3a5b-4199-964b-e66fa340561f",
         "attributes" : { }
       }, {
-        "id" : "71337cd5-7973-4a9f-a0e4-07265925f76b",
         "name" : "Admin",
         "description" : "",
         "composite" : false,
         "clientRole" : true,
-        "containerId" : "5f93c1bd-3a5b-4199-964b-e66fa340561f",
         "attributes" : { }
       }, {
-        "id" : "067440f3-dc44-4855-8be3-7896f79dd114",
         "name" : "User",
         "description" : "",
         "composite" : false,
         "clientRole" : true,
-        "containerId" : "5f93c1bd-3a5b-4199-964b-e66fa340561f",
         "attributes" : { }
       }, {
-        "id" : "8a87e5f8-2aec-425a-8b45-966000021ee6",
         "name" : "Planner",
         "description" : "",
         "composite" : false,
         "clientRole" : true,
-        "containerId" : "5f93c1bd-3a5b-4199-964b-e66fa340561f",
         "attributes" : { }
       } ]
     }
@@ -187,7 +179,6 @@
     "groups" : [ "/local" ]
   } ],
   "clients" : [ {
-    "id" : "5f93c1bd-3a5b-4199-964b-e66fa340561f",
     "clientId" : "local",
     "name" : "",
     "description" : "",
@@ -227,7 +218,6 @@
     "fullScopeAllowed" : true,
     "nodeReRegistrationTimeout" : -1,
     "protocolMappers" : [ {
-      "id" : "59c5c8d2-9049-45ea-b668-f7f526d20c69",
       "name" : "Client IP Address",
       "protocol" : "openid-connect",
       "protocolMapper" : "oidc-usersessionmodel-note-mapper",
@@ -242,7 +232,6 @@
         "jsonType.label" : "String"
       }
     }, {
-      "id" : "904a845d-bb32-4386-ad3b-f7516549e594",
       "name" : "Client ID",
       "protocol" : "openid-connect",
       "protocolMapper" : "oidc-usersessionmodel-note-mapper",
@@ -257,7 +246,6 @@
         "jsonType.label" : "String"
       }
     }, {
-      "id" : "db67ab4f-4fdf-4a4b-be43-241eac38926e",
       "name" : "Client Host",
       "protocol" : "openid-connect",
       "protocolMapper" : "oidc-usersessionmodel-note-mapper",
