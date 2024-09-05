@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -23,19 +24,34 @@ func DecodeJSON(r io.Reader, obj interface{}) error {
 	return nil
 }
 
-func DecodeJSONAndValidate(r io.Reader, obj any) error {
+func DecodeJSONAndValidate(r io.Reader, obj interface{}, ignoreUnknown bool) error {
 
 	// Decode
 	decoder := json.NewDecoder(r)
-	decoder.DisallowUnknownFields()
+
+	if !ignoreUnknown {
+		decoder.DisallowUnknownFields()
+	}
+
 	if err := decoder.Decode(obj); err != nil {
 		return err
 	}
 
 	// Validate
-	validationError := validate.Struct(obj)
-	if validationError != nil {
-		return validationError
+	val := reflect.ValueOf(obj).Elem()
+	switch val.Kind() {
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < val.Len(); i++ {
+			validationError := validate.Struct(val.Index(i))
+			if validationError != nil {
+				return validationError
+			}
+		}
+	default:
+		validationError := validate.Struct(obj)
+		if validationError != nil {
+			return validationError
+		}
 	}
 	return nil
 }
