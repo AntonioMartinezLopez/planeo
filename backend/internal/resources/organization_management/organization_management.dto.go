@@ -1,7 +1,7 @@
 package organization_management
 
 import (
-	keycloak "planeo/api/internal/organization_management/keycloak_queries"
+	keycloak "planeo/api/internal/resources/organization_management/keycloak_queries"
 )
 
 type KeycloakUserOutput struct {

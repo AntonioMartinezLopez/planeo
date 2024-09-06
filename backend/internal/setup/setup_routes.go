@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	cfg "planeo/api/config"
-	"planeo/api/internal/announcement"
-	"planeo/api/internal/group"
 	"planeo/api/internal/middlewares"
-	"planeo/api/internal/organization_management"
-	"planeo/api/internal/task"
-	"planeo/api/internal/user"
+	"planeo/api/internal/resources/announcement"
+	"planeo/api/internal/resources/group"
+	"planeo/api/internal/resources/organization_management"
+	"planeo/api/internal/resources/task"
+	"planeo/api/internal/resources/user"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
