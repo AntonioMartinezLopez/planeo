@@ -11,7 +11,8 @@ import (
 type ApplicationConfiguration struct {
 	Host                string
 	Port                string
-	OAuthIssuer         string
+	KcBaseUrl           string
+	KcIssuer            string
 	KcAdminClientID     string
 	KcAdminClientSecret string
 	KcAdminUsername     string
@@ -29,7 +30,8 @@ func LoadConfig() {
 	Config = &ApplicationConfiguration{
 		Host:                readEnvFile("HOST"),
 		Port:                readEnvFile("HOST"),
-		OAuthIssuer:         readEnvFile("OAUTH_ISSUER"),
+		KcBaseUrl:           readEnvFile("KC_BASE_URL"),
+		KcIssuer:            readEnvFile("KC_ISSUER_REALM"),
 		KcAdminClientID:     readEnvFile("KC_ADMIN_CLIENT_ID"),
 		KcAdminClientSecret: readEnvFile("KC_ADMIN_CLIENT_SECRET"),
 		KcAdminUsername:     readEnvFile("KC_ADMIN_USERNAME"),
@@ -49,6 +51,10 @@ func readEnvFile(envName string) string {
 func ServerConfig() string {
 	appServerUrl := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
 	return appServerUrl
+}
+
+func OauthIssuerUrl() string {
+	return fmt.Sprintf("%s/realms/%s", Config.KcBaseUrl, Config.KcIssuer)
 }
 
 func init() {

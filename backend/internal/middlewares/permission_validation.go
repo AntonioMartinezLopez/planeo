@@ -20,7 +20,7 @@ type Permission struct {
 }
 
 func fetchUserPermissions(token string, clientId string) (*[]Permission, error) {
-	oauthIssuer := cfg.Config.OAuthIssuer
+	oauthIssuer := cfg.OauthIssuerUrl()
 	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", oauthIssuer)
 
 	data := map[string]string{

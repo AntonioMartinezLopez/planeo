@@ -68,7 +68,7 @@ func verifyAccess(accessClaims *OauthAccessClaims, organization string, issuer s
 
 func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next func(huma.Context)) {
 	keySet := jwks.NewJWKSet(jwksURL)
-	issuer := cfg.Config.OAuthIssuer
+	issuer := cfg.OauthIssuerUrl()
 
 	return func(ctx huma.Context, next func(huma.Context)) {
 		authorizationRequired := isAuthorizationRequired(ctx)

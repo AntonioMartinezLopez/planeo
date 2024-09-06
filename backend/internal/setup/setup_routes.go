@@ -25,7 +25,7 @@ type Controller interface {
 }
 
 func registerControllers(api huma.API, controllers []Controller) {
-	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", cfg.Config.OAuthIssuer)
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", cfg.OauthIssuerUrl())
 	api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL))
 
 	type Message struct {
@@ -81,8 +81,8 @@ func SetupRouter() *chi.Mux {
 				Type: "oauth2",
 				Flows: &huma.OAuthFlows{
 					AuthorizationCode: &huma.OAuthFlow{
-						AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", cfg.Config.OAuthIssuer),
-						TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", cfg.Config.OAuthIssuer),
+						AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", cfg.OauthIssuerUrl()),
+						TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", cfg.OauthIssuerUrl()),
 						Scopes: map[string]string{
 							"openid":  "Scope for requesting OpenID token",
 							"profile": "Scope for including user profile",
