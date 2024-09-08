@@ -1,27 +1,23 @@
 package organization_management
 
 import (
-	keycloak "planeo/api/internal/resources/organization_management/keycloak_queries"
+	"planeo/api/config"
+	"planeo/api/internal/clients/keycloak"
 )
 
 type OrganizationManagementService struct {
+	KeycloakAdminClient *keycloak.KeycloakAdminClient
 }
 
 func NewOrganizationManagementService() *OrganizationManagementService {
-	return &OrganizationManagementService{}
+	return &OrganizationManagementService{
+		KeycloakAdminClient: keycloak.NewKeycloakAdminClient(*config.Config),
+	}
 }
 
 func (s *OrganizationManagementService) GetKeycloakUsers(organizationId string) ([]keycloak.KeycloakUser, error) {
 
-	// TODO: the token needs to be cached to reduce requests
-	token, err := keycloak.AuthenticateAdmin()
-
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: group information should be cached
-	users, err := keycloak.GetKeycloakUsers(token, organizationId)
+	users, err := s.KeycloakAdminClient.GetKeycloakUsers(organizationId)
 
 	if err != nil {
 		return nil, err

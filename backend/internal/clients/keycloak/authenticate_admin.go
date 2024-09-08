@@ -9,7 +9,7 @@ import (
 type AdminKeycloakSession struct {
 	AccessToken string `json:"access_token"`
 	IDToken     string `json:"id_token"`
-	ExpiresIn   int    `json:"expires_in"`
+	ExpiresIn   int64  `json:"expires_in"`
 }
 
 func (kc *KeycloakAdminClient) AuthenticateAdmin() error {

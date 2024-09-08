@@ -1,6 +1,9 @@
 package keycloak
 
-import "planeo/api/config"
+import (
+	"planeo/api/config"
+	"time"
+)
 
 type KeycloakAdminClient struct {
 	baseUrl      string
@@ -23,6 +26,14 @@ func NewKeycloakAdminClient(configuration config.ApplicationConfiguration) *Keyc
 	}
 }
 
-func (kc *KeycloakAdminClient) getAccessToken() {
+func (kc *KeycloakAdminClient) getAccessToken() (string, error) {
+	currentTime := time.Now().Unix()
+	if kc.session == nil || currentTime > kc.session.ExpiresIn {
+		error := kc.AuthenticateAdmin()
 
+		if error != nil {
+			return "", error
+		}
+	}
+	return kc.session.AccessToken, nil
 }

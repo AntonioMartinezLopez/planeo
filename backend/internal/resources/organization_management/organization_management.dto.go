@@ -1,15 +1,15 @@
 package organization_management
 
 import (
-	keycloak "planeo/api/internal/resources/organization_management/keycloak_queries"
+	"planeo/api/internal/clients/keycloak"
 )
 
-type KeycloakUserOutput struct {
+type KeycloakUsersOutput struct {
 	Body struct {
 		Users []keycloak.KeycloakUser `json:"users" doc:"Array of users managed in organization"`
 	}
 }
 
-type GetKeycloakUserInput struct {
+type GetKeycloakUsersInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
 }

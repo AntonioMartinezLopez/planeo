@@ -8,21 +8,27 @@ import (
 )
 
 type KeycloakUser struct {
-	Id        string `json:"id" example:"123456" doc:"User identifier within Keycloak"`
-	Userame   string `json:"username" example:"user123" doc:"User name"`
-	FirstName string `json:"firstName" example:"John" doc:"First name of the user"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
+	Id        string `json:"id" example:"123456" doc:"User identifier within Keycloak" validate:"required"`
+	Userame   string `json:"username" example:"user123" doc:"User name" binding:"required"`
+	FirstName string `json:"firstName" example:"John" doc:"First name of the user" validate:"required"`
+	LastName  string `json:"lastName" validate:"required"`
+	Email     string `json:"email" validate:"required"`
 }
 
-func (kc *KeycloakAdminClient) GetKeycloakUsers(accessToken string, organizationId string) ([]KeycloakUser, error) {
+func (kc *KeycloakAdminClient) GetKeycloakUsers(organizationId string) ([]KeycloakUser, error) {
+
+	accessToken, err := kc.getAccessToken()
+
+	if err != nil {
+		return nil, err
+	}
 
 	headers := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
 	}
 
 	// TODO: group information should be cached
-	group, err := kc.GetKeycloakGroup(accessToken, organizationId)
+	group, err := kc.GetKeycloakGroup(organizationId)
 
 	if err != nil {
 		return nil, err

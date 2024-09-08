@@ -8,12 +8,18 @@ import (
 )
 
 type KeycloakGroup struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
+	Id   string `json:"id" validate:"required"`
+	Name string `json:"name" validate:"required"`
+	Path string `json:"path" validate:"required"`
 }
 
-func (kc *KeycloakAdminClient) GetKeycloakGroup(accessToken string, organizationId string) (*KeycloakGroup, error) {
+func (kc *KeycloakAdminClient) GetKeycloakGroup(organizationId string) (*KeycloakGroup, error) {
+
+	accessToken, err := kc.getAccessToken()
+
+	if err != nil {
+		return nil, err
+	}
 
 	headers := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", accessToken),

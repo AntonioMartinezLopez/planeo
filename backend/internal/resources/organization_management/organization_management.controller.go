@@ -30,14 +30,14 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 		Summary:     "Get all users from keycloak",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *GetKeycloakUserInput) (*KeycloakUserOutput, error) {
+	}), func(ctx context.Context, input *GetKeycloakUsersInput) (*KeycloakUsersOutput, error) {
 		users, err := o.organizationManagementService.GetKeycloakUsers(input.Organization)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &KeycloakUserOutput{}
+		response := &KeycloakUsersOutput{}
 		response.Body.Users = users
 		return response, nil
 	})
