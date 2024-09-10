@@ -13,3 +13,15 @@ type KeycloakUsersOutput struct {
 type GetKeycloakUsersInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
 }
+
+type CreateKeycloakUserOutput struct {
+	Body struct {
+		Success bool
+	}
+}
+
+type CreateKeycloakUserInput struct {
+	Organization string `path:"organization" doc:"ID of the organization"`
+	Body         CreateKeycloakUserData
+	RawBody      []byte
+}

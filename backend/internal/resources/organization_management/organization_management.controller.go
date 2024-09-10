@@ -41,4 +41,24 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 		response.Body.Users = users
 		return response, nil
 	})
+
+	huma.Register(*o.api, operations.WithAuth(huma.Operation{
+		OperationID: "create-organization-keycloak-user",
+		Method:      http.MethodPost,
+		Path:        "/{organization}/management/keycloak/user",
+		Summary:     "Create Keycloak user",
+		Tags:        []string{"Management"},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
+	}), func(ctx context.Context, input *CreateKeycloakUserInput) (*CreateKeycloakUserOutput, error) {
+
+		err := o.organizationManagementService.CreateKeycloakUser(input.Organization, input.Body)
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+
+		response := &CreateKeycloakUserOutput{}
+		response.Body.Success = true
+		return response, nil
+	})
 }
