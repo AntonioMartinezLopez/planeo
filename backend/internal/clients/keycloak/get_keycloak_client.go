@@ -8,8 +8,8 @@ import (
 )
 
 type KeycloakClient struct {
-	Id       string `json:"id" validate:"required"`
-	ClientId string `json:"clientId" validate:"reqzured"`
+	Uuid     string `json:"id" validate:"required"`
+	ClientId string `json:"clientId" validate:"reqiured"`
 }
 
 func (kc *KeycloakAdminClient) GetKeycloakClient(organizationId string) (*KeycloakClient, error) {

@@ -49,3 +49,9 @@ func (s *OrganizationManagementService) CreateKeycloakUser(organizationId string
 
 	return nil
 }
+
+func (s *OrganizationManagementService) DeleteKeycloakUser(organizationId string) {}
+
+func (s *OrganizationManagementService) GetAvailableRoles(organizationId string) {}
+
+func (s *OrganizationManagementService) AssignRole(organizationId string) {}
