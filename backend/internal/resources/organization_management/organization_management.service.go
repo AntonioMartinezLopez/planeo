@@ -87,8 +87,16 @@ func (s *OrganizationManagementService) CreateKeycloakUser(organizationId string
 	return nil
 }
 
-func (s *OrganizationManagementService) DeleteKeycloakUser(organizationId string) {}
+func (s *OrganizationManagementService) GetAvailableRoles() ([]keycloak.KeycloakClientRole, error) {
+	clientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(config.Config.KcOauthClientID)
 
-func (s *OrganizationManagementService) GetAvailableRoles(organizationId string) {}
+	if err != nil {
+		return nil, err
+	}
 
-func (s *OrganizationManagementService) AssignRole(organizationId string) {}
+	return clientRoles, nil
+}
+
+func (s *OrganizationManagementService) DeleteKeycloakUser(organizationId string)  {}
+func (s *OrganizationManagementService) AssignRole(roleName string, userId string) {}
+func (s *OrganizationManagementService) GetUser(email string)                      {}
