@@ -1,8 +1,10 @@
 package organization_management
 
 import (
+	"errors"
 	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
+	"slices"
 )
 
 type OrganizationManagementService struct {
@@ -45,6 +47,41 @@ func (s *OrganizationManagementService) CreateKeycloakUser(organizationId string
 
 	if err != nil {
 		return err
+	}
+
+	// assign default role
+	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+
+	if err != nil {
+		return err
+	}
+
+	clientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
+
+	if err != nil {
+		return err
+	}
+
+	index := slices.IndexFunc(clientRoles, func(role keycloak.KeycloakClientRole) bool {
+		return role.Name == keycloak.User.String()
+	})
+
+	if index == -1 {
+		return errors.New("client role not found")
+	}
+
+	role := clientRoles[index]
+
+	user, err := s.KeycloakAdminClient.GetKeycloakUser(createUserData.Email)
+
+	if err != nil {
+		return err
+	}
+
+	roleAssignError := s.KeycloakAdminClient.AssignKeycloakClientRoleToUser(client.Uuid, role, user.Id)
+
+	if roleAssignError != nil {
+		return roleAssignError
 	}
 
 	return nil

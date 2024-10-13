@@ -12,8 +12,9 @@ import (
 func main() {
 
 	// server configuration
+	logger.Log("Loading configuration")
+	config.LoadConfig()
 	serverConfig := config.ServerConfig()
-	logger.Log("Server Running at %s", serverConfig)
 
 	// Initialize Router
 	router := setup.SetupRouter()
@@ -27,5 +28,6 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
+	logger.Log("Server Running at %s", serverConfig)
 	logger.Fatal("%v", server.ListenAndServe())
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"planeo/api/pkg/request"
-	"slices"
 )
 
 type CreateUserParams struct {
@@ -56,37 +55,6 @@ func (kc *KeycloakAdminClient) CreateKeycloakUser(organizationId string, userDat
 	}
 
 	defer response.Body.Close()
-
-	// assign default role
-	client, err := kc.GetKeycloakClient(organizationId)
-
-	if err != nil {
-		return err
-	}
-
-	clientRoles, err := kc.GetKeycloakClientRoles(client.Uuid)
-
-	if err != nil {
-		return err
-	}
-
-	index := slices.IndexFunc(clientRoles, func(role KeycloakClientRole) bool {
-		return role.Name == "User"
-	})
-	role := clientRoles[index]
-
-	user, err := kc.GetKeycloakUser(userData.Email)
-
-	if err != nil {
-		return err
-	}
-	fmt.Println(user, role)
-
-	roleAssignError := kc.AssignKeycloakClientRoleToUser(client.Uuid, role, user.Id)
-
-	if roleAssignError != nil {
-		return roleAssignError
-	}
 
 	return nil
 }

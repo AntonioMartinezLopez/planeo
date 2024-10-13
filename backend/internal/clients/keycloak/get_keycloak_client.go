@@ -12,7 +12,7 @@ type KeycloakClient struct {
 	ClientId string `json:"clientId" validate:"reqiured"`
 }
 
-func (kc *KeycloakAdminClient) GetKeycloakClient(organizationId string) (*KeycloakClient, error) {
+func (kc *KeycloakAdminClient) GetKeycloakClient(clientId string) (*KeycloakClient, error) {
 
 	accessToken, err := kc.getAccessToken()
 
@@ -25,7 +25,7 @@ func (kc *KeycloakAdminClient) GetKeycloakClient(organizationId string) (*Keyclo
 	}
 
 	queries := map[string]string{
-		"clientId": organizationId,
+		"clientId": clientId,
 	}
 
 	requestParams := request.HttpRequestParams{
@@ -57,7 +57,7 @@ func (kc *KeycloakAdminClient) GetKeycloakClient(organizationId string) (*Keyclo
 	}
 
 	if len(keycloakClients) < 1 {
-		return nil, fmt.Errorf("client with clientId %s not found", organizationId)
+		return nil, fmt.Errorf("client with clientId %s not found", clientId)
 	}
 
 	keycloakClient := keycloakClients[0]
