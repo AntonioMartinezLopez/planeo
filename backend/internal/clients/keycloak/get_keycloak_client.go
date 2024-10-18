@@ -7,11 +7,6 @@ import (
 	"planeo/api/pkg/request"
 )
 
-type KeycloakClient struct {
-	Uuid     string `json:"id" validate:"required"`
-	ClientId string `json:"clientId" validate:"reqiured"`
-}
-
 func (kc *KeycloakAdminClient) GetKeycloakClient(clientId string) (*KeycloakClient, error) {
 
 	accessToken, err := kc.getAccessToken()

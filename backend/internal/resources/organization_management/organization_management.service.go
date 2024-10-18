@@ -72,7 +72,7 @@ func (s *OrganizationManagementService) CreateKeycloakUser(organizationId string
 
 	role := clientRoles[index]
 
-	user, err := s.KeycloakAdminClient.GetKeycloakUser(createUserData.Email)
+	user, err := s.KeycloakAdminClient.GetKeycloakUserByEmail(createUserData.Email)
 
 	if err != nil {
 		return err
@@ -88,7 +88,12 @@ func (s *OrganizationManagementService) CreateKeycloakUser(organizationId string
 }
 
 func (s *OrganizationManagementService) GetAvailableRoles() ([]keycloak.KeycloakClientRole, error) {
-	clientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(config.Config.KcOauthClientID)
+	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+
+	if err != nil {
+		return nil, err
+	}
+	clientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
 
 	if err != nil {
 		return nil, err
@@ -97,6 +102,40 @@ func (s *OrganizationManagementService) GetAvailableRoles() ([]keycloak.Keycloak
 	return clientRoles, nil
 }
 
-func (s *OrganizationManagementService) DeleteKeycloakUser(organizationId string)  {}
-func (s *OrganizationManagementService) AssignRole(roleName string, userId string) {}
-func (s *OrganizationManagementService) GetUser(email string)                      {}
+func (s *OrganizationManagementService) DeleteKeycloakUser(userId string) error {
+	err := s.KeycloakAdminClient.DeleteKeycloakUser(userId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *OrganizationManagementService) AssignRole(roleRepresentation keycloak.KeycloakClientRole, userId string) error {
+
+	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+
+	if err != nil {
+		return err
+	}
+
+	roleAssignError := s.KeycloakAdminClient.AssignKeycloakClientRoleToUser(client.Uuid, roleRepresentation, userId)
+
+	if roleAssignError != nil {
+		return roleAssignError
+	}
+
+	return nil
+}
+
+func (s *OrganizationManagementService) GetUser(userId string) (*keycloak.KeycloakUser, error) {
+	user, err := s.KeycloakAdminClient.GetKeycloakUserByEmail(userId)
+
+	if err != nil {
+
+		return nil, err
+	}
+
+	return user, nil
+}

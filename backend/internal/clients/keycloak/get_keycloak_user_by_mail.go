@@ -8,7 +8,7 @@ import (
 	"planeo/api/pkg/request"
 )
 
-func (kc *KeycloakAdminClient) GetKeycloakUser(email string) (*KeycloakUser, error) {
+func (kc *KeycloakAdminClient) GetKeycloakUserByEmail(email string) (*KeycloakUser, error) {
 
 	accessToken, err := kc.getAccessToken()
 

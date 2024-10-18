@@ -6,12 +6,6 @@ import (
 	"planeo/api/pkg/request"
 )
 
-type AdminKeycloakSession struct {
-	AccessToken string `json:"access_token"`
-	IDToken     string `json:"id_token"`
-	ExpiresIn   int64  `json:"expires_in"`
-}
-
 func (kc *KeycloakAdminClient) AuthenticateAdmin() error {
 
 	data := map[string]string{

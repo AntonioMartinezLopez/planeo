@@ -7,7 +7,7 @@ import (
 	"planeo/api/pkg/request"
 )
 
-func (kc *KeycloakAdminClient) GetKeycloakClientRoles(clientUuid string) ([]KeycloakClientRole, error) {
+func (kc *KeycloakAdminClient) GetKeycloakUserById(userId string) (*KeycloakUser, error) {
 
 	accessToken, err := kc.getAccessToken()
 
@@ -21,7 +21,7 @@ func (kc *KeycloakAdminClient) GetKeycloakClientRoles(clientUuid string) ([]Keyc
 
 	requestParams := request.HttpRequestParams{
 		Method:      request.GET,
-		URL:         fmt.Sprintf("%s/admin/realms/%s/clients/%s/roles", kc.baseUrl, kc.realm, clientUuid),
+		URL:         fmt.Sprintf("%s/admin/realms/%s/users/%s", kc.baseUrl, kc.realm, userId),
 		Headers:     headers,
 		ContentType: request.ApplicationJSON,
 	}
@@ -38,13 +38,13 @@ func (kc *KeycloakAdminClient) GetKeycloakClientRoles(clientUuid string) ([]Keyc
 
 	defer response.Body.Close()
 
-	var keycloakClientRoles []KeycloakClientRole
-	validationError := jsonHelper.DecodeJSONAndValidate(response.Body, &keycloakClientRoles, true)
+	var keycloakUser = new(KeycloakUser)
+	validationError := jsonHelper.DecodeJSONAndValidate(response.Body, keycloakUser, true)
 
 	if validationError != nil {
 		logger.Error("Validation error: %s", validationError)
 		return nil, validationError
 	}
 
-	return keycloakClientRoles, nil
+	return keycloakUser, nil
 }

@@ -7,14 +7,6 @@ import (
 	"planeo/api/pkg/request"
 )
 
-type KeycloakUser struct {
-	Id        string `json:"id" example:"123456" doc:"User identifier within Keycloak" validate:"required"`
-	Userame   string `json:"username" example:"user123" doc:"User name" binding:"required"`
-	FirstName string `json:"firstName" example:"John" doc:"First name of the user" validate:"required"`
-	LastName  string `json:"lastName" validate:"required"`
-	Email     string `json:"email" validate:"required"`
-}
-
 func (kc *KeycloakAdminClient) GetKeycloakUsers(organizationId string) ([]KeycloakUser, error) {
 
 	accessToken, err := kc.getAccessToken()

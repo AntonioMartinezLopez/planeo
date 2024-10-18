@@ -7,12 +7,6 @@ import (
 	"planeo/api/pkg/request"
 )
 
-type KeycloakGroup struct {
-	Id   string `json:"id" validate:"required"`
-	Name string `json:"name" validate:"required"`
-	Path string `json:"path" validate:"required"`
-}
-
 func (kc *KeycloakAdminClient) GetKeycloakGroup(organizationId string) (*KeycloakGroup, error) {
 
 	accessToken, err := kc.getAccessToken()

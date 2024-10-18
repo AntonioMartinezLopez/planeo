@@ -102,7 +102,7 @@ func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next fu
 		validAccess := verifyAccess(accessClaims, organization, issuer)
 
 		if !validAccess {
-			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
+			huma.WriteErr(api, ctx, http.StatusForbidden, "h Forbidden")
 			return
 		}
 
