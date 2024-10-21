@@ -32,17 +32,3 @@ type KeycloakClientRole struct {
 	Id   string `json:"id" validate:"required"`
 	Name string `json:"name" validate:"required"`
 }
-
-type DefaultRole int
-
-const (
-	User DefaultRole = iota
-	Planner
-	Admin
-)
-
-var roles = [...]string{"User", "Planner", "Admin"}
-
-func (me DefaultRole) String() string {
-	return roles[me]
-}

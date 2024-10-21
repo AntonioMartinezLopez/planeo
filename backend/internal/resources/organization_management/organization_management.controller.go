@@ -24,91 +24,111 @@ func NewOrganisationManagementController(api *huma.API) *OrganisationManagementC
 
 func (o *OrganisationManagementController) InitializeRoutes() {
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
-		OperationID: "get-keycloak-users",
+		OperationID: "get-users",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/management/keycloak/users",
-		Summary:     "Get all users from keycloak",
+		Path:        "/{organization}/management/users",
+		Summary:     "Get all users from organization",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *GetKeycloakUsersInput) (*KeycloakUsersOutput, error) {
-		users, err := o.organizationManagementService.GetKeycloakUsers(input.Organization)
+	}), func(ctx context.Context, input *GetUsersInput) (*GetUsersOutput, error) {
+		users, err := o.organizationManagementService.GetUsers(input.Organization)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &KeycloakUsersOutput{}
+		response := &GetUsersOutput{}
 		response.Body.Users = users
 		return response, nil
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
-		OperationID: "get-keycloak-user",
+		OperationID: "get-user",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/management/keycloak/user/{userId}",
-		Summary:     "Get user from keycloak",
+		Path:        "/{organization}/management/user/{userId}",
+		Summary:     "Get user from authentication system",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *GetKeycloakUserInput) (*KeycloakUserOutput, error) {
-		user, err := o.organizationManagementService.KeycloakAdminClient.GetKeycloakUserById(input.UserId)
+	}), func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+		user, err := o.organizationManagementService.GetUserById(input.UserId)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &KeycloakUserOutput{}
+		response := &GetUserOutput{}
 		response.Body.User = user
 		return response, nil
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
-		OperationID: "create-keycloak-user",
+		OperationID: "create-user",
 		Method:      http.MethodPost,
-		Path:        "/{organization}/management/keycloak/user",
-		Summary:     "Create Keycloak user",
+		Path:        "/{organization}/management/user",
+		Summary:     "Create user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *CreateKeycloakUserInput) (*CreateKeycloakUserOutput, error) {
+	}), func(ctx context.Context, input *CreateUserInput) (*CreateUserOutput, error) {
 
-		err := o.organizationManagementService.CreateKeycloakUser(input.Organization, input.Body)
+		err := o.organizationManagementService.CreateUser(input.Organization, input.Body)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &CreateKeycloakUserOutput{}
+		response := &CreateUserOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
-		OperationID: "delete-keycloak-user",
+		OperationID: "delete-user",
 		Method:      http.MethodDelete,
-		Path:        "/{organization}/management/keycloak/user/{userId}",
-		Summary:     "Delete Keycloak user",
+		Path:        "/{organization}/management/user/{userId}",
+		Summary:     "Delete user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *DeleteKeycloakUserInput) (*DeleteKeycloakUserOutput, error) {
+	}), func(ctx context.Context, input *DeleteUserInput) (*DeleteUserOutput, error) {
 
-		err := o.organizationManagementService.DeleteKeycloakUser(input.UserId)
+		err := o.organizationManagementService.DeleteUser(input.UserId)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &DeleteKeycloakUserOutput{}
+		response := &DeleteUserOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
-		OperationID: "get-keycloak-roles",
-		Method:      http.MethodGet,
-		Path:        "/{organization}/management/keycloak/roles",
-		Summary:     "Get Keycloak roles",
+		OperationID: "Assign-user-roles",
+		Method:      http.MethodPut,
+		Path:        "/{organization}/management/user/{userId}/role",
+		Summary:     "Assign roles to a user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
-	}), func(ctx context.Context, input *GetKeycloakRolesInput) (*GetKeycloakRolesOutput, error) {
+	}), func(ctx context.Context, input *PutUserRolesInput) (*PutUserRoleOutput, error) {
+
+		err := o.organizationManagementService.AssignRoles(input.Body.Roles, input.UserId)
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+
+		response := &PutUserRoleOutput{}
+		response.Body.Success = true
+		return response, nil
+	})
+
+	huma.Register(*o.api, operations.WithAuth(huma.Operation{
+		OperationID: "get-roles",
+		Method:      http.MethodGet,
+		Path:        "/{organization}/management/roles",
+		Summary:     "Get roles",
+		Tags:        []string{"Management"},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
+	}), func(ctx context.Context, input *GetRolesInput) (*GetRolesOutput, error) {
 
 		roles, err := o.organizationManagementService.GetAvailableRoles()
 
@@ -116,7 +136,7 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &GetKeycloakRolesOutput{}
+		response := &GetRolesOutput{}
 		response.Body.Roles = roles
 		return response, nil
 	})

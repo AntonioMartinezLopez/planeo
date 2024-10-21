@@ -5,7 +5,7 @@ import (
 	"planeo/api/pkg/request"
 )
 
-func (kc *KeycloakAdminClient) AssignKeycloakClientRoleToUser(ClientUuid string, roleRepresentation KeycloakClientRole, userId string) error {
+func (kc *KeycloakAdminClient) AddKeycloakClientRoleToUser(ClientUuid string, roles []KeycloakClientRole, userId string) error {
 
 	accessToken, err := kc.getAccessToken()
 
@@ -22,7 +22,7 @@ func (kc *KeycloakAdminClient) AssignKeycloakClientRoleToUser(ClientUuid string,
 		URL:         fmt.Sprintf("%s/admin/realms/%s/users/%s/role-mappings/clients/%s", kc.baseUrl, kc.realm, userId, ClientUuid),
 		Headers:     headers,
 		ContentType: request.ApplicationJSON,
-		Body:        []any{roleRepresentation},
+		Body:        roles,
 	}
 
 	response, err := request.HttpRequestWithRetry(requestParams)
