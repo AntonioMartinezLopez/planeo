@@ -2,7 +2,6 @@ package organization_management
 
 import (
 	"errors"
-	"fmt"
 	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
 	"slices"
@@ -18,12 +17,27 @@ func NewOrganizationManagementService() *OrganizationManagementService {
 	}
 }
 
-func (s *OrganizationManagementService) GetUsers(organizationId string) ([]keycloak.KeycloakUser, error) {
+func (s *OrganizationManagementService) GetUsers(organizationId string) ([]User, error) {
 
-	users, err := s.KeycloakAdminClient.GetKeycloakUsers(organizationId)
+	keycloakUsers, err := s.KeycloakAdminClient.GetKeycloakUsers(organizationId)
 
 	if err != nil {
 		return nil, err
+	}
+
+	users := []User{}
+	for _, keycloakUser := range keycloakUsers {
+		users = append(users, User{
+			Id:              keycloakUser.Id,
+			Userame:         keycloakUser.Userame,
+			FirstName:       keycloakUser.FirstName,
+			LastName:        keycloakUser.LastName,
+			Email:           keycloakUser.Email,
+			Totp:            keycloakUser.Totp,
+			Enabled:         keycloakUser.Enabled,
+			EmailVerified:   keycloakUser.EmailVerified,
+			RequiredActions: FromKeycloakActions(keycloakUser.RequiredActions),
+		})
 	}
 
 	return users, nil
@@ -88,21 +102,6 @@ func (s *OrganizationManagementService) CreateUser(organizationId string, create
 	return nil
 }
 
-func (s *OrganizationManagementService) GetAvailableRoles() ([]keycloak.KeycloakClientRole, error) {
-	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
-
-	if err != nil {
-		return nil, err
-	}
-	clientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return clientRoles, nil
-}
-
 func (s *OrganizationManagementService) DeleteUser(userId string) error {
 	err := s.KeycloakAdminClient.DeleteKeycloakUser(userId)
 
@@ -111,6 +110,49 @@ func (s *OrganizationManagementService) DeleteUser(userId string) error {
 	}
 
 	return nil
+}
+
+func (s *OrganizationManagementService) UpdateUser(userId string, user User) error {
+
+	updateKeycloakUserParams := keycloak.UpdateUserParams{
+		Id:              userId,
+		Userame:         user.Userame,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Email:           user.Email,
+		Enabled:         user.Enabled,
+		EmailVerified:   user.EmailVerified,
+		Totp:            user.Totp,
+		RequiredActions: MapToKeycloakActions(user.RequiredActions),
+	}
+
+	err := s.KeycloakAdminClient.UpdateKeycloakUser(userId, updateKeycloakUserParams)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *OrganizationManagementService) GetAvailableRoles() ([]Role, error) {
+	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+
+	if err != nil {
+		return nil, err
+	}
+	keycloakClientRoles, err := s.KeycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roles := []Role{}
+	for _, keycloakClientRole := range keycloakClientRoles {
+		roles = append(roles, Role{Id: keycloakClientRole.Id, Name: keycloakClientRole.Name})
+	}
+
+	return roles, nil
 }
 
 func (s *OrganizationManagementService) AssignRoles(roles []PutUserRoleInputBody, userId string) error {
@@ -135,7 +177,6 @@ func (s *OrganizationManagementService) AssignRoles(roles []PutUserRoleInputBody
 		return i != -1
 	})
 
-	fmt.Println(rolesToDelete)
 	deleteError := s.KeycloakAdminClient.DeleteKeycloakUserClientRoles(client.Uuid, rolesToDelete, userId)
 
 	if deleteError != nil {
@@ -152,24 +193,23 @@ func (s *OrganizationManagementService) AssignRoles(roles []PutUserRoleInputBody
 	return nil
 }
 
-func (s *OrganizationManagementService) GetUser(email string) (*keycloak.KeycloakUser, error) {
-	user, err := s.KeycloakAdminClient.GetKeycloakUserByEmail(email)
+func (s *OrganizationManagementService) GetUserById(userId string) (*User, error) {
+	keycloakUser, err := s.KeycloakAdminClient.GetKeycloakUserById(userId)
 
 	if err != nil {
-
 		return nil, err
 	}
 
-	return user, nil
-}
-
-func (s *OrganizationManagementService) GetUserById(userId string) (*keycloak.KeycloakUser, error) {
-	user, err := s.KeycloakAdminClient.GetKeycloakUserById(userId)
-
-	if err != nil {
-
-		return nil, err
+	user := User{
+		Id:              keycloakUser.Id,
+		Userame:         keycloakUser.Userame,
+		FirstName:       keycloakUser.FirstName,
+		LastName:        keycloakUser.LastName,
+		Email:           keycloakUser.Email,
+		Totp:            keycloakUser.Totp,
+		Enabled:         keycloakUser.Enabled,
+		EmailVerified:   keycloakUser.EmailVerified,
+		RequiredActions: FromKeycloakActions(keycloakUser.RequiredActions),
 	}
-
-	return user, nil
+	return &user, nil
 }

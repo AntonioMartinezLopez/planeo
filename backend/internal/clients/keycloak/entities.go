@@ -13,6 +13,7 @@ type KeycloakUser struct {
 	LastName        string   `json:"lastName" validate:"required"`
 	Email           string   `json:"email" validate:"required"`
 	Enabled         bool     `json:"enabled"`
+	EmailVerified   bool     `json:"emailVerified"`
 	Totp            bool     `json:"totp"`
 	RequiredActions []string `json:"requiredActions" validate:"required"`
 }

@@ -45,8 +45,8 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/management/user/{userId}",
-		Summary:     "Get user from authentication system",
+		Path:        "/{organization}/management/users/{userId}",
+		Summary:     "Get single user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
 	}), func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
@@ -57,14 +57,14 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 		}
 
 		response := &GetUserOutput{}
-		response.Body.User = user
+		response.Body.User = &UserWithRoles{User: *user, Roles: []Role{}}
 		return response, nil
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
 		OperationID: "create-user",
 		Method:      http.MethodPost,
-		Path:        "/{organization}/management/user",
+		Path:        "/{organization}/management/users",
 		Summary:     "Create user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
@@ -82,9 +82,29 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 	})
 
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
+		OperationID: "update-user",
+		Method:      http.MethodPut,
+		Path:        "/{organization}/management/users/{userId}",
+		Summary:     "Update user",
+		Tags:        []string{"Management"},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
+	}), func(ctx context.Context, input *UpdateUserInput) (*UpdateUserOutput, error) {
+
+		err := o.organizationManagementService.UpdateUser(input.UserId, input.Body)
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+
+		response := &UpdateUserOutput{}
+		response.Body.Success = true
+		return response, nil
+	})
+
+	huma.Register(*o.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-user",
 		Method:      http.MethodDelete,
-		Path:        "/{organization}/management/user/{userId}",
+		Path:        "/{organization}/management/users/{userId}",
 		Summary:     "Delete user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},
@@ -104,7 +124,7 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 	huma.Register(*o.api, operations.WithAuth(huma.Operation{
 		OperationID: "Assign-user-roles",
 		Method:      http.MethodPut,
-		Path:        "/{organization}/management/user/{userId}/role",
+		Path:        "/{organization}/management/users/{userId}/roles",
 		Summary:     "Assign roles to a user",
 		Tags:        []string{"Management"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "organization", "manage")},

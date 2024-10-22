@@ -46,6 +46,7 @@ const (
 	GET    HttpMethod = "GET"
 	POST   HttpMethod = "POST"
 	UPDATE HttpMethod = "UPDATE"
+	PUT    HttpMethod = "PUT"
 	PATCH  HttpMethod = "PATCH"
 	DELETE HttpMethod = "DELETE"
 )
