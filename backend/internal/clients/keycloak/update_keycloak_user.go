@@ -22,7 +22,6 @@ func (kc *KeycloakAdminClient) UpdateKeycloakUser(userId string, userData Update
 
 	accessToken, err := kc.getAccessToken()
 
-	fmt.Println(userId)
 	if err != nil {
 		return err
 	}

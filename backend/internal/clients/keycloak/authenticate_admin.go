@@ -31,7 +31,6 @@ func (kc *KeycloakAdminClient) AuthenticateAdmin() error {
 	}
 
 	if response.StatusCode != 200 {
-		fmt.Println(response.Body)
 		return fmt.Errorf("something went wrong during admin authentication: %d response error from keycloak", response.StatusCode)
 	}
 
