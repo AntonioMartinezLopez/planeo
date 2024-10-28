@@ -29,29 +29,6 @@ func (ra RequiredAction) TransformSchema(r huma.Registry, s *huma.Schema) *huma.
 	return s
 }
 
-func MapToKeycloakActions(actions []RequiredAction) []string {
-	keycloakActions := []string{}
-
-	for _, action := range actions {
-		keycloakActions = append(keycloakActions, string(action))
-	}
-
-	return keycloakActions
-}
-
-func FromKeycloakActions(keycloakActions []string) []RequiredAction {
-	actions := []RequiredAction{}
-
-	for _, action := range keycloakActions {
-		value, ok := RequiredActionsMap[action]
-		if ok {
-			actions = append(actions, value)
-		}
-	}
-
-	return actions
-}
-
 type User struct {
 	Id              string           `json:"id" example:"123456" doc:"User identifier within the authentication system" validate:"required"`
 	Userame         string           `json:"username" example:"user123" doc:"User name" binding:"required"`

@@ -27,17 +27,7 @@ func (s *OrganizationManagementService) GetUsers(organizationId string) ([]User,
 
 	users := []User{}
 	for _, keycloakUser := range keycloakUsers {
-		users = append(users, User{
-			Id:              keycloakUser.Id,
-			Userame:         keycloakUser.Userame,
-			FirstName:       keycloakUser.FirstName,
-			LastName:        keycloakUser.LastName,
-			Email:           keycloakUser.Email,
-			Totp:            keycloakUser.Totp,
-			Enabled:         keycloakUser.Enabled,
-			EmailVerified:   keycloakUser.EmailVerified,
-			RequiredActions: FromKeycloakActions(keycloakUser.RequiredActions),
-		})
+		users = append(users, fromKeycloakUser(&keycloakUser))
 	}
 
 	return users, nil
@@ -123,7 +113,7 @@ func (s *OrganizationManagementService) UpdateUser(userId string, user User) err
 		Enabled:         user.Enabled,
 		EmailVerified:   user.EmailVerified,
 		Totp:            user.Totp,
-		RequiredActions: MapToKeycloakActions(user.RequiredActions),
+		RequiredActions: mapToKeycloakActions(user.RequiredActions),
 	}
 
 	err := s.KeycloakAdminClient.UpdateKeycloakUser(userId, updateKeycloakUserParams)
@@ -149,7 +139,7 @@ func (s *OrganizationManagementService) GetAvailableRoles() ([]Role, error) {
 
 	roles := []Role{}
 	for _, keycloakClientRole := range keycloakClientRoles {
-		roles = append(roles, Role{Id: keycloakClientRole.Id, Name: keycloakClientRole.Name})
+		roles = append(roles, fromKeycloakClientRole(&keycloakClientRole))
 	}
 
 	return roles, nil
@@ -193,23 +183,33 @@ func (s *OrganizationManagementService) AssignRoles(roles []PutUserRoleInputBody
 	return nil
 }
 
-func (s *OrganizationManagementService) GetUserById(userId string) (*User, error) {
+func (s *OrganizationManagementService) GetUserById(userId string) (*UserWithRoles, error) {
 	keycloakUser, err := s.KeycloakAdminClient.GetKeycloakUserById(userId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	user := User{
-		Id:              keycloakUser.Id,
-		Userame:         keycloakUser.Userame,
-		FirstName:       keycloakUser.FirstName,
-		LastName:        keycloakUser.LastName,
-		Email:           keycloakUser.Email,
-		Totp:            keycloakUser.Totp,
-		Enabled:         keycloakUser.Enabled,
-		EmailVerified:   keycloakUser.EmailVerified,
-		RequiredActions: FromKeycloakActions(keycloakUser.RequiredActions),
+	user := fromKeycloakUser(keycloakUser)
+
+	client, err := s.KeycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+
+	if err != nil {
+		return nil, err
 	}
-	return &user, nil
+
+	userRoles, err := s.KeycloakAdminClient.GetKeycloakUserClientRoles(client.Uuid, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roles := []Role{}
+	for _, keycloakClientRole := range userRoles {
+		roles = append(roles, fromKeycloakClientRole(&keycloakClientRole))
+	}
+
+	userWithRoles := UserWithRoles{User: user, Roles: roles}
+
+	return &userWithRoles, nil
 }

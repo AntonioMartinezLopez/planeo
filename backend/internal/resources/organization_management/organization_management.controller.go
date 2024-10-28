@@ -57,7 +57,7 @@ func (o *OrganisationManagementController) InitializeRoutes() {
 		}
 
 		response := &GetUserOutput{}
-		response.Body.User = &UserWithRoles{User: *user, Roles: []Role{}}
+		response.Body.User = user
 		return response, nil
 	})
 

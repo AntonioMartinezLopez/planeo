@@ -2,7 +2,6 @@ package keycloak
 
 import (
 	"fmt"
-	"io"
 	"planeo/api/pkg/request"
 )
 
@@ -20,36 +19,11 @@ type UpdateUserParams struct {
 
 func (kc *KeycloakAdminClient) UpdateKeycloakUser(userId string, userData UpdateUserParams) error {
 
-	accessToken, err := kc.getAccessToken()
-
-	if err != nil {
-		return err
+	requestParams := KeycloakRequestParams{
+		Method:  request.PUT,
+		Url:     fmt.Sprintf("%s/admin/realms/%s/users/%s", kc.baseUrl, kc.realm, userId),
+		Payload: userData,
 	}
 
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
-	}
-
-	requestParams := request.HttpRequestParams{
-		Method:      request.PUT,
-		URL:         fmt.Sprintf("%s/admin/realms/%s/users/%s", kc.baseUrl, kc.realm, userId),
-		Headers:     headers,
-		ContentType: request.ApplicationJSON,
-		Body:        userData,
-	}
-
-	response, err := request.HttpRequestWithRetry(requestParams)
-
-	if err != nil {
-		return err
-	}
-
-	defer response.Body.Close()
-
-	if response.StatusCode != 204 {
-		body, _ := io.ReadAll(response.Body)
-		return fmt.Errorf("something went wrong: Fetching Keycloak endpoint resulted in http response %d: %s", response.StatusCode, body)
-	}
-
-	return nil
+	return SendRequest(kc, requestParams, nil)
 }

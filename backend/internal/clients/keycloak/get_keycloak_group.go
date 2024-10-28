@@ -2,48 +2,21 @@ package keycloak
 
 import (
 	"fmt"
-	jsonHelper "planeo/api/pkg/json"
-	"planeo/api/pkg/logger"
 	"planeo/api/pkg/request"
 )
 
 func (kc *KeycloakAdminClient) GetKeycloakGroup(organizationId string) (*KeycloakGroup, error) {
 
-	accessToken, err := kc.getAccessToken()
-
-	if err != nil {
-		return nil, err
+	requestParams := KeycloakRequestParams{
+		Method: request.GET,
+		Url:    fmt.Sprintf("%s/admin/realms/%s/group-by-path/%s", kc.baseUrl, kc.realm, organizationId),
 	}
-
-	headers := map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", accessToken),
-	}
-
-	requestParams := request.HttpRequestParams{
-		Method:      request.GET,
-		URL:         fmt.Sprintf("%s/admin/realms/%s/group-by-path/%s", kc.baseUrl, kc.realm, organizationId),
-		Headers:     headers,
-		ContentType: request.ApplicationJSON,
-	}
-
-	response, err := request.HttpRequestWithRetry(requestParams)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("something went wrong: Fetching Keycloak endpoint resulted in http response %d", response.StatusCode)
-	}
-
-	defer response.Body.Close()
 
 	keycloakGroup := new(KeycloakGroup)
-	validationError := jsonHelper.DecodeJSONAndValidate(response.Body, keycloakGroup, true)
+	err := SendRequest(kc, requestParams, keycloakGroup)
 
-	if validationError != nil {
-		logger.Error("Validation error: %s", validationError)
-		return nil, validationError
+	if err != nil {
+		return nil, err
 	}
 
 	return keycloakGroup, nil

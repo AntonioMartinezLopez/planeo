@@ -10,9 +10,10 @@ import (
 )
 
 type KeycloakRequestParams struct {
-	Url     string
-	Method  request.HttpMethod
-	Payload any
+	Url         string
+	QueryParams map[string]string
+	Method      request.HttpMethod
+	Payload     any
 }
 
 var expectedReturnCodes = map[request.HttpMethod][]int{
@@ -38,6 +39,7 @@ func SendRequest(kc *KeycloakAdminClient, keycloakRequestParams KeycloakRequestP
 	requestParams := request.HttpRequestParams{
 		Method:      keycloakRequestParams.Method,
 		URL:         keycloakRequestParams.Url,
+		QueryParams: keycloakRequestParams.QueryParams,
 		Headers:     headers,
 		ContentType: request.ApplicationJSON,
 		Body:        keycloakRequestParams.Payload,
