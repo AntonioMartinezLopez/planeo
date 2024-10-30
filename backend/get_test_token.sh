@@ -37,7 +37,7 @@ response=$(curl --silent --request POST \
     --data "client_secret=${OAUTH_CLIENT_SECRET}")
 
 # Check for error in response
-if echo "$response" | jq -e '.error' > /dev/null; then
+if echo "$response" | jq -e '.error' >/dev/null; then
     error=$(echo "$response" | jq -r '.error')
     error_description=$(echo "$response" | jq -r '.error_description')
     echo "Error: $error"
@@ -59,6 +59,6 @@ response_permissions=$(curl --silent --request POST \
     --header "Authorization: Bearer ${access_token}" \
     --data grant_type=urn:ietf:params:oauth:grant-type:uma-ticket \
     --data "response_mode=permissions" \
-    --data "audience=${OAUTH_CLIENT_ID}" )
+    --data "audience=${OAUTH_CLIENT_ID}")
 
 echo "Permissions: $response_permissions"

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Check if Go is installed
-if ! command -v go &> /dev/null
-then
+if ! command -v go &>/dev/null; then
     echo "Go is not installed. Please install Go first."
     exit 1
 fi
@@ -25,13 +24,13 @@ PATH_EXPORT="export PATH=\$PATH:/usr/local/go/bin:\$GOPATH/bin"
 add_to_bashrc=false
 
 if ! grep -q "$GOPATH_EXPORT" "$BASHRC_FILE"; then
-    echo "$GOPATH_EXPORT" >> "$BASHRC_FILE"
+    echo "$GOPATH_EXPORT" >>"$BASHRC_FILE"
     echo "Added '$GOPATH_EXPORT' to .bashrc"
     add_to_bashrc=true
 fi
 
 if ! grep -q "$PATH_EXPORT" "$BASHRC_FILE"; then
-    echo "$PATH_EXPORT" >> "$BASHRC_FILE"
+    echo "$PATH_EXPORT" >>"$BASHRC_FILE"
     echo "Added '$PATH_EXPORT' to .bashrc"
     add_to_bashrc=true
 fi

@@ -18,8 +18,6 @@ services:
 ##### Keycloak services #####
   keycloak_postgres:
     image: postgres:16.2
-    volumes:
-      - ./db_keycloak:/var/lib/postgresql/data:rw
     environment:
       POSTGRES_DB: keycloak_db
       POSTGRES_USER: keycloak_db_user
