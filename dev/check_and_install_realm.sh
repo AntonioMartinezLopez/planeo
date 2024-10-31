@@ -5,6 +5,7 @@ source ../backend/.env
 
 # Function to authenticate against keycloak as admin, returns access token or throws error
 get_access_token() {
+    
     access_token=$(curl --silent --request POST \
         --url "$KC_BASE_URL/realms/master/protocol/openid-connect/token" \
         --header 'content-type: application/x-www-form-urlencoded' \
@@ -25,7 +26,9 @@ get_access_token() {
 
 # Function to check if Keycloak is up
 check_keycloak_up() {
+
     response=$(curl --write-out '%{http_code}' --silent --output /dev/null "$KC_BASE_URL/realms/master/protocol/openid-connect/certs")
+    
     if [ "$response" -eq 200 ]; then
         echo "Keycloak is up."
         return 0
