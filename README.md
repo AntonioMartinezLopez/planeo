@@ -16,9 +16,9 @@ AI-driven process management platform tailored for various service providers, su
 - `dev/install.sh`: This script checks and installs all dependencies needed for running the development environment
 - `dev/start.sh`: This scripts starts the development environment.
 
-### Generating Access Tokens (For backend testingse)
+### Generating Access Tokens (For backend testing)
 
-- `backend/get_test_token.sh`: This scripts is used to login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
+- `backend/get_test_token.sh`: This script is used to login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
 
 <br>
 <center>
