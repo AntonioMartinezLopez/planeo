@@ -57,6 +57,21 @@ else
     fi
 fi
 
+# Check if the goose binary is installed
+if [ -f "$GOPATH/bin/goose" ]; then
+    echo "Golang goose is installed."
+else
+    echo "Goose is not installed."
+    echo "Installing 'goose' binary..."
+    go install github.com/pressly/goose/v3/cmd/goose@latest
+    if [ $? -eq 0 ]; then
+        echo "The 'goose' binary has been successfully installed."
+    else
+        echo "Failed to install goose. Please check your Go setup and try again."
+        exit 1
+    fi
+fi
+
 BACKEND_DIR="backend"
 echo "Installing Go modules from $BACKEND_DIR/go.mod..."
 cd "../$BACKEND_DIR"

@@ -4,7 +4,7 @@
 cleanup() {
   echo "Caught Ctrl+C, stopping all processes..."
   # Stop docker compose here
-  docker compose -f ./dev/docker-compose.yaml down -v
+  docker compose -f ./dev/docker-compose.yaml down
   # Kill all child processes
   pkill -P $$
   exit 0

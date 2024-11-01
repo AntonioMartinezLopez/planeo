@@ -3,17 +3,24 @@ services:
 ##### application related services #####
   postgres:
     image: postgres:alpine3.20
+    container_name: postgres
     environment:
       POSTGRES_USER: planeo
       POSTGRES_PASSWORD: planeo
       POSTGRES_DB: planeo
     ports:
       - "5432:5432"
-  adminer:
-    image: adminer
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
     restart: always
     ports:
-      - 8081:8081
+      - "8081:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: local@user.com
+      PGADMIN_DEFAULT_PASSWORD: local
+    volumes:
+      - pg-data:/var/lib/pgadmin
 
 ##### Keycloak services #####
   keycloak_postgres:
@@ -52,3 +59,7 @@ services:
 networks:
   keycloak_network:
     driver: bridge
+
+# volumes for pgadmin,postgres and keycloak
+volumes:
+  pg-data:
