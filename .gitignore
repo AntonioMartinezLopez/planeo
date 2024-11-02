@@ -23,5 +23,6 @@ go.work.sum
 
 # config
 .env
+.envrc
 tmp
 .auth
