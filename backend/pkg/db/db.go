@@ -1,7 +1,6 @@
 package db
 
 import (
-	"log"
 	"planeo/api/pkg/logger"
 	"time"
 
@@ -31,7 +30,7 @@ func pingDatabase() {
 	for {
 		err := database.Ping()
 		if err != nil {
-			log.Printf("Failed to ping the database: %v", err)
+			logger.Error("Failed to ping the database: %v", err)
 			errorCounter++
 			if errorCounter >= 5 {
 				panic("Failed to connect to the database after 5 attempts")
