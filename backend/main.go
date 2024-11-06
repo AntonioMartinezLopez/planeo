@@ -5,6 +5,7 @@ import (
 	"planeo/api/config"
 	"planeo/api/internal/setup"
 
+	"planeo/api/pkg/db"
 	"planeo/api/pkg/logger"
 	"time"
 )
@@ -15,6 +16,9 @@ func main() {
 	logger.Log("Loading configuration")
 	config.LoadConfig()
 	serverConfig := config.ServerConfig()
+
+	// initialize database connection
+	db.InitializeDatabase(config.DatabaseConfig())
 
 	// Initialize Router
 	router := setup.SetupRouter()

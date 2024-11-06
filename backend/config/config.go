@@ -11,6 +11,11 @@ import (
 type ApplicationConfiguration struct {
 	Host                string
 	Port                string
+	DbHost              string
+	DbPort              string
+	DbUser              string
+	DbPassword          string
+	DbName              string
 	KcBaseUrl           string
 	KcIssuer            string
 	KcOauthClientID     string
@@ -31,6 +36,11 @@ func LoadConfig() {
 	Config = &ApplicationConfiguration{
 		Host:                readEnvFile("HOST"),
 		Port:                readEnvFile("HOST"),
+		DbHost:              readEnvFile("DB_HOST"),
+		DbPort:              readEnvFile("DB_PORT"),
+		DbUser:              readEnvFile("DB_USER"),
+		DbPassword:          readEnvFile("DB_PASSWORD"),
+		DbName:              readEnvFile("DB_NAME"),
 		KcBaseUrl:           readEnvFile("KC_BASE_URL"),
 		KcIssuer:            readEnvFile("KC_ISSUER_REALM"),
 		KcOauthClientID:     readEnvFile("KC_OAUTH_CLIENT_ID"),
@@ -53,6 +63,11 @@ func readEnvFile(envName string) string {
 func ServerConfig() string {
 	appServerUrl := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
 	return appServerUrl
+}
+
+func DatabaseConfig() string {
+	dbConfig := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", Config.DbUser, Config.DbPassword, Config.DbHost, Config.DbPort, Config.DbName)
+	return dbConfig
 }
 
 func OauthIssuerUrl() string {
