@@ -10,7 +10,6 @@ import (
 	"planeo/api/internal/middlewares"
 	"planeo/api/internal/resources/announcement"
 	"planeo/api/internal/resources/group"
-	"planeo/api/internal/resources/organization_management"
 	"planeo/api/internal/resources/task"
 	"planeo/api/internal/resources/user"
 
@@ -102,7 +101,6 @@ func SetupRouter() *chi.Mux {
 			task.NewTaskController(&api),
 			announcement.NewAnnouncementController(&api),
 			user.NewUserController(&api),
-			organization_management.NewOrganisationManagementController(&api),
 		})
 
 	})

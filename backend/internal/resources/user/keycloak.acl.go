@@ -1,4 +1,4 @@
-package organization_management
+package user
 
 import "planeo/api/internal/clients/keycloak"
 

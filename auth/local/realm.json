@@ -112,12 +112,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["Admin"]
+        "local": [
+          "Admin"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     },
     {
       "id": "146b3857-090e-453d-b1e6-8cdfbb1a6dcb",
@@ -141,12 +147,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["Planner"]
+        "local": [
+          "Planner"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     },
     {
       "id": "74e68681-2970-4d61-8394-7de2e7124685",
@@ -159,9 +171,13 @@
       "credentials": [],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["uma_protection"]
+        "local": [
+          "uma_protection"
+        ]
       },
       "notBefore": 0,
       "groups": []
@@ -188,12 +204,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["User"]
+        "local": [
+          "User"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     }
   ],
   "clients": [
@@ -209,8 +231,12 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "t4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu",
-      "redirectUris": ["/*"],
-      "webOrigins": ["/*"],
+      "redirectUris": [
+        "/*"
+      ],
+      "webOrigins": [
+        "/*"
+      ],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -307,14 +333,18 @@
             "type": "urn:local:resources:default",
             "ownerManagedAccess": false,
             "attributes": {},
-            "uris": ["/*"]
+            "uris": [
+              "/*"
+            ]
           },
           {
             "name": "Task",
             "ownerManagedAccess": false,
             "displayName": "task",
             "attributes": {},
-            "uris": ["*/tasks"],
+            "uris": [
+              "*/tasks"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -336,7 +366,9 @@
             "ownerManagedAccess": false,
             "displayName": "announcement",
             "attributes": {},
-            "uris": ["*/announcement"],
+            "uris": [
+              "*/announcement"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -358,7 +390,9 @@
             "ownerManagedAccess": false,
             "displayName": "group",
             "attributes": {},
-            "uris": ["*/groups"],
+            "uris": [
+              "*/groups"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -380,7 +414,9 @@
             "ownerManagedAccess": false,
             "displayName": "label",
             "attributes": {},
-            "uris": ["*/labels"],
+            "uris": [
+              "*/labels"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -402,7 +438,9 @@
             "ownerManagedAccess": false,
             "displayName": "conversation",
             "attributes": {},
-            "uris": ["*/conversations"],
+            "uris": [
+              "*/conversations"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -424,7 +462,9 @@
             "ownerManagedAccess": false,
             "displayName": "reminder",
             "attributes": {},
-            "uris": ["*/reminder"],
+            "uris": [
+              "*/reminder"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -446,10 +486,75 @@
             "ownerManagedAccess": false,
             "displayName": "organization",
             "attributes": {},
-            "uris": ["*/management"],
+            "uris": [
+              "*/management"
+            ],
             "scopes": [
               {
                 "name": "manage"
+              }
+            ],
+            "icon_uri": ""
+          },
+          {
+            "name": "User",
+            "ownerManagedAccess": false,
+            "displayName": "user",
+            "attributes": {},
+            "uris": [
+              "*/users"
+            ],
+            "scopes": [
+              {
+                "name": "read"
+              },
+              {
+                "name": "update"
+              },
+              {
+                "name": "delete"
+              },
+              {
+                "name": "create"
+              }
+            ],
+            "icon_uri": ""
+          },
+          {
+            "name": "Role",
+            "ownerManagedAccess": false,
+            "displayName": "role",
+            "attributes": {},
+            "uris": [
+              "*/roles"
+            ],
+            "scopes": [
+              {
+                "name": "read"
+              },
+              {
+                "name": "update"
+              },
+              {
+                "name": "delete"
+              },
+              {
+                "name": "create"
+              }
+            ],
+            "icon_uri": ""
+          },
+          {
+            "name": "Userinfo",
+            "ownerManagedAccess": false,
+            "displayName": "userinfo",
+            "attributes": {},
+            "uris": [
+              "*/user_information"
+            ],
+            "scopes": [
+              {
+                "name": "read"
               }
             ],
             "icon_uri": ""
@@ -509,7 +614,7 @@
             "decisionStrategy": "AFFIRMATIVE",
             "config": {
               "resources": "[\"Announcement\"]",
-              "scopes": "[\"update\",\"create\",\"read\",\"delete\"]",
+              "scopes": "[\"update\",\"delete\",\"read\",\"create\"]",
               "applyPolicies": "[\"Admin\"]"
             }
           },
@@ -753,6 +858,79 @@
               "resources": "[\"Organization\"]",
               "scopes": "[\"manage\"]",
               "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "user:read",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "defaultResourceType": "",
+              "resources": "[\"User\"]",
+              "scopes": "[\"read\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+            }
+          },
+          {
+            "name": "user:create",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"User\"]",
+              "scopes": "[\"create\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "user:delete",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"User\"]",
+              "scopes": "[\"delete\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "user:update",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"User\"]",
+              "scopes": "[\"update\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "role:read",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Role\"]",
+              "scopes": "[\"read\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+            }
+          },
+          {
+            "name": "userinfo:read",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Userinfo\"]",
+              "scopes": "[\"read\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
             }
           }
         ],

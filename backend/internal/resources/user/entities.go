@@ -1,4 +1,4 @@
-package organization_management
+package user
 
 import (
 	"github.com/danielgtaylor/huma/v2"
