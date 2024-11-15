@@ -28,7 +28,7 @@ func fromKeycloakActions(keycloakActions []string) []RequiredAction {
 func fromKeycloakUser(keycloakUser *keycloak.KeycloakUser) User {
 	return User{
 		Id:              keycloakUser.Id,
-		Userame:         keycloakUser.Userame,
+		Username:        keycloakUser.Userame,
 		FirstName:       keycloakUser.FirstName,
 		LastName:        keycloakUser.LastName,
 		Email:           keycloakUser.Email,

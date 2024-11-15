@@ -14,8 +14,7 @@ type UserController struct {
 	userService *UserService
 }
 
-func NewUserController(api *huma.API) *UserController {
-	userService := NewUserService()
+func NewUserController(api *huma.API, userService *UserService) *UserController {
 	return &UserController{
 		api:         api,
 		userService: userService,
@@ -158,6 +157,26 @@ func (o *UserController) InitializeRoutes() {
 
 		response := &GetRolesOutput{}
 		response.Body.Roles = roles
+		return response, nil
+	})
+
+	huma.Register(*o.api, operations.WithAuth(huma.Operation{
+		OperationID: "get-basic-user-information",
+		Method:      http.MethodGet,
+		Path:        "/{organization}/users",
+		Summary:     "Get users",
+		Tags:        []string{"User"},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "userinfo", "read")},
+	}), func(ctx context.Context, input *GetUsersInput) (*GetUserInfoOutput, error) {
+
+		users, err := o.userService.GetUsersInformation(ctx, input.Organization)
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+
+		response := &GetUserInfoOutput{}
+		response.Body.Users = users
 		return response, nil
 	})
 }

@@ -85,3 +85,10 @@ type GetRolesOutput struct {
 		Roles []Role `json:"roles" doc:"Array of roles that can be assigned to users"`
 	}
 }
+
+// GET userinfo
+type GetUserInfoOutput struct {
+	Body struct {
+		Users []BasicUserInformation `json:"users" doc:"Array of users with basic informations"`
+	}
+}
