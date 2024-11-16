@@ -1,8 +1,11 @@
-package user
+package acl
 
-import "planeo/api/internal/clients/keycloak"
+import (
+	"planeo/api/internal/clients/keycloak"
+	models "planeo/api/internal/resources/user/models"
+)
 
-func mapToKeycloakActions(actions []RequiredAction) []string {
+func MapToKeycloakActions(actions []models.RequiredAction) []string {
 	keycloakActions := []string{}
 
 	for _, action := range actions {
@@ -12,11 +15,11 @@ func mapToKeycloakActions(actions []RequiredAction) []string {
 	return keycloakActions
 }
 
-func fromKeycloakActions(keycloakActions []string) []RequiredAction {
-	actions := []RequiredAction{}
+func FromKeycloakActions(keycloakActions []string) []models.RequiredAction {
+	actions := []models.RequiredAction{}
 
 	for _, action := range keycloakActions {
-		value, ok := RequiredActionsMap[action]
+		value, ok := models.RequiredActionsMap[action]
 		if ok {
 			actions = append(actions, value)
 		}
@@ -25,8 +28,8 @@ func fromKeycloakActions(keycloakActions []string) []RequiredAction {
 	return actions
 }
 
-func fromKeycloakUser(keycloakUser *keycloak.KeycloakUser) User {
-	return User{
+func FromKeycloakUser(keycloakUser *keycloak.KeycloakUser) models.User {
+	return models.User{
 		Id:              keycloakUser.Id,
 		Username:        keycloakUser.Userame,
 		FirstName:       keycloakUser.FirstName,
@@ -35,12 +38,12 @@ func fromKeycloakUser(keycloakUser *keycloak.KeycloakUser) User {
 		Totp:            keycloakUser.Totp,
 		Enabled:         keycloakUser.Enabled,
 		EmailVerified:   keycloakUser.EmailVerified,
-		RequiredActions: fromKeycloakActions(keycloakUser.RequiredActions),
+		RequiredActions: FromKeycloakActions(keycloakUser.RequiredActions),
 	}
 }
 
-func fromKeycloakClientRole(keycloakRole *keycloak.KeycloakClientRole) Role {
-	return Role{
+func FromKeycloakClientRole(keycloakRole *keycloak.KeycloakClientRole) models.Role {
+	return models.Role{
 		Id:   keycloakRole.Id,
 		Name: keycloakRole.Name,
 	}

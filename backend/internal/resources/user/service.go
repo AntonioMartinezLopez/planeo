@@ -1,10 +1,12 @@
 package user
 
 import (
-	"context"
 	"errors"
 	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
+	"planeo/api/internal/resources/user/acl"
+	"planeo/api/internal/resources/user/dto"
+	"planeo/api/internal/resources/user/models"
 	"slices"
 )
 
@@ -20,7 +22,7 @@ func NewUserService(userRepository *UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) GetUsers(organizationId string) ([]User, error) {
+func (s *UserService) GetUsers(organizationId string) ([]models.User, error) {
 
 	keycloakUsers, err := s.keycloakAdminClient.GetKeycloakUsers(organizationId)
 
@@ -28,22 +30,15 @@ func (s *UserService) GetUsers(organizationId string) ([]User, error) {
 		return nil, err
 	}
 
-	users := []User{}
+	users := []models.User{}
 	for _, keycloakUser := range keycloakUsers {
-		users = append(users, fromKeycloakUser(&keycloakUser))
+		users = append(users, acl.FromKeycloakUser(&keycloakUser))
 	}
 
 	return users, nil
 }
 
-type CreateUserData struct {
-	FirstName string `json:"firstName" doc:"First name of the user to be created" example:"John"`
-	LastName  string `json:"lastName" doc:"Last name of the user to be created" example:"Doe"`
-	Email     string `json:"email" doc:"Email of the user to be created" example:"John.Doe@planeo.de"`
-	Password  string `json:"password" doc:"Initial password for the user to be set" example:"password123"`
-}
-
-func (s *UserService) CreateUser(organizationId string, createUserInput CreateUserData) error {
+func (s *UserService) CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) error {
 
 	createUserData := keycloak.CreateUserParams{
 		FirstName: createUserInput.FirstName,
@@ -105,7 +100,7 @@ func (s *UserService) DeleteUser(userId string) error {
 	return nil
 }
 
-func (s *UserService) UpdateUser(userId string, user User) error {
+func (s *UserService) UpdateUser(userId string, user models.User) error {
 
 	updateKeycloakUserParams := keycloak.UpdateUserParams{
 		Id:              userId,
@@ -116,7 +111,7 @@ func (s *UserService) UpdateUser(userId string, user User) error {
 		Enabled:         user.Enabled,
 		EmailVerified:   user.EmailVerified,
 		Totp:            user.Totp,
-		RequiredActions: mapToKeycloakActions(user.RequiredActions),
+		RequiredActions: acl.MapToKeycloakActions(user.RequiredActions),
 	}
 
 	err := s.keycloakAdminClient.UpdateKeycloakUser(userId, updateKeycloakUserParams)
@@ -128,7 +123,7 @@ func (s *UserService) UpdateUser(userId string, user User) error {
 	return nil
 }
 
-func (s *UserService) GetAvailableRoles() ([]Role, error) {
+func (s *UserService) GetAvailableRoles() ([]models.Role, error) {
 	client, err := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
 	if err != nil {
@@ -140,15 +135,15 @@ func (s *UserService) GetAvailableRoles() ([]Role, error) {
 		return nil, err
 	}
 
-	roles := []Role{}
+	roles := []models.Role{}
 	for _, keycloakClientRole := range keycloakClientRoles {
-		roles = append(roles, fromKeycloakClientRole(&keycloakClientRole))
+		roles = append(roles, acl.FromKeycloakClientRole(&keycloakClientRole))
 	}
 
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(roles []PutUserRoleInputBody, userId string) error {
+func (s *UserService) AssignRoles(roles []dto.PutUserRoleInputBody, userId string) error {
 
 	client, err := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
@@ -163,7 +158,7 @@ func (s *UserService) AssignRoles(roles []PutUserRoleInputBody, userId string) e
 	}
 
 	rolesToDelete := slices.DeleteFunc(userRoles, func(userRole keycloak.KeycloakClientRole) bool {
-		i := slices.IndexFunc(roles, func(role PutUserRoleInputBody) bool {
+		i := slices.IndexFunc(roles, func(role dto.PutUserRoleInputBody) bool {
 			return role.Id == userRole.Id
 		})
 
@@ -186,14 +181,14 @@ func (s *UserService) AssignRoles(roles []PutUserRoleInputBody, userId string) e
 	return nil
 }
 
-func (s *UserService) GetUserById(userId string) (*UserWithRoles, error) {
+func (s *UserService) GetUserById(userId string) (*models.UserWithRoles, error) {
 	keycloakUser, err := s.keycloakAdminClient.GetKeycloakUserById(userId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	user := fromKeycloakUser(keycloakUser)
+	user := acl.FromKeycloakUser(keycloakUser)
 
 	client, err := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
@@ -207,16 +202,16 @@ func (s *UserService) GetUserById(userId string) (*UserWithRoles, error) {
 		return nil, err
 	}
 
-	roles := []Role{}
+	roles := []models.Role{}
 	for _, keycloakClientRole := range userRoles {
-		roles = append(roles, fromKeycloakClientRole(&keycloakClientRole))
+		roles = append(roles, acl.FromKeycloakClientRole(&keycloakClientRole))
 	}
 
-	userWithRoles := UserWithRoles{User: user, Roles: roles}
+	userWithRoles := models.UserWithRoles{User: user, Roles: roles}
 
 	return &userWithRoles, nil
 }
 
-func (s *UserService) GetUsersInformation(ctx context.Context, organizationId string) ([]BasicUserInformation, error) {
-	return s.userRepositry.GetUsersInformation(ctx, organizationId)
+func (s *UserService) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
+	return s.userRepositry.GetUsersInformation(organizationId)
 }

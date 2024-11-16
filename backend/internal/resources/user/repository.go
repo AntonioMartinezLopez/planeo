@@ -1,7 +1,7 @@
 package user
 
 import (
-	"context"
+	"planeo/api/internal/resources/user/models"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -16,10 +16,10 @@ func NewUserRepository(database *sqlx.DB) *UserRepository {
 	}
 }
 
-func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizationId string) ([]BasicUserInformation, error) {
+func (repo *UserRepository) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
 	query := "SELECT * FROM users WHERE organization = $1"
-	users := []BasicUserInformation{}
-	err := repo.db.SelectContext(ctx, &users, query, organizationId)
+	users := []models.BasicUserInformation{}
+	err := repo.db.Select(&users, query, organizationId)
 
 	if err != nil {
 		return nil, err

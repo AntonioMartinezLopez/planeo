@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"planeo/api/internal/middlewares"
+	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -29,14 +30,14 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Get all users from organization",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "read")},
-	}), func(ctx context.Context, input *GetUsersInput) (*GetUsersOutput, error) {
+	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUsersOutput, error) {
 		users, err := o.userService.GetUsers(input.Organization)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &GetUsersOutput{}
+		response := &dto.GetUsersOutput{}
 		response.Body.Users = users
 		return response, nil
 	})
@@ -48,14 +49,14 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Get single user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "read")},
-	}), func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+	}), func(ctx context.Context, input *dto.GetUserInput) (*dto.GetUserOutput, error) {
 		user, err := o.userService.GetUserById(input.UserId)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &GetUserOutput{}
+		response := &dto.GetUserOutput{}
 		response.Body.User = user
 		return response, nil
 	})
@@ -67,7 +68,7 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Create user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "create")},
-	}), func(ctx context.Context, input *CreateUserInput) (*CreateUserOutput, error) {
+	}), func(ctx context.Context, input *dto.CreateUserInput) (*dto.CreateUserOutput, error) {
 
 		err := o.userService.CreateUser(input.Organization, input.Body)
 
@@ -75,7 +76,7 @@ func (o *UserController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &CreateUserOutput{}
+		response := &dto.CreateUserOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
@@ -87,7 +88,7 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Update user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "update")},
-	}), func(ctx context.Context, input *UpdateUserInput) (*UpdateUserOutput, error) {
+	}), func(ctx context.Context, input *dto.UpdateUserInput) (*dto.UpdateUserOutput, error) {
 
 		err := o.userService.UpdateUser(input.UserId, input.Body)
 
@@ -95,7 +96,7 @@ func (o *UserController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &UpdateUserOutput{}
+		response := &dto.UpdateUserOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
@@ -107,7 +108,7 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Delete user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "delete")},
-	}), func(ctx context.Context, input *DeleteUserInput) (*DeleteUserOutput, error) {
+	}), func(ctx context.Context, input *dto.DeleteUserInput) (*dto.DeleteUserOutput, error) {
 
 		err := o.userService.DeleteUser(input.UserId)
 
@@ -115,7 +116,7 @@ func (o *UserController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &DeleteUserOutput{}
+		response := &dto.DeleteUserOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
@@ -127,7 +128,7 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Assign roles to a user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "update")},
-	}), func(ctx context.Context, input *PutUserRolesInput) (*PutUserRoleOutput, error) {
+	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
 
 		err := o.userService.AssignRoles(input.Body.Roles, input.UserId)
 
@@ -135,7 +136,7 @@ func (o *UserController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &PutUserRoleOutput{}
+		response := &dto.PutUserRoleOutput{}
 		response.Body.Success = true
 		return response, nil
 	})
@@ -147,7 +148,7 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Get roles",
 		Tags:        []string{"Roles"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "role", "read")},
-	}), func(ctx context.Context, input *GetRolesInput) (*GetRolesOutput, error) {
+	}), func(ctx context.Context, input *dto.GetRolesInput) (*dto.GetRolesOutput, error) {
 
 		roles, err := o.userService.GetAvailableRoles()
 
@@ -155,7 +156,7 @@ func (o *UserController) InitializeRoutes() {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &GetRolesOutput{}
+		response := &dto.GetRolesOutput{}
 		response.Body.Roles = roles
 		return response, nil
 	})
@@ -167,15 +168,15 @@ func (o *UserController) InitializeRoutes() {
 		Summary:     "Get users",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "userinfo", "read")},
-	}), func(ctx context.Context, input *GetUsersInput) (*GetUserInfoOutput, error) {
+	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUserInfoOutput, error) {
 
-		users, err := o.userService.GetUsersInformation(ctx, input.Organization)
+		users, err := o.userService.GetUsersInformation(input.Organization)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
 
-		response := &GetUserInfoOutput{}
+		response := &dto.GetUserInfoOutput{}
 		response.Body.Users = users
 		return response, nil
 	})

@@ -1,9 +1,13 @@
-package user
+package dto
+
+import (
+	models "planeo/api/internal/resources/user/models"
+)
 
 // GET users
 type GetUsersOutput struct {
 	Body struct {
-		Users []User `json:"users" doc:"Array of users managed in organization"`
+		Users []models.User `json:"users" doc:"Array of users managed in organization"`
 	}
 }
 
@@ -14,7 +18,7 @@ type GetUsersInput struct {
 // GET user
 type GetUserOutput struct {
 	Body struct {
-		User *UserWithRoles `json:"user" doc:"Information about a user managed in given auth system"`
+		User *models.UserWithRoles `json:"user" doc:"Information about a user managed in given auth system"`
 	}
 }
 
@@ -30,9 +34,16 @@ type CreateUserOutput struct {
 	}
 }
 
+type CreateUserInputBody struct {
+	FirstName string `json:"firstName" doc:"First name of the user to be created" example:"John"`
+	LastName  string `json:"lastName" doc:"Last name of the user to be created" example:"Doe"`
+	Email     string `json:"email" doc:"Email of the user to be created" example:"John.Doe@planeo.de"`
+	Password  string `json:"password" doc:"Initial password for the user to be set" example:"password123"`
+}
+
 type CreateUserInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
-	Body         CreateUserData
+	Body         CreateUserInputBody
 	RawBody      []byte
 }
 
@@ -40,7 +51,7 @@ type CreateUserInput struct {
 type UpdateUserInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
 	UserId       string `path:"userId" doc:"ID of the user to be deleted"`
-	Body         User
+	Body         models.User
 }
 
 type UpdateUserOutput struct {
@@ -55,40 +66,4 @@ type DeleteUserOutput struct {
 type DeleteUserInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
 	UserId       string `path:"userId" doc:"ID of the user to be deleted"`
-}
-
-// PUT user/roles
-type PutUserRoleInputBody struct {
-	Role
-}
-type PutUserRolesInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	UserId       string `path:"userId" doc:"ID of the user to be deleted"`
-	Body         struct {
-		Roles []PutUserRoleInputBody `json:"roles" doc:"Array of role representations"`
-	}
-}
-
-type PutUserRoleOutput struct {
-	Body struct {
-		Success bool
-	}
-}
-
-// GET roles
-type GetRolesInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-}
-
-type GetRolesOutput struct {
-	Body struct {
-		Roles []Role `json:"roles" doc:"Array of roles that can be assigned to users"`
-	}
-}
-
-// GET userinfo
-type GetUserInfoOutput struct {
-	Body struct {
-		Users []BasicUserInformation `json:"users" doc:"Array of users with basic informations"`
-	}
 }
