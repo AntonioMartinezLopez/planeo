@@ -27,7 +27,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "get-users",
 		Method:      http.MethodGet,
 		Path:        "/{organization}/admin/users",
-		Summary:     "Get all users from organization",
+		Summary:     "[Admin] Get all users from organization",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUsersOutput, error) {
@@ -46,7 +46,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "get-user",
 		Method:      http.MethodGet,
 		Path:        "/{organization}/admin/users/{userId}",
-		Summary:     "Get single user",
+		Summary:     "[Admin] Get single user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInput) (*dto.GetUserOutput, error) {
@@ -65,7 +65,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "create-user",
 		Method:      http.MethodPost,
 		Path:        "/{organization}/admin/users",
-		Summary:     "Create user",
+		Summary:     "[Admin] Create user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "create")},
 	}), func(ctx context.Context, input *dto.CreateUserInput) (*dto.CreateUserOutput, error) {
@@ -85,7 +85,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "update-user",
 		Method:      http.MethodPut,
 		Path:        "/{organization}/admin/users/{userId}",
-		Summary:     "Update user",
+		Summary:     "[Admin] Update user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "update")},
 	}), func(ctx context.Context, input *dto.UpdateUserInput) (*dto.UpdateUserOutput, error) {
@@ -105,7 +105,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "delete-user",
 		Method:      http.MethodDelete,
 		Path:        "/{organization}/admin/users/{userId}",
-		Summary:     "Delete user",
+		Summary:     "[Admin] Delete user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteUserInput) (*dto.DeleteUserOutput, error) {
@@ -125,7 +125,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "Assign-user-roles",
 		Method:      http.MethodPut,
 		Path:        "/{organization}/admin/users/{userId}/roles",
-		Summary:     "Assign roles to a user",
+		Summary:     "[Admin] Assign roles to a user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
@@ -145,7 +145,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "get-roles",
 		Method:      http.MethodGet,
 		Path:        "/{organization}/admin/roles",
-		Summary:     "Get roles",
+		Summary:     "[Admin] Get roles",
 		Tags:        []string{"Roles"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "role", "read")},
 	}), func(ctx context.Context, input *dto.GetRolesInput) (*dto.GetRolesOutput, error) {
@@ -165,7 +165,7 @@ func (o *UserController) InitializeRoutes() {
 		OperationID: "get-basic-user-information",
 		Method:      http.MethodGet,
 		Path:        "/{organization}/users",
-		Summary:     "Get users",
+		Summary:     "Get basic information of users",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*o.api, "userinfo", "read")},
 	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUserInfoOutput, error) {

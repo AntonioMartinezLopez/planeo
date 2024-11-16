@@ -10,15 +10,33 @@ import (
 	"slices"
 )
 
-type UserService struct {
-	keycloakAdminClient *keycloak.KeycloakAdminClient
-	userRepositry       *UserRepository
+type KeycloakAdminClientInterface interface {
+	GetKeycloakUsers(organizationId string) ([]keycloak.KeycloakUser, error)
+	CreateKeycloakUser(organizationId string, params keycloak.CreateUserParams) error
+	GetKeycloakClient(clientID string) (*keycloak.KeycloakClient, error)
+	GetKeycloakClientRoles(clientUuid string) ([]keycloak.KeycloakClientRole, error)
+	GetKeycloakUserByEmail(email string) (*keycloak.KeycloakUser, error)
+	AddKeycloakClientRoleToUser(clientUuid string, roles []keycloak.KeycloakClientRole, userId string) error
+	DeleteKeycloakUser(userId string) error
+	UpdateKeycloakUser(userId string, params keycloak.UpdateUserParams) error
+	GetKeycloakUserClientRoles(clientUuid, userId string) ([]keycloak.KeycloakClientRole, error)
+	DeleteKeycloakUserClientRoles(clientUuid string, roles []keycloak.KeycloakClientRole, userId string) error
+	GetKeycloakUserById(userId string) (*keycloak.KeycloakUser, error)
 }
 
-func NewUserService(userRepository *UserRepository) *UserService {
+type UserRepositoryInterface interface {
+	GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error)
+}
+
+type UserService struct {
+	keycloakAdminClient KeycloakAdminClientInterface
+	userRepository      UserRepositoryInterface
+}
+
+func NewUserService(userRepository UserRepositoryInterface, keycloakAdminClient KeycloakAdminClientInterface) *UserService {
 	return &UserService{
-		keycloakAdminClient: keycloak.NewKeycloakAdminClient(*config.Config),
-		userRepositry:       userRepository,
+		keycloakAdminClient: keycloakAdminClient,
+		userRepository:      userRepository,
 	}
 }
 
@@ -100,7 +118,7 @@ func (s *UserService) DeleteUser(userId string) error {
 	return nil
 }
 
-func (s *UserService) UpdateUser(userId string, user models.User) error {
+func (s *UserService) UpdateUser(userId string, user dto.UpdateUserInputBody) error {
 
 	updateKeycloakUserParams := keycloak.UpdateUserParams{
 		Id:              userId,
@@ -213,5 +231,5 @@ func (s *UserService) GetUserById(userId string) (*models.UserWithRoles, error) 
 }
 
 func (s *UserService) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
-	return s.userRepositry.GetUsersInformation(organizationId)
+	return s.userRepository.GetUsersInformation(organizationId)
 }

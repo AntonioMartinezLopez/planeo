@@ -14,16 +14,12 @@ import (
 )
 
 func isAuthorizationRequired(ctx huma.Context) bool {
-	// 1. check whether auth needs to be applied
-	isAuthorizationRequired := false
 	for _, opScheme := range ctx.Operation().Security {
-		var ok bool
-		if _, ok = opScheme["bearer"]; ok {
-			isAuthorizationRequired = true
-			break
+		if _, ok := opScheme["bearer"]; ok {
+			return true
 		}
 	}
-	return isAuthorizationRequired
+	return false
 }
 
 func verifyToken(token string, keySet jwk.Set) ([]byte, error) {
