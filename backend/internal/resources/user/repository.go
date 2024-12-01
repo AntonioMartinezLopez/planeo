@@ -2,7 +2,6 @@ package user
 
 import (
 	"planeo/api/internal/resources/user/models"
-	"planeo/api/pkg/logger"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -77,20 +76,36 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 		return err
 	}
 
-	logger.Info("Syncing users")
-
+	// Step 1: Delete users that are in the organization but not in the list of user IDs
 	// Create a list of user IDs
 	userIDs := make([]string, len(users))
 	for i, user := range users {
 		userIDs[i] = user.Id
 	}
 
-	err = repo.DeleteUsers(organizationId, userIDs)
+	input := DeleteUsersInput{
+		OrganizationId: organizationId,
+		UserIds:        userIDs,
+	}
+
+	query, args, _ := sqlx.Named(`
+		DELETE FROM users 
+		WHERE organization = :organizationid AND keycloak_id NOT IN (:userids)`, input)
+
+	query, args, err = sqlx.In(query, args...)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
+	query = sqlx.Rebind(sqlx.DOLLAR, query)
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Step 2: Update existing users or insert new users
 	for _, user := range users {
 		input := UpdateUserInput{
 			OrganizationId: organizationId,
