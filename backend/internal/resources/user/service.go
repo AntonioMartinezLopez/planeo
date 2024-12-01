@@ -7,6 +7,7 @@ import (
 	"planeo/api/internal/resources/user/acl"
 	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/resources/user/models"
+	"planeo/api/pkg/logger"
 	"slices"
 )
 
@@ -26,6 +27,7 @@ type KeycloakAdminClientInterface interface {
 
 type UserRepositoryInterface interface {
 	GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error)
+	SyncUsers(organizationId string, users []models.User) error
 }
 
 type UserService struct {
@@ -40,7 +42,7 @@ func NewUserService(userRepository UserRepositoryInterface, keycloakAdminClient 
 	}
 }
 
-func (s *UserService) GetUsers(organizationId string) ([]models.User, error) {
+func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User, error) {
 
 	keycloakUsers, err := s.keycloakAdminClient.GetKeycloakUsers(organizationId)
 
@@ -51,6 +53,16 @@ func (s *UserService) GetUsers(organizationId string) ([]models.User, error) {
 	users := []models.User{}
 	for _, keycloakUser := range keycloakUsers {
 		users = append(users, acl.FromKeycloakUser(&keycloakUser))
+	}
+
+	logger.Log("Sync: %t", sync)
+
+	if sync {
+		err := s.userRepository.SyncUsers(organizationId, users)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return users, nil

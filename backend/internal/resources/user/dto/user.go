@@ -13,6 +13,7 @@ type GetUsersOutput struct {
 
 type GetUsersInput struct {
 	Organization string `path:"organization" doc:"ID of the organization"`
+	Sync         bool   `query:"sync" required:"false" doc:"Flag describing whether to sync users from auth system or not"`
 }
 
 // GET user
