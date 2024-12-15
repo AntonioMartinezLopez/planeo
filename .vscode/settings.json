@@ -13,7 +13,6 @@
       },
     },
     "go.formatTool": "gofmt",
-    "workbench.colorTheme": "Tokyo Night",
     "go.toolsManagement.autoUpdate": true,
     "[javascript]": {
       "editor.defaultFormatter": "vscode.typescript-language-features"
