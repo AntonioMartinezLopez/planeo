@@ -12,7 +12,7 @@ type CreateUserParams struct {
 	Password  string
 }
 
-func (kc *KeycloakAdminClient) CreateKeycloakUser(organizationId string, userData CreateUserParams) error {
+func (kc *KeycloakAdminClient) CreateKeycloakUser(groupId string, userData CreateUserParams) error {
 
 	data := map[string]any{
 		"firstName":     userData.FirstName,
@@ -20,7 +20,7 @@ func (kc *KeycloakAdminClient) CreateKeycloakUser(organizationId string, userDat
 		"email":         userData.Email,
 		"emailVerified": true,
 		"enabled":       true,
-		"groups":        []string{fmt.Sprintf("/%s", organizationId)},
+		"groups":        []string{fmt.Sprintf("/%s", groupId)},
 		"credentials":   []map[string]any{{"type": "password", "value": userData.Password, "temporary": false}},
 	}
 

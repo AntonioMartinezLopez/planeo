@@ -43,7 +43,7 @@ func (repo *UserRepository) DeleteUsers(organizationId string, userIds []string)
 	// Delete users that are in the organization but not in the list of user IDs
 	deleteQuery := `
 		DELETE FROM users 
-		WHERE organization = :organizationid AND keycloak_id NOT IN (:userids)`
+		WHERE organization = :organizationid AND keycloak_id IN (:userids)`
 
 	query, args, _ := sqlx.Named(deleteQuery, input)
 

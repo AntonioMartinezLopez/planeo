@@ -6,6 +6,7 @@ import (
 	"planeo/api/internal/middlewares"
 	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/setup/operations"
+	humaUtils "planeo/api/internal/utils/huma_utils"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -50,7 +51,7 @@ func (controller *UserController) InitializeRoutes() {
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInput) (*dto.GetUserOutput, error) {
-		user, err := controller.userService.GetUserById(input.UserId)
+		user, err := controller.userService.GetUserById(input.Organization, input.UserId)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
@@ -90,10 +91,10 @@ func (controller *UserController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "update")},
 	}), func(ctx context.Context, input *dto.UpdateUserInput) (*dto.UpdateUserOutput, error) {
 
-		err := controller.userService.UpdateUser(input.UserId, input.Body)
+		err := controller.userService.UpdateUser(input.Organization, input.UserId, input.Body)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.UpdateUserOutput{}
@@ -110,10 +111,10 @@ func (controller *UserController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteUserInput) (*dto.DeleteUserOutput, error) {
 
-		err := controller.userService.DeleteUser(input.UserId)
+		err := controller.userService.DeleteUser(input.Organization, input.UserId)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.DeleteUserOutput{}
@@ -130,7 +131,7 @@ func (controller *UserController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
 
-		err := controller.userService.AssignRoles(input.Body.Roles, input.UserId)
+		err := controller.userService.AssignRoles(input.Organization, input.UserId, input.Body.Roles)
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())

@@ -5,11 +5,11 @@ import (
 	"planeo/api/pkg/request"
 )
 
-func (kc *KeycloakAdminClient) GetKeycloakGroup(organizationId string) (*KeycloakGroup, error) {
+func (kc *KeycloakAdminClient) GetKeycloakGroup(groupId string) (*KeycloakGroup, error) {
 
 	requestParams := KeycloakRequestParams{
 		Method: request.GET,
-		Url:    fmt.Sprintf("%s/admin/realms/%s/group-by-path/%s", kc.baseUrl, kc.realm, organizationId),
+		Url:    fmt.Sprintf("%s/admin/realms/%s/group-by-path/%s", kc.baseUrl, kc.realm, groupId),
 	}
 
 	keycloakGroup := new(KeycloakGroup)
