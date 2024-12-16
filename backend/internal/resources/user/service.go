@@ -1,7 +1,6 @@
 package user
 
 import (
-	"errors"
 	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
 	appError "planeo/api/internal/errors"
@@ -49,7 +48,7 @@ func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User,
 	keycloakUsers, err := s.keycloakAdminClient.GetKeycloakUsers(organizationId)
 
 	if err != nil {
-		return nil, err
+		return nil, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	users := []models.User{}
@@ -61,7 +60,7 @@ func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User,
 		err := s.userRepository.SyncUsers(organizationId, users)
 
 		if err != nil {
-			return nil, err
+			return nil, appError.New(appError.InternalError, "Something went wrong", err)
 		}
 	}
 
@@ -79,20 +78,20 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 	err := s.keycloakAdminClient.CreateKeycloakUser(organizationId, createUserData)
 
 	if err != nil {
-		return err
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	// assign default role
 	client, err := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
 	if err != nil {
-		return err
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	clientRoles, err := s.keycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
 
 	if err != nil {
-		return err
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	index := slices.IndexFunc(clientRoles, func(role keycloak.KeycloakClientRole) bool {
@@ -100,7 +99,7 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 	})
 
 	if index == -1 {
-		return errors.New("client role not found")
+		return appError.New(appError.EntityNotFound, "client role not found", err)
 	}
 
 	role := clientRoles[index]
@@ -108,7 +107,7 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 	user, err := s.keycloakAdminClient.GetKeycloakUserByEmail(createUserData.Email)
 
 	if err != nil {
-		return err
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	roleAssignError := s.keycloakAdminClient.AddKeycloakClientRoleToUser(client.Uuid, []keycloak.KeycloakClientRole{role}, user.Id)
@@ -188,6 +187,12 @@ func (s *UserService) GetAvailableRoles() ([]models.Role, error) {
 
 func (s *UserService) AssignRoles(organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
 
+	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
+
+	if !result {
+		return appError.New(appError.EntityNotFound, "User not found in organization")
+	}
+
 	client, keycloakErr := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
 	if keycloakErr != nil {
@@ -229,6 +234,13 @@ func (s *UserService) AssignRoles(organizationId string, userId string, roles []
 }
 
 func (s *UserService) GetUserById(organizationId string, userId string) (*models.UserWithRoles, error) {
+
+	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
+
+	if !result {
+		return nil, appError.New(appError.EntityNotFound, "User not found in organization")
+	}
+
 	keycloakUser, keycloakErr := s.keycloakAdminClient.GetKeycloakUserById(userId)
 
 	if keycloakErr != nil {

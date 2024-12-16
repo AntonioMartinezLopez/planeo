@@ -35,7 +35,7 @@ func (controller *UserController) InitializeRoutes() {
 		users, err := controller.userService.GetUsers(input.Organization, input.Sync)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.GetUsersOutput{}
@@ -54,7 +54,7 @@ func (controller *UserController) InitializeRoutes() {
 		user, err := controller.userService.GetUserById(input.Organization, input.UserId)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.GetUserOutput{}
@@ -74,7 +74,7 @@ func (controller *UserController) InitializeRoutes() {
 		err := controller.userService.CreateUser(input.Organization, input.Body)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.CreateUserOutput{}
@@ -134,7 +134,7 @@ func (controller *UserController) InitializeRoutes() {
 		err := controller.userService.AssignRoles(input.Organization, input.UserId, input.Body.Roles)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.PutUserRoleOutput{}
@@ -154,7 +154,7 @@ func (controller *UserController) InitializeRoutes() {
 		roles, err := controller.userService.GetAvailableRoles()
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.GetRolesOutput{}
@@ -174,7 +174,7 @@ func (controller *UserController) InitializeRoutes() {
 		users, err := controller.userService.GetUsersInformation(input.Organization)
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		response := &dto.GetUserInfoOutput{}
