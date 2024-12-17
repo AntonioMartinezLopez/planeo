@@ -29,6 +29,9 @@ type KeycloakAdminClientInterface interface {
 type UserRepositoryInterface interface {
 	GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error)
 	SyncUsers(organizationId string, users []models.User) error
+	CreateUser(organizationId string, user models.User) error
+	DeleteUser(organizationId string, userId string) error
+	UpdateUser(organizationId string, userId string, user models.User) error
 }
 
 type UserService struct {
@@ -116,6 +119,12 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 		return roleAssignError
 	}
 
+	err = s.userRepository.CreateUser(organizationId, acl.FromKeycloakUser(user))
+
+	if err != nil {
+		return appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
 	return nil
 }
 
@@ -131,6 +140,12 @@ func (s *UserService) DeleteUser(organizationId string, userId string) error {
 
 	if keycloakErr != nil {
 		return appError.New(appError.InternalError, "Something went wrong", keycloakErr)
+	}
+
+	err := s.userRepository.DeleteUser(organizationId, userId)
+
+	if err != nil {
+		return appError.New(appError.InternalError, "Deleting user went wrong", err)
 	}
 
 	return nil
@@ -162,6 +177,18 @@ func (s *UserService) UpdateUser(organizationId string, userId string, user dto.
 		return appError.New(appError.InternalError, "Something went wrong", keycloakErr)
 	}
 
+	err := s.userRepository.UpdateUser(organizationId, userId, models.User{
+		Id:        userId,
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+	})
+
+	if err != nil {
+		return appError.New(appError.InternalError, "Updating user went wrong", err)
+	}
+
 	return nil
 }
 
@@ -171,6 +198,7 @@ func (s *UserService) GetAvailableRoles() ([]models.Role, error) {
 	if keycloakErr != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", keycloakErr)
 	}
+
 	keycloakClientRoles, keycloakErr := s.keycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
 
 	if keycloakErr != nil {

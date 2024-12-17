@@ -70,6 +70,85 @@ type UpdateUserInput struct {
 	Email          string
 }
 
+func (repo *UserRepository) UpdateUser(organizationId string, userId string, user models.User) error {
+
+	input := UpdateUserInput{
+		OrganizationId: organizationId,
+		KeycloakId:     userId,
+		Username:       user.Username,
+		FirstName:      user.FirstName,
+		LastName:       user.LastName,
+		Email:          user.Email,
+	}
+	query := `
+		UPDATE users 
+		SET username = :username, first_name = :firstname, last_name = :lastname, email = :email 
+		WHERE keycloak_id = :keycloakid AND organization = :organizationid`
+
+	_, err := repo.db.NamedExec(query, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type CreateUserInput struct {
+	OrganizationId string
+	KeycloakId     string
+	Username       string
+	FirstName      string
+	LastName       string
+	Email          string
+}
+
+func (repo *UserRepository) CreateUser(organizationId string, user models.User) error {
+
+	input := CreateUserInput{
+		OrganizationId: organizationId,
+		KeycloakId:     user.Id,
+		Username:       user.Username,
+		FirstName:      user.FirstName,
+		LastName:       user.LastName,
+		Email:          user.Email,
+	}
+
+	query := `
+		INSERT INTO users (username, first_name, last_name, email, keycloak_id, organization) 
+		VALUES (:username, :firstname, :lastname, :email, :keycloakid, :organizationid)`
+
+	_, err := repo.db.NamedExec(query, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type DeleteUserInput struct {
+	OrganizationId string
+	KeycloakId     string
+}
+
+func (repo *UserRepository) DeleteUser(organizationId string, userId string) error {
+
+	input := DeleteUserInput{
+		OrganizationId: organizationId,
+		KeycloakId:     userId,
+	}
+
+	query := `
+		DELETE FROM users 
+		WHERE organization = :organizationid AND keycloak_id = :keycloakid`
+
+	_, err := repo.db.NamedExec(query, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (repo *UserRepository) SyncUsers(organizationId string, users []models.User) error {
 	tx, err := repo.db.Beginx()
 	if err != nil {
