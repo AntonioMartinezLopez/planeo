@@ -5,10 +5,10 @@ import (
 	"planeo/api/pkg/request"
 )
 
-func (kc *KeycloakAdminClient) GetKeycloakUsers(organizationId string) ([]KeycloakUser, error) {
+func (kc *KeycloakAdminClient) GetKeycloakUsers(groupId string) ([]KeycloakUser, error) {
 
 	// TODO: group information should be cached
-	group, err := kc.GetKeycloakGroup(organizationId)
+	group, err := kc.GetKeycloakGroup(groupId)
 
 	if err != nil {
 		return nil, err

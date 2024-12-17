@@ -603,7 +603,7 @@
             "config": {
               "resources": "[\"Reminder\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -614,7 +614,7 @@
             "decisionStrategy": "AFFIRMATIVE",
             "config": {
               "resources": "[\"Announcement\"]",
-              "scopes": "[\"update\",\"delete\",\"read\",\"create\"]",
+              "scopes": "[\"update\",\"read\",\"create\",\"delete\"]",
               "applyPolicies": "[\"Admin\"]"
             }
           },
@@ -664,7 +664,7 @@
               "defaultResourceType": "Task",
               "resources": "[\"Task\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -677,7 +677,7 @@
               "defaultResourceType": "Task",
               "resources": "[\"Task\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -701,7 +701,7 @@
             "config": {
               "resources": "[\"Group\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -725,7 +725,7 @@
             "config": {
               "resources": "[\"Group\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -761,7 +761,7 @@
             "config": {
               "resources": "[\"Label\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -797,7 +797,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -821,7 +821,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"create\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -833,7 +833,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -845,7 +845,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"delete\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\"]"
             }
           },
           {
@@ -870,7 +870,7 @@
               "defaultResourceType": "",
               "resources": "[\"User\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+              "applyPolicies": "[\"Admin\"]"
             }
           },
           {
@@ -918,7 +918,7 @@
             "config": {
               "resources": "[\"Role\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+              "applyPolicies": "[\"Admin\"]"
             }
           },
           {
@@ -930,7 +930,7 @@
             "config": {
               "resources": "[\"Userinfo\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+              "applyPolicies": "[\"User\",\"Planner\",\"Admin\"]"
             }
           }
         ],
