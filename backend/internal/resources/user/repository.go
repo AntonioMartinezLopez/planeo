@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"planeo/api/internal/resources/user/models"
+	"planeo/api/pkg/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,6 +44,7 @@ func (repo *UserRepository) DeleteUsersNotInList(organizationId string, userIds 
 	_, err := repo.db.Exec(context.Background(), query, args)
 
 	if err != nil {
+		logger.Error("Error deleting in DeleteUsersNotInList: %s", err.Error())
 		return err
 	}
 
@@ -68,6 +70,7 @@ func (repo *UserRepository) UpdateUser(organizationId string, userId string, use
 	_, err := repo.db.Exec(context.Background(), query, args)
 
 	if err != nil {
+		logger.Error("Error updating user in UpdateUser: %s", err.Error())
 		return err
 	}
 
@@ -90,7 +93,9 @@ func (repo *UserRepository) CreateUser(organizationId string, user models.User) 
 	}
 
 	_, err := repo.db.Exec(context.Background(), query, args)
+
 	if err != nil {
+		logger.Error("Error creating user in CreateUser: %s", err.Error())
 		return err
 	}
 
@@ -106,7 +111,9 @@ func (repo *UserRepository) DeleteUser(organizationId string, userId string) err
 	args := pgx.NamedArgs{"organizationId": organizationId, "keycloakId": userId}
 
 	_, err := repo.db.Exec(context.Background(), query, args)
+
 	if err != nil {
+		logger.Error("Error deleting user in DeleteUser: %s", err.Error())
 		return err
 	}
 
@@ -138,6 +145,7 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 	_, err = tx.Exec(context.Background(), query, args)
 
 	if err != nil {
+		logger.Error("Error deleting in SyncUsers: %s", err.Error())
 		tx.Rollback(context.Background())
 		return err
 	}
@@ -161,6 +169,7 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 		result, err := tx.Exec(context.Background(), query, args)
 
 		if err != nil {
+			logger.Error("Error updating user in SyncUsers: %s", err.Error())
 			tx.Rollback(context.Background())
 			return err
 		}
@@ -183,6 +192,7 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 
 			_, err := tx.Exec(context.Background(), query, args)
 			if err != nil {
+				logger.Error("Error creating user in SyncUsers: %s", err.Error())
 				tx.Rollback(context.Background())
 				return err
 			}
