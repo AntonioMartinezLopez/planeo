@@ -1,123 +1,95 @@
 package user
 
 import (
+	"context"
 	"planeo/api/internal/resources/user/models"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserRepository struct {
-	db *sqlx.DB
+	db *pgxpool.Pool
 }
 
-func NewUserRepository(database *sqlx.DB) *UserRepository {
+func NewUserRepository(database *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
 		db: database,
 	}
 }
 
 func (repo *UserRepository) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
-	query := "SELECT * FROM users WHERE organization = $1"
-	users := []models.BasicUserInformation{}
-	err := repo.db.Select(&users, query, organizationId)
+	query := "SELECT * FROM users WHERE organization = @organizationId"
+	args := pgx.NamedArgs{"organizationId": organizationId}
+
+	rows, err := repo.db.Query(context.Background(), query, args)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return users, nil
+	return pgx.CollectRows(rows, pgx.RowToStructByName[models.BasicUserInformation])
 }
 
-type DeleteUsersInput struct {
-	OrganizationId string
-	UserIds        []string
-}
-
-func (repo *UserRepository) DeleteUsers(organizationId string, userIds []string) error {
-
-	input := DeleteUsersInput{
-		OrganizationId: organizationId,
-		UserIds:        userIds,
-	}
+func (repo *UserRepository) DeleteUsersNotInList(organizationId string, userIds []string) error {
 
 	// Delete users that are in the organization but not in the list of user IDs
-	deleteQuery := `
+	query := `
 		DELETE FROM users 
-		WHERE organization = :organizationid AND keycloak_id IN (:userids)`
+		WHERE organization = @organizationId AND NOT keycloak_id = any(@userIds)`
 
-	query, args, _ := sqlx.Named(deleteQuery, input)
+	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
 
-	query, args, err := sqlx.In(query, args...)
-	if err != nil {
-		return err
-	}
+	_, err := repo.db.Exec(context.Background(), query, args)
 
-	query = sqlx.Rebind(sqlx.DOLLAR, query)
-	_, err = repo.db.Exec(query, args...)
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-type UpdateUserInput struct {
-	OrganizationId string
-	KeycloakId     string
-	Username       string
-	FirstName      string
-	LastName       string
-	Email          string
 }
 
 func (repo *UserRepository) UpdateUser(organizationId string, userId string, user models.User) error {
 
-	input := UpdateUserInput{
-		OrganizationId: organizationId,
-		KeycloakId:     userId,
-		Username:       user.Username,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		Email:          user.Email,
-	}
 	query := `
 		UPDATE users 
-		SET username = :username, first_name = :firstname, last_name = :lastname, email = :email 
-		WHERE keycloak_id = :keycloakid AND organization = :organizationid`
+		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
+		WHERE keycloak_id = @keycloakId AND organization = @organizationId`
 
-	_, err := repo.db.NamedExec(query, input)
+	args := pgx.NamedArgs{
+		"organizationId": organizationId,
+		"keycloakId":     userId,
+		"username":       user.Username,
+		"firstname":      user.FirstName,
+		"lastname":       user.LastName,
+		"email":          user.Email,
+	}
+
+	_, err := repo.db.Exec(context.Background(), query, args)
+
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-type CreateUserInput struct {
-	OrganizationId string
-	KeycloakId     string
-	Username       string
-	FirstName      string
-	LastName       string
-	Email          string
 }
 
 func (repo *UserRepository) CreateUser(organizationId string, user models.User) error {
 
-	input := CreateUserInput{
-		OrganizationId: organizationId,
-		KeycloakId:     user.Id,
-		Username:       user.Username,
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		Email:          user.Email,
-	}
-
 	query := `
 		INSERT INTO users (username, first_name, last_name, email, keycloak_id, organization) 
-		VALUES (:username, :firstname, :lastname, :email, :keycloakid, :organizationid)`
+		VALUES (@username, @firstname, @lastname, @email, @keycloakId, @organizationId)`
 
-	_, err := repo.db.NamedExec(query, input)
+	args := pgx.NamedArgs{
+		"organizationId": organizationId,
+		"keycloakId":     user.Id,
+		"username":       user.Username,
+		"firstname":      user.FirstName,
+		"lastname":       user.LastName,
+		"email":          user.Email,
+	}
+
+	_, err := repo.db.Exec(context.Background(), query, args)
 	if err != nil {
 		return err
 	}
@@ -125,23 +97,15 @@ func (repo *UserRepository) CreateUser(organizationId string, user models.User) 
 	return nil
 }
 
-type DeleteUserInput struct {
-	OrganizationId string
-	KeycloakId     string
-}
-
 func (repo *UserRepository) DeleteUser(organizationId string, userId string) error {
-
-	input := DeleteUserInput{
-		OrganizationId: organizationId,
-		KeycloakId:     userId,
-	}
 
 	query := `
 		DELETE FROM users 
-		WHERE organization = :organizationid AND keycloak_id = :keycloakid`
+		WHERE organization = @organizationId AND keycloak_id = @keycloakId`
 
-	_, err := repo.db.NamedExec(query, input)
+	args := pgx.NamedArgs{"organizationId": organizationId, "keycloakId": userId}
+
+	_, err := repo.db.Exec(context.Background(), query, args)
 	if err != nil {
 		return err
 	}
@@ -150,82 +114,80 @@ func (repo *UserRepository) DeleteUser(organizationId string, userId string) err
 }
 
 func (repo *UserRepository) SyncUsers(organizationId string, users []models.User) error {
-	tx, err := repo.db.Beginx()
+	tx, err := repo.db.Begin(context.Background())
 	if err != nil {
 		return err
 	}
 
-	// Step 1: Delete users that are in the organization but not in the list of user IDs
+	defer tx.Rollback(context.Background())
+
+	// Step 1: Delete users that are in the organization but not in the list of the valid user IDs
 	// Create a list of user IDs
-	userIDs := make([]string, len(users))
+	userIds := make([]string, len(users))
 	for i, user := range users {
-		userIDs[i] = user.Id
+		userIds[i] = user.Id
 	}
 
-	input := DeleteUsersInput{
-		OrganizationId: organizationId,
-		UserIds:        userIDs,
-	}
-
-	query, args, _ := sqlx.Named(`
+	// Delete users that are in the organization but not in the list of user IDs
+	query := `
 		DELETE FROM users 
-		WHERE organization = :organizationid AND keycloak_id NOT IN (:userids)`, input)
+		WHERE organization = @organizationId AND NOT keycloak_id = any(@userIds)`
 
-	query, args, err = sqlx.In(query, args...)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
+	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
 
-	query = sqlx.Rebind(sqlx.DOLLAR, query)
-	_, err = tx.Exec(query, args...)
+	_, err = tx.Exec(context.Background(), query, args)
+
 	if err != nil {
-		tx.Rollback()
+		tx.Rollback(context.Background())
 		return err
 	}
 
 	// Step 2: Update existing users or insert new users
 	for _, user := range users {
-		input := UpdateUserInput{
-			OrganizationId: organizationId,
-			KeycloakId:     user.Id,
-			Username:       user.Username,
-			FirstName:      user.FirstName,
-			LastName:       user.LastName,
-			Email:          user.Email,
+		query := `
+		UPDATE users 
+		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
+		WHERE keycloak_id = @keycloakId AND organization = @organizationId`
+
+		args := pgx.NamedArgs{
+			"organizationId": organizationId,
+			"keycloakId":     user.Id,
+			"username":       user.Username,
+			"firstname":      user.FirstName,
+			"lastname":       user.LastName,
+			"email":          user.Email,
 		}
 
-		// Try to update existing user
-		updateQuery := `
-			UPDATE users 
-			SET username = :username, first_name = :firstname, last_name = :lastname, email = :email 
-			WHERE keycloak_id = :keycloakid AND organization = :organizationid`
+		result, err := tx.Exec(context.Background(), query, args)
 
-		result, err := tx.NamedExec(updateQuery, input)
 		if err != nil {
-			tx.Rollback()
+			tx.Rollback(context.Background())
 			return err
 		}
-
-		// Check if any row was updated
-		rowsAffected, err := result.RowsAffected()
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
+		rowsAffected := result.RowsAffected()
 
 		// If no row was updated, insert new user
 		if rowsAffected == 0 {
-			insertQuery := `
-				INSERT INTO users (username, first_name, last_name, email, keycloak_id, organization) 
-				VALUES (:username, :firstname, :lastname, :email, :keycloakid, :organizationid)`
-			_, err = tx.NamedExec(insertQuery, input)
+			query := `
+			INSERT INTO users (username, first_name, last_name, email, keycloak_id, organization) 
+			VALUES (@username, @firstname, @lastname, @email, @keycloakId, @organizationId)`
+
+			args := pgx.NamedArgs{
+				"organizationId": organizationId,
+				"keycloakId":     user.Id,
+				"username":       user.Username,
+				"firstname":      user.FirstName,
+				"lastname":       user.LastName,
+				"email":          user.Email,
+			}
+
+			_, err := tx.Exec(context.Background(), query, args)
 			if err != nil {
-				tx.Rollback()
+				tx.Rollback(context.Background())
 				return err
 			}
 		}
 	}
 
-	return tx.Commit()
+	return tx.Commit(context.Background())
 }

@@ -1,62 +1,44 @@
 package db
 
 import (
+	"context"
 	"planeo/api/pkg/logger"
-	"time"
+	"sync"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // Standard library bindings for pgx
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool" // Standard library bindings for pgx
 )
+
+type postgres struct {
+	db *pgxpool.Pool
+}
+
+func (pg *postgres) Ping(ctx context.Context) error {
+	return pg.db.Ping(ctx)
+}
+
+func (pg *postgres) Close() {
+	pg.db.Close()
+}
 
 var (
-	database         *sqlx.DB
-	connectionConfig string
-	errorCounter     int
+	pgInstance *postgres
+	pgOnce     sync.Once
 )
 
-// function to connect to the database
-func connect() error {
-	var err error
-	database, err = sqlx.Connect("pgx", connectionConfig)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// function to regulary (every 30s) ping the database to check if the connection is still alive
-// If ping failed, connection will be closed
-func pingDatabase() {
-	for {
-		err := database.Ping()
+func InitializeDatabase(ctx context.Context, connString string) (*postgres, error) {
+	pgOnce.Do(func() {
+		db, err := pgxpool.New(ctx, connString)
 		if err != nil {
-			logger.Error("Failed to ping the database: %v", err)
-			errorCounter++
-			if errorCounter >= 5 {
-				panic("Failed to connect to the database after 5 attempts")
-			}
-		} else {
-			if errorCounter > 0 {
-				logger.Log("Database connection restored.")
-			}
-			errorCounter = 0
+			logger.Error("unable to create connection pool: %s", err.Error())
+			panic("Failed to connect to database")
 		}
-		time.Sleep(30 * time.Second)
-	}
+
+		pgInstance = &postgres{db}
+	})
+
+	return pgInstance, nil
 }
 
-func InitializeDatabase(connectionDSN string) {
-	logger.Log("Connecting to the database.")
-	connectionConfig = connectionDSN
-	err := connect()
-	if err != nil {
-		panic(err)
-	}
-	logger.Log("Connected to the database.")
-	go pingDatabase()
-}
-
-// function to get the database connection
-func GetDatabaseConnection() *sqlx.DB {
-	return database
+func GetDatabaseConnection() *pgxpool.Pool {
+	return pgInstance.db
 }
