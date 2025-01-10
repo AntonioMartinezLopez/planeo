@@ -19,11 +19,11 @@ func NewUserRepository(database *pgxpool.Pool) *UserRepository {
 	}
 }
 
-func (repo *UserRepository) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
+func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error) {
 	query := "SELECT * FROM users WHERE organization = @organizationId"
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
-	rows, err := repo.db.Query(context.Background(), query, args)
+	rows, err := repo.db.Query(ctx, query, args)
 
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (repo *UserRepository) GetUsersInformation(organizationId string) ([]models
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.BasicUserInformation])
 }
 
-func (repo *UserRepository) DeleteUsersNotInList(organizationId string, userIds []string) error {
+func (repo *UserRepository) DeleteUsersNotInList(ctx context.Context, organizationId string, userIds []string) error {
 
 	// Delete users that are in the organization but not in the list of user IDs
 	query := `
@@ -41,7 +41,7 @@ func (repo *UserRepository) DeleteUsersNotInList(organizationId string, userIds 
 
 	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
 
-	_, err := repo.db.Exec(context.Background(), query, args)
+	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
 		logger.Error("Error deleting in DeleteUsersNotInList: %s", err.Error())
@@ -51,7 +51,7 @@ func (repo *UserRepository) DeleteUsersNotInList(organizationId string, userIds 
 	return nil
 }
 
-func (repo *UserRepository) UpdateUser(organizationId string, userId string, user models.User) error {
+func (repo *UserRepository) UpdateUser(ctx context.Context, organizationId string, userId string, user models.User) error {
 
 	query := `
 		UPDATE users 
@@ -67,7 +67,7 @@ func (repo *UserRepository) UpdateUser(organizationId string, userId string, use
 		"email":          user.Email,
 	}
 
-	_, err := repo.db.Exec(context.Background(), query, args)
+	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
 		logger.Error("Error updating user in UpdateUser: %s", err.Error())
@@ -77,7 +77,7 @@ func (repo *UserRepository) UpdateUser(organizationId string, userId string, use
 	return nil
 }
 
-func (repo *UserRepository) CreateUser(organizationId string, user models.User) error {
+func (repo *UserRepository) CreateUser(ctx context.Context, organizationId string, user models.User) error {
 
 	query := `
 		INSERT INTO users (username, first_name, last_name, email, keycloak_id, organization) 
@@ -92,7 +92,7 @@ func (repo *UserRepository) CreateUser(organizationId string, user models.User) 
 		"email":          user.Email,
 	}
 
-	_, err := repo.db.Exec(context.Background(), query, args)
+	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
 		logger.Error("Error creating user in CreateUser: %s", err.Error())
@@ -102,7 +102,7 @@ func (repo *UserRepository) CreateUser(organizationId string, user models.User) 
 	return nil
 }
 
-func (repo *UserRepository) DeleteUser(organizationId string, userId string) error {
+func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId string, userId string) error {
 
 	query := `
 		DELETE FROM users 
@@ -110,7 +110,7 @@ func (repo *UserRepository) DeleteUser(organizationId string, userId string) err
 
 	args := pgx.NamedArgs{"organizationId": organizationId, "keycloakId": userId}
 
-	_, err := repo.db.Exec(context.Background(), query, args)
+	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
 		logger.Error("Error deleting user in DeleteUser: %s", err.Error())
@@ -120,13 +120,13 @@ func (repo *UserRepository) DeleteUser(organizationId string, userId string) err
 	return nil
 }
 
-func (repo *UserRepository) SyncUsers(organizationId string, users []models.User) error {
-	tx, err := repo.db.Begin(context.Background())
+func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId string, users []models.User) error {
+	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 
-	defer tx.Rollback(context.Background())
+	defer tx.Rollback(ctx)
 
 	// Step 1: Delete users that are in the organization but not in the list of the valid user IDs
 	// Create a list of user IDs
@@ -142,11 +142,11 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 
 	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
 
-	_, err = tx.Exec(context.Background(), query, args)
+	_, err = tx.Exec(ctx, query, args)
 
 	if err != nil {
 		logger.Error("Error deleting in SyncUsers: %s", err.Error())
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 		return err
 	}
 
@@ -166,11 +166,11 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 			"email":          user.Email,
 		}
 
-		result, err := tx.Exec(context.Background(), query, args)
+		result, err := tx.Exec(ctx, query, args)
 
 		if err != nil {
 			logger.Error("Error updating user in SyncUsers: %s", err.Error())
-			tx.Rollback(context.Background())
+			tx.Rollback(ctx)
 			return err
 		}
 		rowsAffected := result.RowsAffected()
@@ -190,14 +190,14 @@ func (repo *UserRepository) SyncUsers(organizationId string, users []models.User
 				"email":          user.Email,
 			}
 
-			_, err := tx.Exec(context.Background(), query, args)
+			_, err := tx.Exec(ctx, query, args)
 			if err != nil {
 				logger.Error("Error creating user in SyncUsers: %s", err.Error())
-				tx.Rollback(context.Background())
+				tx.Rollback(ctx)
 				return err
 			}
 		}
 	}
 
-	return tx.Commit(context.Background())
+	return tx.Commit(ctx)
 }
