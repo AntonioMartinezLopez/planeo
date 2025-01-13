@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
 	appError "planeo/api/internal/errors"
@@ -27,11 +28,11 @@ type KeycloakAdminClientInterface interface {
 }
 
 type UserRepositoryInterface interface {
-	GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error)
-	SyncUsers(organizationId string, users []models.User) error
-	CreateUser(organizationId string, user models.User) error
-	DeleteUser(organizationId string, userId string) error
-	UpdateUser(organizationId string, userId string, user models.User) error
+	GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error)
+	SyncUsers(ctx context.Context, organizationId string, users []models.User) error
+	CreateUser(ctx context.Context, organizationId string, user models.User) error
+	DeleteUser(ctx context.Context, organizationId string, userId string) error
+	UpdateUser(ctx context.Context, organizationId string, userId string, user models.User) error
 }
 
 type UserService struct {
@@ -46,7 +47,7 @@ func NewUserService(userRepository UserRepositoryInterface, keycloakAdminClient 
 	}
 }
 
-func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User, error) {
+func (s *UserService) GetUsers(ctx context.Context, organizationId string, sync bool) ([]models.User, error) {
 
 	keycloakUsers, err := s.keycloakAdminClient.GetKeycloakUsers(organizationId)
 
@@ -60,7 +61,7 @@ func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User,
 	}
 
 	if sync {
-		err := s.userRepository.SyncUsers(organizationId, users)
+		err := s.userRepository.SyncUsers(ctx, organizationId, users)
 
 		if err != nil {
 			return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -70,7 +71,7 @@ func (s *UserService) GetUsers(organizationId string, sync bool) ([]models.User,
 	return users, nil
 }
 
-func (s *UserService) CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) error {
+func (s *UserService) CreateUser(ctx context.Context, organizationId string, createUserInput dto.CreateUserInputBody) error {
 
 	createUserData := keycloak.CreateUserParams{
 		FirstName: createUserInput.FirstName,
@@ -119,7 +120,7 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 		return roleAssignError
 	}
 
-	err = s.userRepository.CreateUser(organizationId, acl.FromKeycloakUser(user))
+	err = s.userRepository.CreateUser(ctx, organizationId, acl.FromKeycloakUser(user))
 
 	if err != nil {
 		return appError.New(appError.InternalError, "Something went wrong", err)
@@ -128,7 +129,7 @@ func (s *UserService) CreateUser(organizationId string, createUserInput dto.Crea
 	return nil
 }
 
-func (s *UserService) DeleteUser(organizationId string, userId string) error {
+func (s *UserService) DeleteUser(ctx context.Context, organizationId string, userId string) error {
 
 	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
 
@@ -142,7 +143,7 @@ func (s *UserService) DeleteUser(organizationId string, userId string) error {
 		return appError.New(appError.InternalError, "Something went wrong", keycloakErr)
 	}
 
-	err := s.userRepository.DeleteUser(organizationId, userId)
+	err := s.userRepository.DeleteUser(ctx, organizationId, userId)
 
 	if err != nil {
 		return appError.New(appError.InternalError, "Deleting user went wrong", err)
@@ -151,7 +152,7 @@ func (s *UserService) DeleteUser(organizationId string, userId string) error {
 	return nil
 }
 
-func (s *UserService) UpdateUser(organizationId string, userId string, user dto.UpdateUserInputBody) error {
+func (s *UserService) UpdateUser(ctx context.Context, organizationId string, userId string, user dto.UpdateUserInputBody) error {
 
 	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
 
@@ -177,7 +178,7 @@ func (s *UserService) UpdateUser(organizationId string, userId string, user dto.
 		return appError.New(appError.InternalError, "Something went wrong", keycloakErr)
 	}
 
-	err := s.userRepository.UpdateUser(organizationId, userId, models.User{
+	err := s.userRepository.UpdateUser(ctx, organizationId, userId, models.User{
 		Id:        userId,
 		Username:  user.Username,
 		FirstName: user.FirstName,
@@ -192,7 +193,7 @@ func (s *UserService) UpdateUser(organizationId string, userId string, user dto.
 	return nil
 }
 
-func (s *UserService) GetAvailableRoles() ([]models.Role, error) {
+func (s *UserService) GetAvailableRoles(ctx context.Context) ([]models.Role, error) {
 	client, keycloakErr := s.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
 
 	if keycloakErr != nil {
@@ -213,7 +214,7 @@ func (s *UserService) GetAvailableRoles() ([]models.Role, error) {
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
+func (s *UserService) AssignRoles(ctx context.Context, organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
 
 	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
 
@@ -261,7 +262,7 @@ func (s *UserService) AssignRoles(organizationId string, userId string, roles []
 	return nil
 }
 
-func (s *UserService) GetUserById(organizationId string, userId string) (*models.UserWithRoles, error) {
+func (s *UserService) GetUserById(ctx context.Context, organizationId string, userId string) (*models.UserWithRoles, error) {
 
 	result := policies.UserInOrganisation(s.keycloakAdminClient, organizationId, userId)
 
@@ -299,8 +300,8 @@ func (s *UserService) GetUserById(organizationId string, userId string) (*models
 	return &userWithRoles, nil
 }
 
-func (s *UserService) GetUsersInformation(organizationId string) ([]models.BasicUserInformation, error) {
-	user, error := s.userRepository.GetUsersInformation(organizationId)
+func (s *UserService) GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error) {
+	user, error := s.userRepository.GetUsersInformation(ctx, organizationId)
 
 	if error != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", error)

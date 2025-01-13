@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"planeo/api/config"
 	"planeo/api/internal/setup"
@@ -12,13 +13,15 @@ import (
 
 func main() {
 
+	ctx := context.Background()
+
 	// server configuration
 	logger.Log("Loading configuration")
 	config.LoadConfig()
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
-	db.InitializeDatabase(config.DatabaseConfig())
+	db.InitializeDatabase(ctx, config.DatabaseConfig())
 
 	// Initialize Router
 	router := setup.SetupRouter()
