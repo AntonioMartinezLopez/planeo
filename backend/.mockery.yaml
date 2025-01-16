@@ -5,6 +5,7 @@ filename: "mock_{{.InterfaceName | snakecase}}.go"
 dir: "{{.InterfaceDir}}/mocks"
 mockname: "Mock{{.InterfaceName}}"
 outpkg: "mocks"
+all: true
 packages:
   planeo/api/internal/resources/user:
     # place your package-specific config here
@@ -14,3 +15,6 @@ packages:
       UserRepositoryInterface:
         # Modify package-level config for this specific interface (if applicable)
         config:
+      IAMRepositoryInterface:
+        config:
+        
