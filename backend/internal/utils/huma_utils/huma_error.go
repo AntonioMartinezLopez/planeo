@@ -31,6 +31,6 @@ func NewHumaError(unknown_err error) huma.StatusError {
 		return huma.NewError(GetStatus(appError), appError.Message, appError.Errors...)
 	}
 
-	return huma.Error500InternalServerError(appError.Error())
+	return huma.Error500InternalServerError(unknown_err.Error())
 
 }
