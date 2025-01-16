@@ -9,37 +9,45 @@ fi
 # Get and echo the Go version
 GO_VERSION=$(go version)
 echo "Go installed: $GO_VERSION"
+# Determine the operating system
+OS_TYPE=$(uname)
+echo "Operating System: $OS_TYPE"
 
-# Check if .bashrc file exists
-BASHRC_FILE="$HOME/.bashrc"
-if [ ! -f "$BASHRC_FILE" ]; then
-    echo ".bashrc file not found in the home directory. Creating .bashrc file."
-    touch "$BASHRC_FILE"
+# Check if .bashrc or .zshrc file exists
+if [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
+    SHELL_RC_FILE="$HOME/.zshrc"
+else
+    SHELL_RC_FILE="$HOME/.bashrc"
 fi
 
-# Check for the required environment variable exports in .bashrc
+if [ ! -f "$SHELL_RC_FILE" ]; then
+    echo "$SHELL_RC_FILE file not found in the home directory. Creating $SHELL_RC_FILE file."
+    touch "$SHELL_RC_FILE"
+fi
+
+# Check for the required environment variable exports in the shell rc file
 GOPATH_EXPORT="export GOPATH=\$HOME/go"
 PATH_EXPORT="export PATH=\$PATH:/usr/local/go/bin:\$GOPATH/bin"
 
-add_to_bashrc=false
+add_to_shell_rc=false
 
-if ! grep -q "$GOPATH_EXPORT" "$BASHRC_FILE"; then
-    echo "$GOPATH_EXPORT" >>"$BASHRC_FILE"
-    echo "Added '$GOPATH_EXPORT' to .bashrc"
-    add_to_bashrc=true
+if ! grep -q "$GOPATH_EXPORT" "$SHELL_RC_FILE"; then
+    echo "$GOPATH_EXPORT" >>"$SHELL_RC_FILE"
+    echo "Added '$GOPATH_EXPORT' to $SHELL_RC_FILE"
+    add_to_shell_rc=true
 fi
 
-if ! grep -q "$PATH_EXPORT" "$BASHRC_FILE"; then
-    echo "$PATH_EXPORT" >>"$BASHRC_FILE"
-    echo "Added '$PATH_EXPORT' to .bashrc"
-    add_to_bashrc=true
+if ! grep -q "$PATH_EXPORT" "$SHELL_RC_FILE"; then
+    echo "$PATH_EXPORT" >>"$SHELL_RC_FILE"
+    echo "Added '$PATH_EXPORT' to $SHELL_RC_FILE"
+    add_to_shell_rc=true
 fi
 
-if [ "$add_to_bashrc" = true ]; then
-    echo "The required environment variables have been added to .bashrc."
-    echo "Please run 'source ~/.bashrc' to apply the changes."
+if [ "$add_to_shell_rc" = true ]; then
+    echo "The required environment variables have been added to $SHELL_RC_FILE."
+    echo "Please run 'source $SHELL_RC_FILE' to apply the changes."
 else
-    echo "The required environment variables are already set in .bashrc."
+    echo "The required environment variables are already set in $SHELL_RC_FILE."
 fi
 
 # Check if the air binary is installed
