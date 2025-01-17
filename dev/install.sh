@@ -80,6 +80,21 @@ else
     fi
 fi
 
+# check if mockery binary is installed
+if [ -f "$GOPATH/bin/mockery" ]; then
+    echo "Mockery is installed."
+else
+    echo "Mockery is not installed."
+    echo "Installing 'mockery' binary..."
+    go install github.com/vektra/mockery/v2@v2.51.0
+    if [ $? -eq 0 ]; then
+        echo "The 'mockery' binary has been successfully installed."
+    else
+        echo "Failed to install mockery. Please check your Go setup and try again."
+        exit 1
+    fi
+fi
+
 BACKEND_DIR="backend"
 echo "Installing Go modules from $BACKEND_DIR/go.mod..."
 cd "../$BACKEND_DIR"
