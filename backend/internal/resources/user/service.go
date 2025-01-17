@@ -8,7 +8,7 @@ import (
 
 type IAMInterface interface {
 	GetUsers(organizationId string) ([]models.User, error)
-	GetUserById(organizationId string, userId string) (*models.UserWithRoles, error)
+	GetUserById(organizationId string, userId string) (*models.User, error)
 	CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) (*models.User, error)
 	UpdateUser(organizationId string, userId string, updateUserInput dto.UpdateUserInputBody) error
 	DeleteUser(organizationId string, userId string) error
@@ -51,6 +51,7 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId string, cre
 	err = s.userRepository.CreateUser(ctx, organizationId, *user)
 
 	if err != nil {
+		s.iamService.DeleteUser(organizationId, user.Id)
 		return err
 	}
 
@@ -112,7 +113,7 @@ func (s *UserService) AssignRoles(ctx context.Context, organizationId string, us
 	return s.iamService.AssignRolesToUser(organizationId, userId, roles)
 }
 
-func (s *UserService) GetUserById(ctx context.Context, organizationId string, userId string) (*models.UserWithRoles, error) {
+func (s *UserService) GetUserById(ctx context.Context, organizationId string, userId string) (*models.User, error) {
 	return s.iamService.GetUserById(organizationId, userId)
 }
 

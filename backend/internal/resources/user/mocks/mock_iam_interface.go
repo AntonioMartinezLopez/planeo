@@ -235,23 +235,23 @@ func (_c *MockIAMInterface_GetRoles_Call) RunAndReturn(run func() ([]models.Role
 }
 
 // GetUserById provides a mock function with given fields: organizationId, userId
-func (_m *MockIAMInterface) GetUserById(organizationId string, userId string) (*models.UserWithRoles, error) {
+func (_m *MockIAMInterface) GetUserById(organizationId string, userId string) (*models.User, error) {
 	ret := _m.Called(organizationId, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserById")
 	}
 
-	var r0 *models.UserWithRoles
+	var r0 *models.User
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (*models.UserWithRoles, error)); ok {
+	if rf, ok := ret.Get(0).(func(string, string) (*models.User, error)); ok {
 		return rf(organizationId, userId)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) *models.UserWithRoles); ok {
+	if rf, ok := ret.Get(0).(func(string, string) *models.User); ok {
 		r0 = rf(organizationId, userId)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.UserWithRoles)
+			r0 = ret.Get(0).(*models.User)
 		}
 	}
 
@@ -283,12 +283,12 @@ func (_c *MockIAMInterface_GetUserById_Call) Run(run func(organizationId string,
 	return _c
 }
 
-func (_c *MockIAMInterface_GetUserById_Call) Return(_a0 *models.UserWithRoles, _a1 error) *MockIAMInterface_GetUserById_Call {
+func (_c *MockIAMInterface_GetUserById_Call) Return(_a0 *models.User, _a1 error) *MockIAMInterface_GetUserById_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockIAMInterface_GetUserById_Call) RunAndReturn(run func(string, string) (*models.UserWithRoles, error)) *MockIAMInterface_GetUserById_Call {
+func (_c *MockIAMInterface_GetUserById_Call) RunAndReturn(run func(string, string) (*models.User, error)) *MockIAMInterface_GetUserById_Call {
 	_c.Call.Return(run)
 	return _c
 }

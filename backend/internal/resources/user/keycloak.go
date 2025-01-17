@@ -36,7 +36,7 @@ func (k *KeycloakService) GetUsers(organizationId string) ([]models.User, error)
 	return users, nil
 }
 
-func (k *KeycloakService) GetUserById(organizationId string, userId string) (*models.UserWithRoles, error) {
+func (k *KeycloakService) GetUserById(organizationId string, userId string) (*models.User, error) {
 
 	result := policies.UserInOrganisation(k.keycloakAdminClient, organizationId, userId)
 
@@ -69,9 +69,9 @@ func (k *KeycloakService) GetUserById(organizationId string, userId string) (*mo
 		roles = append(roles, acl.FromKeycloakClientRole(&keycloakClientRole))
 	}
 
-	userWithRoles := models.UserWithRoles{User: user, Roles: roles}
+	user.Roles = roles
 
-	return &userWithRoles, nil
+	return &user, nil
 
 }
 
