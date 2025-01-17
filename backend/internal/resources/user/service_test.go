@@ -243,4 +243,53 @@ func TestUserService(t *testing.T) {
 			assert.Equal(t, &userWithRoles, result)
 		})
 	})
+
+	t.Run("GetUsers", func(t *testing.T) {
+		t.Run("Should return error if GetUsers fails", func(t *testing.T) {
+			// Setup
+			mockIAMInterface := mocks.NewMockIAMInterface(t)
+			mockIAMInterface.EXPECT().GetUsers(testOrganizationId).Return(nil, assert.AnError)
+			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
+
+			userService := NewUserService(mockUserRepository, mockIAMInterface)
+
+			// Act
+			result, err := userService.GetUsers(context.Background(), testOrganizationId, false)
+
+			// Assert
+			assert.Nil(t, result)
+			assert.NotNil(t, err)
+		})
+		t.Run("Should return users if GetUsers succeeds", func(t *testing.T) {
+			// Setup
+			mockIAMInterface := mocks.NewMockIAMInterface(t)
+			mockIAMInterface.EXPECT().GetUsers(testOrganizationId).Return([]models.User{user}, nil)
+			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
+
+			userService := NewUserService(mockUserRepository, mockIAMInterface)
+
+			// Act
+			result, err := userService.GetUsers(context.Background(), testOrganizationId, false)
+
+			// Assert
+			assert.Nil(t, err)
+			assert.Equal(t, []models.User{user}, result)
+		})
+		t.Run("Should sync users if sync is true", func(t *testing.T) {
+			// Setup
+			mockIAMInterface := mocks.NewMockIAMInterface(t)
+			mockIAMInterface.EXPECT().GetUsers(testOrganizationId).Return([]models.User{user}, nil)
+			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
+			mockUserRepository.EXPECT().SyncUsers(context.Background(), testOrganizationId, []models.User{user}).Return(nil)
+
+			userService := NewUserService(mockUserRepository, mockIAMInterface)
+
+			// Act
+			result, err := userService.GetUsers(context.Background(), testOrganizationId, true)
+
+			// Assert
+			assert.Nil(t, err)
+			assert.Equal(t, []models.User{user}, result)
+		})
+	})
 }

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	appError "planeo/api/internal/errors"
 	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/resources/user/models"
 )
@@ -37,7 +38,21 @@ func NewUserService(userRepository UserRepositoryInterface, iamService IAMInterf
 }
 
 func (s *UserService) GetUsers(ctx context.Context, organizationId string, sync bool) ([]models.User, error) {
-	return s.iamService.GetUsers(organizationId)
+	users, err := s.iamService.GetUsers(organizationId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if sync {
+		err := s.userRepository.SyncUsers(ctx, organizationId, users)
+
+		if err != nil {
+			return nil, appError.New(appError.InternalError, "Something went wrong", err)
+		}
+	}
+
+	return users, nil
 }
 
 func (s *UserService) CreateUser(ctx context.Context, organizationId string, createUserInput dto.CreateUserInputBody) error {
