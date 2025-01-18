@@ -50,6 +50,24 @@ for more commands see: https://github.com/pressly/goose?tab=readme-ov-file#usage
 2. `source` the `.envrc` file in order to create environmental variables (or use something like `direnv` to automatically load those when enetering the `db/migrations` directory)
 2. Run `goose up`
 
+## Testing
+
+### Run backend unit tests
+
+```bash
+cd backend
+go test ./... -v -short
+```
+
+### Generate mocks for larger interfaces
+
+This project uses mockery (https://github.com/vektra/mockery) to auto-generate mocks. The configuration can be found in `backend/.mockery.yaml`. 
+
+In order to create new mocks or update existing ones, specify corresponding in the configuration file and run the mockery binary
+
+```bash
+cd backend && mockery
+```
 ## Documentation
 
 - Swagger docs can be opened during running dev environment under following link: http://localhost:8888/api/docs#/

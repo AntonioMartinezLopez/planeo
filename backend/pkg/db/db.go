@@ -4,6 +4,7 @@ import (
 	"context"
 	"planeo/api/pkg/logger"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool" // Standard library bindings for pgx
 )
@@ -21,8 +22,9 @@ func (pg *postgres) Close() {
 }
 
 var (
-	pgInstance *postgres
-	pgOnce     sync.Once
+	pgInstance   *postgres
+	pgOnce       sync.Once
+	errorCounter int
 )
 
 func InitializeDatabase(ctx context.Context, connString string) (*postgres, error) {
@@ -36,7 +38,33 @@ func InitializeDatabase(ctx context.Context, connString string) (*postgres, erro
 		pgInstance = &postgres{db}
 	})
 
+	go pingDatabase()
+
 	return pgInstance, nil
+}
+
+func pingDatabase() {
+
+	for {
+		func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			err := pgInstance.db.Ping(ctx)
+			if err != nil {
+				logger.Error("Failed to ping the database: %v", err)
+				errorCounter++
+				if errorCounter >= 5 {
+					panic("Failed to connect to the database after 5 attempts")
+				}
+			} else {
+				if errorCounter > 0 {
+					logger.Log("Database connection restored.")
+				}
+				errorCounter = 0
+			}
+		}()
+		time.Sleep(20 * time.Second)
+	}
 }
 
 func GetDatabaseConnection() *pgxpool.Pool {

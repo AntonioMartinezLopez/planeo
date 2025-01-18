@@ -39,9 +39,5 @@ type User struct {
 	Enabled         bool             `json:"enabled" doc:"Flag describing whether user is active or not"`
 	EmailVerified   bool             `json:"emailVerified" doc:"Flag describing whether user email is verified or not"`
 	RequiredActions []RequiredAction `json:"requiredActions" validate:"required" doc:"Array of actions that will be conducted after login"`
-}
-
-type UserWithRoles struct {
-	User
-	Roles []Role
+	Roles           []Role           `json:"roles,omitempty" doc:"Array of roles assigned to the user"`
 }

@@ -29,7 +29,8 @@ func InitializeControllers(api *huma.API) []Controller {
 
 	// User controller
 	userRepository := user.NewUserRepository(database)
-	userService := user.NewUserService(userRepository, keycloakAdminClient)
+	keylcoakService := user.NewKeycloakService(keycloakAdminClient)
+	userService := user.NewUserService(userRepository, keylcoakService)
 	userController := user.NewUserController(api, userService)
 
 	return []Controller{groupController, taskController, announcementController, userController}

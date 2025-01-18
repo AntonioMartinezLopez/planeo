@@ -19,7 +19,7 @@ type GetUsersInput struct {
 // GET user
 type GetUserOutput struct {
 	Body struct {
-		User *models.UserWithRoles `json:"user" doc:"Information about a user managed in given auth system"`
+		User *models.User `json:"user" doc:"Information about a user managed in given auth system"`
 	}
 }
 
@@ -49,7 +49,6 @@ type CreateUserInput struct {
 }
 
 // UPDATE user
-
 type UpdateUserInputBody struct {
 	Username        string                  `json:"username" example:"user123" doc:"User name" binding:"required"`
 	FirstName       string                  `json:"firstName" example:"John" doc:"First name of the user" validate:"required"`
