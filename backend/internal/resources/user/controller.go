@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"net/http"
+	"planeo/api/config"
 	"planeo/api/internal/middlewares"
 	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/setup/operations"
@@ -14,12 +15,14 @@ import (
 type UserController struct {
 	api         *huma.API
 	userService *UserService
+	config      *config.ApplicationConfiguration
 }
 
-func NewUserController(api *huma.API, userService *UserService) *UserController {
+func NewUserController(api *huma.API, config *config.ApplicationConfiguration, userService *UserService) *UserController {
 	return &UserController{
 		api:         api,
 		userService: userService,
+		config:      config,
 	}
 }
 
@@ -30,7 +33,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users",
 		Summary:     "[Admin] Get all users from organization",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "read")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUsersOutput, error) {
 		users, err := controller.userService.GetUsers(ctx, input.Organization, input.Sync)
 
@@ -49,7 +52,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users/{userId}",
 		Summary:     "[Admin] Get single user",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "read")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInput) (*dto.GetUserOutput, error) {
 		user, err := controller.userService.GetUserById(ctx, input.Organization, input.UserId)
 
@@ -68,7 +71,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users",
 		Summary:     "[Admin] Create user",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "create")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "create")},
 	}), func(ctx context.Context, input *dto.CreateUserInput) (*dto.CreateUserOutput, error) {
 
 		err := controller.userService.CreateUser(ctx, input.Organization, input.Body)
@@ -88,7 +91,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users/{userId}",
 		Summary:     "[Admin] Update user",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "update")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "update")},
 	}), func(ctx context.Context, input *dto.UpdateUserInput) (*dto.UpdateUserOutput, error) {
 
 		err := controller.userService.UpdateUser(ctx, input.Organization, input.UserId, input.Body)
@@ -108,7 +111,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users/{userId}",
 		Summary:     "[Admin] Delete user",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "delete")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteUserInput) (*dto.DeleteUserOutput, error) {
 
 		err := controller.userService.DeleteUser(ctx, input.Organization, input.UserId)
@@ -128,7 +131,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/users/{userId}/roles",
 		Summary:     "[Admin] Assign roles to a user",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "user", "update")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
 
 		err := controller.userService.AssignRoles(ctx, input.Organization, input.UserId, input.Body.Roles)
@@ -148,7 +151,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/admin/roles",
 		Summary:     "[Admin] Get roles",
 		Tags:        []string{"Roles"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "role", "read")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "role", "read")},
 	}), func(ctx context.Context, input *dto.GetRolesInput) (*dto.GetRolesOutput, error) {
 
 		roles, err := controller.userService.GetAvailableRoles(ctx)
@@ -168,7 +171,7 @@ func (controller *UserController) InitializeRoutes() {
 		Path:        "/{organization}/users",
 		Summary:     "Get basic information of users",
 		Tags:        []string{"User"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, "userinfo", "read")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(*controller.api, controller.config, "userinfo", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInfoInput) (*dto.GetUserInfoOutput, error) {
 
 		users, err := controller.userService.GetUsersInformation(ctx, input.Organization)

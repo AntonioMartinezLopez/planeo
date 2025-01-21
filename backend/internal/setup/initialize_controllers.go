@@ -1,7 +1,7 @@
 package setup
 
 import (
-	cfg "planeo/api/config"
+	"planeo/api/config"
 	"planeo/api/internal/clients/keycloak"
 	"planeo/api/internal/resources/announcement"
 	"planeo/api/internal/resources/group"
@@ -12,26 +12,25 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func InitializeControllers(api *huma.API) []Controller {
+func InitializeControllers(api *huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []Controller {
 
 	// Prepare dependencies
-	database := db.GetDatabaseConnection()
-	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*cfg.Config)
+	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*config)
 
 	// Group controller
-	groupController := group.NewGroupController(api)
+	groupController := group.NewGroupController(api, config)
 
 	// Task controller
-	taskController := task.NewTaskController(api)
+	taskController := task.NewTaskController(api, config)
 
 	// Announcement controller
-	announcementController := announcement.NewAnnouncementController(api)
+	announcementController := announcement.NewAnnouncementController(api, config)
 
 	// User controller
-	userRepository := user.NewUserRepository(database)
-	keylcoakService := user.NewKeycloakService(keycloakAdminClient)
+	userRepository := user.NewUserRepository(db.DB)
+	keylcoakService := user.NewKeycloakService(keycloakAdminClient, config)
 	userService := user.NewUserService(userRepository, keylcoakService)
-	userController := user.NewUserController(api, userService)
+	userController := user.NewUserController(api, config, userService)
 
 	return []Controller{groupController, taskController, announcementController, userController}
 }

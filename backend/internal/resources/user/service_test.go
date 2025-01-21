@@ -12,6 +12,10 @@ import (
 
 func TestUserService(t *testing.T) {
 
+	if !testing.Short() {
+		t.Skip()
+	}
+
 	testOrganizationId := "test"
 	userInput := dto.CreateUserInputBody{
 		FirstName: "test",

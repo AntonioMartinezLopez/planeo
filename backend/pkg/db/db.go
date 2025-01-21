@@ -3,53 +3,45 @@ package db
 import (
 	"context"
 	"planeo/api/pkg/logger"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool" // Standard library bindings for pgx
 )
 
-type postgres struct {
-	db *pgxpool.Pool
+type DBConnection struct {
+	DB *pgxpool.Pool
 }
 
-func (pg *postgres) Ping(ctx context.Context) error {
-	return pg.db.Ping(ctx)
+func (pg *DBConnection) Ping(ctx context.Context) error {
+	return pg.DB.Ping(ctx)
 }
 
-func (pg *postgres) Close() {
-	pg.db.Close()
+func (pg *DBConnection) Close() {
+	pg.DB.Close()
 }
 
-var (
-	pgInstance   *postgres
-	pgOnce       sync.Once
-	errorCounter int
-)
+func InitializeDatabase(ctx context.Context, connString string) *DBConnection {
 
-func InitializeDatabase(ctx context.Context, connString string) (*postgres, error) {
-	pgOnce.Do(func() {
-		db, err := pgxpool.New(ctx, connString)
-		if err != nil {
-			logger.Error("unable to create connection pool: %s", err.Error())
-			panic("Failed to connect to database")
-		}
+	db, err := pgxpool.New(ctx, connString)
+	if err != nil {
+		logger.Error("unable to create connection pool: %s", err.Error())
+		panic("Failed to connect to database")
+	}
 
-		pgInstance = &postgres{db}
-	})
+	pgInstance := &DBConnection{db}
 
-	go pingDatabase()
+	go pingDatabase(pgInstance)
 
-	return pgInstance, nil
+	return pgInstance
 }
 
-func pingDatabase() {
-
+func pingDatabase(pg *DBConnection) {
+	var errorCounter int
 	for {
 		func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			err := pgInstance.db.Ping(ctx)
+			err := pg.DB.Ping(ctx)
 			if err != nil {
 				logger.Error("Failed to ping the database: %v", err)
 				errorCounter++
@@ -65,8 +57,4 @@ func pingDatabase() {
 		}()
 		time.Sleep(20 * time.Second)
 	}
-}
-
-func GetDatabaseConnection() *pgxpool.Pool {
-	return pgInstance.db
 }

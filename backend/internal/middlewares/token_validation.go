@@ -3,7 +3,6 @@ package middlewares
 import (
 	"errors"
 	"net/http"
-	cfg "planeo/api/config"
 	"planeo/api/pkg/jwks"
 	"strings"
 
@@ -62,9 +61,8 @@ func verifyAccess(accessClaims *OauthAccessClaims, organization string, issuer s
 	return true
 }
 
-func AuthMiddleware(api huma.API, jwksURL string) func(ctx huma.Context, next func(huma.Context)) {
+func AuthMiddleware(api huma.API, jwksURL string, issuer string) func(ctx huma.Context, next func(huma.Context)) {
 	keySet := jwks.NewJWKSet(jwksURL)
-	issuer := cfg.OauthIssuerUrl()
 
 	return func(ctx huma.Context, next func(huma.Context)) {
 		authorizationRequired := isAuthorizationRequired(ctx)
