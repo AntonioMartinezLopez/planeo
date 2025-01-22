@@ -1,4 +1,4 @@
-package integration_tests
+package utils
 
 import (
 	"context"
@@ -42,8 +42,7 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 		t.Error(err)
 	}
 
-	// Load and adapt configuration
-	config := config.LoadConfig("../../../.env.test.template")
+	config := config.LoadConfig("../../.env.test.template")
 	config.DbPort = postresPort.Port()
 	config.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
 

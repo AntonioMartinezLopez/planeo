@@ -1,4 +1,4 @@
-package integration_tests
+package utils
 
 import (
 	"context"
@@ -23,7 +23,7 @@ func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, err
 		testcontainers.WithHostPortAccess(8080),
 		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp")),
 		keycloak.WithContextPath("/"),
-		keycloak.WithRealmImportFile("../../../../auth/local/realm.json"),
+		keycloak.WithRealmImportFile("../../../auth/local/realm.json"),
 		keycloak.WithAdminUsername("admin"),
 		keycloak.WithAdminPassword("password"),
 	)

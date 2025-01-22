@@ -20,7 +20,7 @@ func (pg *DBConnection) Close() {
 	pg.DB.Close()
 }
 
-func InitializeDatabase(ctx context.Context, connString string) *DBConnection {
+func InitializeDatabaseConnection(ctx context.Context, connString string) *DBConnection {
 
 	db, err := pgxpool.New(ctx, connString)
 	if err != nil {

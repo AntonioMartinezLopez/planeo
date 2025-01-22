@@ -92,7 +92,7 @@ func AuthMiddleware(api huma.API, jwksURL string, issuer string) func(ctx huma.C
 			return
 		}
 
-		organization := strings.Split(ctx.URL().Path, "/")[2]
+		organization := ctx.Param("organization")
 		validAccess := verifyAccess(accessClaims, organization, issuer)
 
 		if !validAccess {
