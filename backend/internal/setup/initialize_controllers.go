@@ -12,7 +12,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func InitializeControllers(api *huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []Controller {
+func InitializeControllers(api huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []Controller {
 
 	// Prepare dependencies
 	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*config)

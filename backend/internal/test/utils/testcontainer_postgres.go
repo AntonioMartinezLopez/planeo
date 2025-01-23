@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -13,7 +12,6 @@ import (
 func StartPostgresContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	return postgres.Run(ctx,
 		"postgres:alpine3.20",
-		postgres.WithInitScripts(filepath.Join("../../../db/migrations")),
 		postgres.WithDatabase("planeo"),
 		postgres.WithUsername("planeo"),
 		postgres.WithPassword("planeo"),

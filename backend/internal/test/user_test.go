@@ -4,9 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"planeo/api/internal/clients/keycloak"
+	"planeo/api/internal/resources/user"
+	"planeo/api/internal/resources/user/dto"
+	"planeo/api/internal/resources/user/models"
 	"planeo/api/internal/setup"
 	"planeo/api/internal/test/utils"
 	"planeo/api/pkg/db"
+	jsonHelper "planeo/api/pkg/json"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2/humatest"
@@ -23,19 +28,242 @@ func TestUserIntegration(t *testing.T) {
 	env := utils.NewIntegrationTestEnvironment(t)
 	db := db.InitializeDatabaseConnection(context.Background(), env.Configuration.DatabaseConfig())
 	_, api := humatest.New(t)
-	setup.SetupRoutes(api, env.Configuration, db)
 
-	t.Run("CreateUser", func(t *testing.T) {
+	// setup user controller
+	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*env.Configuration)
+	userRepository := user.NewUserRepository(db.DB)
+	keylcoakService := user.NewKeycloakService(keycloakAdminClient, env.Configuration)
+	userService := user.NewUserService(userRepository, keylcoakService)
+	userController := user.NewUserController(api, env.Configuration, userService)
 
-		fmt.Println(env.Configuration)
-		session, err := env.GetUserSession("admin", "admin")
+	// Register controllers
+	setup.RegisterControllers(env.Configuration, api, []setup.Controller{userController})
 
-		if err != nil {
-			t.Error(err)
-		}
+	t.Run("GET /admin/users", func(t *testing.T) {
 
-		assert.NotNil(t, session)
-		response := api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
-		assert.Equal(t, 200, response.Code)
+		t.Run("should return 200 and all users", func(t *testing.T) {
+
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 200, response.Code)
+
+			var body struct{ Users []models.User }
+			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			t.Log(body)
+			assert.Greater(t, len(body.Users), 0)
+		})
+
+		t.Run("should return 401 when no token is provided", func(t *testing.T) {
+			response := api.Get("/local/admin/users", "")
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user is not admin", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/other/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 403, response.Code)
+		})
+	})
+
+	t.Run("GET /admin/users/{userId}", func(t *testing.T) {
+
+		t.Run("should return 200 and user", func(t *testing.T) {
+
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/local/admin/users/d7eddb93-254e-4482-9a53-f31a5975dd1d", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 200, response.Code)
+
+			var body struct{ User models.User }
+			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			assert.NotNil(t, body.User)
+			assert.Equal(t, "d7eddb93-254e-4482-9a53-f31a5975dd1d", body.User.Id)
+			assert.Equal(t, "user@local.de", body.User.Username)
+		})
+
+		t.Run("should return 404 when user does not exist", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 404, response.Code)
+
+			var body struct{ User models.User }
+			err = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			assert.NotNil(t, err)
+		})
+
+		t.Run("should return 401 when no token is provided", func(t *testing.T) {
+			response := api.Get("/local/admin/users/1", "")
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user is not admin", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 403, response.Code)
+		})
+	})
+
+	t.Run("POST /admin/users", func(t *testing.T) {
+
+		t.Run("should return 201 and create user", func(t *testing.T) {
+
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+
+			body := dto.CreateUserInputBody{
+				FirstName: "John",
+				LastName:  "Doe",
+				Email:     "John.Doe@local.de",
+				Password:  "password123",
+			}
+
+			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+
+			assert.Equal(t, 201, response.Code)
+
+		})
+
+		t.Run("should return 401 when no token is provided", func(t *testing.T) {
+			response := api.Post("/local/admin/users", "", dto.CreateUserInputBody{})
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user is not admin", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Post("/other/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
+
+			assert.Equal(t, 403, response.Code)
+		})
+
+		t.Run("should return 400 when user already exists", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+
+			body := dto.CreateUserInputBody{
+				FirstName: "John",
+				LastName:  "Doe",
+				Email:     "user@local.de",
+				Password:  "password123",
+			}
+
+			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+
+			assert.Equal(t, 500, response.Code)
+		})
+
+		t.Run("should return 422 when input body is invalid", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+
+			body := []map[string]interface{}{
+				{"firstName": "John", "lastName": "Doe", "email": 12, "password": "password123"},
+				{"firstName": 123, "lastName": "Doe", "email": "John.Doe@local.de", "password": "password123"},
+				{"firstName": "John", "lastName": 123, "email": "John.Doe@local.de", "password": "password123"},
+				{"firstName": "John", "lastName": "Doe", "email": "John.Doe@local.de", "password": 123},
+			}
+
+			for _, b := range body {
+				response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
+				assert.Equal(t, 422, response.Code)
+			}
+
+		})
 	})
 }

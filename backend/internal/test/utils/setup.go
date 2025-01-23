@@ -3,6 +3,9 @@ package utils
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"planeo/api/config"
 	"testing"
 
@@ -46,11 +49,15 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 	config.DbPort = postresPort.Port()
 	config.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
 
+	// create environment
 	env := &IntegrationTestEnvironment{
 		KeycloakContainer: keycloakContainer,
 		PostgresContainer: postgresContainer,
 		Configuration:     config,
 	}
+
+	// run migrations
+	env.MigrateDatabase(false)
 
 	t.Cleanup(func() {
 		ctx := context.Background()
@@ -70,4 +77,36 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 func (env *IntegrationTestEnvironment) GetUserSession(username string, password string) (*UserSession, error) {
 	return GetUserSession(env.KeycloakContainer, username, password)
+}
+
+func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
+
+	operation := "up"
+
+	if tearDown {
+		operation = "down"
+	}
+
+	migrationsDir := filepath.Join("..", "..", "..", "db", "migrations")
+	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
+		env.Configuration.DbPort), operation)
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+
+	if err != nil {
+		return fmt.Errorf("failed to run goose migrations: %w", err)
+	}
+
+	return nil
+}
+
+func (env *IntegrationTestEnvironment) ResetDatabase() error {
+	err := env.MigrateDatabase(true)
+	if err != nil {
+		return err
+	}
+	return env.MigrateDatabase(false)
 }
