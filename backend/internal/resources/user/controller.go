@@ -135,7 +135,7 @@ func (controller *UserController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
 
-		err := controller.userService.AssignRoles(ctx, input.Organization, input.UserId, input.Body.Roles)
+		err := controller.userService.AssignRoles(ctx, input.Organization, input.UserId, input.Body)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
