@@ -19,14 +19,13 @@ type Permission struct {
 	ResourceName string   `json:"rsname"`
 }
 
-func fetchUserPermissions(token string) (*[]Permission, error) {
-	oauthIssuer := cfg.OauthIssuerUrl()
-	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", oauthIssuer)
+func fetchUserPermissions(issuer string, audience string, token string) (*[]Permission, error) {
+	requestURL := fmt.Sprintf("%s/protocol/openid-connect/token", issuer)
 
 	data := map[string]string{
 		"grant_type":    "urn:ietf:params:oauth:grant-type:uma-ticket",
 		"response_mode": "permissions",
-		"audience":      cfg.Config.KcOauthClientID,
+		"audience":      audience,
 	}
 
 	headers := map[string]string{
@@ -70,7 +69,7 @@ func fetchUserPermissions(token string) (*[]Permission, error) {
 	return &permissions, nil
 }
 
-func PermissionMiddleware(api huma.API, resourceName string, permission string) func(ctx huma.Context, next func(huma.Context)) {
+func PermissionMiddleware(api huma.API, config *cfg.ApplicationConfiguration, resourceName string, permission string) func(ctx huma.Context, next func(huma.Context)) {
 
 	return func(ctx huma.Context, next func(huma.Context)) {
 		accessToken, assertionCorrect := ctx.Context().Value(AccessTokenContextKey{}).(string)
@@ -80,7 +79,7 @@ func PermissionMiddleware(api huma.API, resourceName string, permission string) 
 			return
 		}
 
-		permissions, err := fetchUserPermissions(accessToken)
+		permissions, err := fetchUserPermissions(config.OauthIssuerUrl(), config.KcOauthClientID, accessToken)
 
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())

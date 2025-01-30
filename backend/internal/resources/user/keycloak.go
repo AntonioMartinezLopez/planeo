@@ -13,11 +13,13 @@ import (
 
 type KeycloakService struct {
 	keycloakAdminClient *keycloak.KeycloakAdminClient
+	config              *config.ApplicationConfiguration
 }
 
-func NewKeycloakService(keycloakAdminClient *keycloak.KeycloakAdminClient) *KeycloakService {
+func NewKeycloakService(keycloakAdminClient *keycloak.KeycloakAdminClient, config *config.ApplicationConfiguration) *KeycloakService {
 	return &KeycloakService{
 		keycloakAdminClient: keycloakAdminClient,
+		config:              config,
 	}
 }
 
@@ -52,7 +54,7 @@ func (k *KeycloakService) GetUserById(organizationId string, userId string) (*mo
 
 	user := acl.FromKeycloakUser(keycloakUser)
 
-	client, err := k.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -90,7 +92,7 @@ func (k *KeycloakService) CreateUser(organizationId string, createUserInput dto.
 	}
 
 	// assign default role
-	client, err := k.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -176,7 +178,7 @@ func (k *KeycloakService) DeleteUser(organizationId string, userId string) error
 
 func (k *KeycloakService) GetRoles() ([]models.Role, error) {
 
-	client, err := k.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -203,7 +205,7 @@ func (k *KeycloakService) AssignRolesToUser(organizationId string, userId string
 		return appError.New(appError.EntityNotFound, "User not found in organization")
 	}
 
-	client, err := k.keycloakAdminClient.GetKeycloakClient(config.Config.KcOauthClientID)
+	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
 		return appError.New(appError.InternalError, "Something went wrong", err)

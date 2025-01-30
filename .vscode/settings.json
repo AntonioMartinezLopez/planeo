@@ -1,27 +1,31 @@
 {
-    "[typescript]": {
-      "editor.defaultFormatter": "vscode.typescript-language-features"
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "window.zoomLevel": -1,
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
     },
-    "[typescriptreact]": {
-      "editor.defaultFormatter": "vscode.typescript-language-features"
-    },
-    "window.zoomLevel": -1,
-    "[go]": {
-      "editor.formatOnSave": true,
-      "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit"
-      },
-    },
-    "go.formatTool": "gofmt",
-    "go.toolsManagement.autoUpdate": true,
-    "[javascript]": {
-      "editor.defaultFormatter": "vscode.typescript-language-features"
-    },
-    "[jsonc]": {
-      "editor.defaultFormatter": "vscode.json-language-features"
-    },
-    "notebook.cellToolbarLocation": {
-      "default": "right",
-      "jupyter-notebook": "left"
-    }
+  },
+  "go.formatTool": "gofmt",
+  "go.buildFlags": [
+    "-tags=integration"
+  ],
+  "go.testTags": "integration",
+  "go.toolsManagement.autoUpdate": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "notebook.cellToolbarLocation": {
+    "default": "right",
+    "jupyter-notebook": "left"
+  }
 }

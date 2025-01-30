@@ -17,14 +17,14 @@ func main() {
 
 	// server configuration
 	logger.Log("Loading configuration")
-	config.LoadConfig()
+	config := config.LoadConfig("./.env")
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
-	db.InitializeDatabase(ctx, config.DatabaseConfig())
+	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
 
-	// Initialize Router
-	router := setup.SetupRouter()
+	// initialize api
+	router := setup.SetupRouter(config, db)
 
 	server := http.Server{
 		Addr:              serverConfig,

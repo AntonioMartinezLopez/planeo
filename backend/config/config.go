@@ -25,17 +25,29 @@ type ApplicationConfiguration struct {
 	KcAdminPassword     string
 }
 
-var Config *ApplicationConfiguration
+func (config *ApplicationConfiguration) ServerConfig() string {
+	appServerUrl := fmt.Sprintf("%s:%s", config.Host, config.Port)
+	return appServerUrl
+}
 
-func LoadConfig() {
-	err := godotenv.Load()
+func (config *ApplicationConfiguration) DatabaseConfig() string {
+	dbConfig := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
+	return dbConfig
+}
+
+func (config *ApplicationConfiguration) OauthIssuerUrl() string {
+	return fmt.Sprintf("%s/realms/%s", config.KcBaseUrl, config.KcIssuer)
+}
+
+func LoadConfig(filenames ...string) *ApplicationConfiguration {
+	err := godotenv.Load(filenames...)
 	if err != nil {
 		logger.Error("Error loading .env file: %v", err)
 	}
 
-	Config = &ApplicationConfiguration{
+	config := &ApplicationConfiguration{
 		Host:                readEnvFile("HOST"),
-		Port:                readEnvFile("HOST"),
+		Port:                readEnvFile("PORT"),
 		DbHost:              readEnvFile("DB_HOST"),
 		DbPort:              readEnvFile("DB_PORT"),
 		DbUser:              readEnvFile("DB_USER"),
@@ -49,6 +61,8 @@ func LoadConfig() {
 		KcAdminUsername:     readEnvFile("KC_ADMIN_USERNAME"),
 		KcAdminPassword:     readEnvFile("KC_ADMIN_PASSWORD"),
 	}
+
+	return config
 }
 
 func readEnvFile(envName string) string {
@@ -58,18 +72,4 @@ func readEnvFile(envName string) string {
 	}
 
 	return envVariable
-}
-
-func ServerConfig() string {
-	appServerUrl := fmt.Sprintf("%s:%s", os.Getenv("HOST"), os.Getenv("PORT"))
-	return appServerUrl
-}
-
-func DatabaseConfig() string {
-	dbConfig := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", Config.DbUser, Config.DbPassword, Config.DbHost, Config.DbPort, Config.DbName)
-	return dbConfig
-}
-
-func OauthIssuerUrl() string {
-	return fmt.Sprintf("%s/realms/%s", Config.KcBaseUrl, Config.KcIssuer)
 }
