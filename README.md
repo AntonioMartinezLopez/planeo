@@ -59,7 +59,7 @@ cd backend
 go test ./... -v -short
 ```
 
-### Generate mocks for larger interfaces
+#### Generate mocks for larger interfaces
 
 This project uses mockery (https://github.com/vektra/mockery) to auto-generate mocks. The configuration can be found in `backend/.mockery.yaml`. 
 
@@ -68,6 +68,22 @@ In order to create new mocks or update existing ones, specify corresponding in t
 ```bash
 cd backend && mockery
 ```
+
+### Run backend integration tests
+
+This project uses testcontainers to spin up all depending services. When writing new tests, use the `NewIntegrationTestEnvironment` method to spin up a fresh test environment, which provides everything needed.
+
+```bash
+# for running all integration tests
+go test ./...
+
+# or for a particular test suite
+go test ./... -run TestUserIntegration
+
+# or for a particular sub test
+go test ./... -run TestUserIntegration/DELETE_/admin/users
+```
+
 ## Documentation
 
 - Swagger docs can be opened during running dev environment under following link: http://localhost:8888/api/docs#/
