@@ -26,3 +26,18 @@ jobs:
             echo "Run 'gofmt -w .' to fix formatting."
             exit 1
           fi
+      - name: Check Go vet
+        run: |
+          vet_output=$(go vet ./... 2>&1)
+          if [ -n "$vet_output" ]; then
+            echo "Go vet found issues in the following files:"
+            echo "$vet_output"
+            exit 1
+              else
+            echo "No issues found by Go vet."
+          fi
+      - name: Run unit tests
+        run: go test ./... -v -short -coverprofile=coverage.txt
+
+          
+
