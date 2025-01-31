@@ -2,14 +2,6 @@ name: "Backend Build"
 run-name: Build backend service on ${{ github.ref }}
 on:
   push:
-    branches:
-      - main
-      - 20-add-basic-ci-pipeline
-    paths:
-      - backend/**
-  pull_request:
-    branches:
-      - main
     paths:
       - backend/**
 jobs:
