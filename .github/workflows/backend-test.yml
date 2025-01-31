@@ -5,7 +5,7 @@ on:
     paths:
       - backend/**
 jobs:
-  backend-lint:
+  backend-format:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,18 +26,41 @@ jobs:
             echo "Run 'gofmt -w .' to fix formatting."
             exit 1
           fi
+
+  backend-vet:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.4
       - name: Check Go vet
-        run: |
-          vet_output=$(go vet ./... 2>&1)
-          if [ -n "$vet_output" ]; then
-            echo "Go vet found issues in the following files:"
-            echo "$vet_output"
-            exit 1
-              else
-            echo "No issues found by Go vet."
-          fi
+        run: go vet ./...
+
+  backend-unit-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.4
       - name: Run unit tests
         run: go test ./... -v -short -coverprofile=coverage.txt
+      - name: Upload coverage file
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.txt
 
           
 
