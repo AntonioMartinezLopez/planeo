@@ -27,6 +27,20 @@ func TestUserIntegration(t *testing.T) {
 
 	// Start integration environment
 	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Log("Starting integration environment")
+	t.Log("Keycloak URL: ", env.Configuration.KcBaseUrl)
+	t.Log("Keyclaok Port: ", env.Configuration.Port)
+
+	session, err := env.GetUserSession("admin", "admin")
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log("Session: ", session)
+
+	// Initialize database connection
+	t.Log("Initializing database connection")
 	db := db.InitializeDatabaseConnection(context.Background(), env.Configuration.DatabaseConfig())
 	_, api := humatest.New(t)
 
