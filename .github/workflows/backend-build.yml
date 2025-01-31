@@ -1,14 +1,25 @@
-name: "Backend Build"
+name: "Backend Test"
 run-name: Build backend service on ${{ github.ref }}
 on:
   push:
     paths:
       - backend/**
 jobs:
-  print-job:
+  backend-lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Print GitHub context
-        run: echo "${{ toJson(github) }}"
+        uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.4
+      - name: Check Go formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Go code is not formatted. Run 'gofmt -w .' to fix formatting."
+            exit 1
+          fi
