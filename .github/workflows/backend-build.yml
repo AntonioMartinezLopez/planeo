@@ -19,7 +19,10 @@ jobs:
           go-version: 1.23.4
       - name: Check Go formatting
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Go code is not formatted. Run 'gofmt -w .' to fix formatting."
+          unformatted_files=$(gofmt -l .)
+          if [ -n "$unformatted_files" ]; then
+            echo "The following files are not correctly formatted:"
+            echo "$unformatted_files"
+            echo "Run 'gofmt -w .' to fix formatting."
             exit 1
           fi
