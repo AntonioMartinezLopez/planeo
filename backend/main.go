@@ -24,7 +24,7 @@ func main() {
 	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
 
 	// initialize api
-	router := setup.SetupRouter(config, db)
+	   router := setup.SetupRouter(config, db)
 
 	server := http.Server{
 		Addr:              serverConfig,
