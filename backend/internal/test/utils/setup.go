@@ -102,7 +102,7 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 	absPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
 	migrationsDir := filepath.Join("..", "..", "..", "db", "migrations")
 	println(absPath, migrationsDir)
-	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
+	cmd := exec.Command("goose", "-dir", absPath, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
 		env.Configuration.DbPort), operation)
 
 	cmd.Stdout = os.Stdout
