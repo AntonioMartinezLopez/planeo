@@ -6,6 +6,7 @@ import (
 
 	"planeo/api/internal/clients/keycloak"
 	"planeo/api/internal/resources/user"
+	"planeo/api/internal/resources/user/dto"
 	"planeo/api/internal/resources/user/models"
 	"planeo/api/internal/setup"
 	"planeo/api/internal/test/utils"
@@ -280,124 +281,124 @@ func TestUserIntegration(t *testing.T) {
 		// 	})
 	})
 
-	// t.Run("PUT /admin/users/{userId}", func(t *testing.T) {
+	t.Run("PUT /admin/users/{userId}", func(t *testing.T) {
 
-	// 	t.Run("should return 200 and update user", func(t *testing.T) {
+		t.Run("should return 200 and update user", func(t *testing.T) {
 
-	// 		session, err := env.GetUserSession("admin", "admin")
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
+			assert.NotNil(t, session)
 
-	// 		// get user
-	// 		response := api.Get("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			// get user
+			response := api.Get("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-	// 		var body struct{ User models.User }
-	// 		jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			var body struct{ User models.User }
+			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 
-	// 		updatePayload := dto.UpdateUserInputBody{
-	// 			FirstName:       "Jane",
-	// 			LastName:        "Doe",
-	// 			Email:           body.User.Email,
-	// 			Username:        body.User.Username,
-	// 			Totp:            body.User.Totp,
-	// 			Enabled:         body.User.Enabled,
-	// 			EmailVerified:   body.User.EmailVerified,
-	// 			RequiredActions: body.User.RequiredActions,
-	// 		}
+			updatePayload := dto.UpdateUserInputBody{
+				FirstName:       "Jane",
+				LastName:        "Doe",
+				Email:           body.User.Email,
+				Username:        body.User.Username,
+				Totp:            body.User.Totp,
+				Enabled:         body.User.Enabled,
+				EmailVerified:   body.User.EmailVerified,
+				RequiredActions: body.User.RequiredActions,
+			}
 
-	// 		response = api.Put(fmt.Sprintf("/local/admin/users/%s", body.User.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
+			response = api.Put(fmt.Sprintf("/local/admin/users/%s", body.User.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
 
-	// 		assert.Equal(t, 200, response.Code)
-	// 	})
+			assert.Equal(t, 200, response.Code)
+		})
 
-	// 	t.Run("should return 401 when no token is provided", func(t *testing.T) {
-	// 		response := api.Put("/local/admin/users/1", "", dto.UpdateUserInputBody{})
+		t.Run("should return 401 when no token is provided", func(t *testing.T) {
+			response := api.Put("/local/admin/users/1", "", dto.UpdateUserInputBody{})
 
-	// 		assert.Equal(t, 401, response.Code)
-	// 	})
+			assert.Equal(t, 401, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user is not admin", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("user", "user")
+		t.Run("should return 403 when user is not admin", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
-	// 		response := api.Put("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
+			assert.NotNil(t, session)
+			response := api.Put("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
 
-	// 		assert.Equal(t, 401, response.Code)
-	// 	})
+			assert.Equal(t, 401, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("admin", "admin")
+		t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
-	// 		response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
+			assert.NotNil(t, session)
+			response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
 
-	// 		assert.Equal(t, 403, response.Code)
-	// 	})
+			assert.Equal(t, 403, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("admin", "admin")
+		t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
+			assert.NotNil(t, session)
 
-	// 		updatePayload := dto.UpdateUserInputBody{
-	// 			FirstName:       "Jane",
-	// 			LastName:        "Doe",
-	// 			Email:           "test",
-	// 			Username:        "test",
-	// 			Totp:            false,
-	// 			Enabled:         true,
-	// 			EmailVerified:   true,
-	// 			RequiredActions: []models.RequiredAction{},
-	// 		}
+			updatePayload := dto.UpdateUserInputBody{
+				FirstName:       "Jane",
+				LastName:        "Doe",
+				Email:           "test",
+				Username:        "test",
+				Totp:            false,
+				Enabled:         true,
+				EmailVerified:   true,
+				RequiredActions: []models.RequiredAction{},
+			}
 
-	// 		response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
+			response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
 
-	// 		assert.Equal(t, 403, response.Code)
-	// 	})
+			assert.Equal(t, 403, response.Code)
+		})
 
-	// 	t.Run("should return 422 when input body is invalid", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("admin", "admin")
+		t.Run("should return 422 when input body is invalid", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
+			assert.NotNil(t, session)
 
-	// 		body := []map[string]interface{}{
-	// 			{"firstName": 12, "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": 12, "username": "test", "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": 12, "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": "test", "enabled": true, "emailVerified": true, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": true, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": 12, "requiredActions": []string{}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": 12, "requiredActions": []string{"test"}},
-	// 			{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": true, "requiredActions": "test"},
-	// 		}
+			body := []map[string]interface{}{
+				{"firstName": 12, "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": 12, "username": "test", "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": 12, "totp": false, "enabled": true, "emailVerified": true, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": "test", "enabled": true, "emailVerified": true, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": true, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": 12, "requiredActions": []string{}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": 12, "requiredActions": []string{"test"}},
+				{"firstName": "John", "lastName": "Doe", "email": "test@mail.de", "username": "test", "totp": false, "enabled": "wrong", "emailVerified": true, "requiredActions": "test"},
+			}
 
-	// 		for _, b := range body {
-	// 			response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
-	// 			assert.Equal(t, 422, response.Code)
-	// 		}
-	// 	})
+			for _, b := range body {
+				response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
+				assert.Equal(t, 422, response.Code)
+			}
+		})
 
-	// })
+	})
 
 	// t.Run("DELETE /admin/users/{userId}", func(t *testing.T) {
 
