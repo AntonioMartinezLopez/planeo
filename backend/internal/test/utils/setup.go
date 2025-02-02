@@ -92,23 +92,14 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 		operation = "down"
 	}
 
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	exPath := filepath.Dir(ex)
-	fmt.Println(exPath)
-
-	absPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
-	migrationsDir := filepath.Join("..", "..", "..", "db", "migrations")
-	println(absPath, migrationsDir)
-	cmd := exec.Command("goose", "-dir", absPath, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
+	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
+	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
 		env.Configuration.DbPort), operation)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
+	err := cmd.Run()
 
 	if err != nil {
 		return fmt.Errorf("failed to run goose migrations: %w", err)

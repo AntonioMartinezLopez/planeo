@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"planeo/api/internal/clients/keycloak"
 	"planeo/api/internal/resources/user"
@@ -26,18 +27,6 @@ func TestUserIntegration(t *testing.T) {
 
 	// Start integration environment
 	env := utils.NewIntegrationTestEnvironment(t)
-
-	t.Log("Starting integration environment")
-	t.Log("Keycloak URL: ", env.Configuration.KcBaseUrl)
-	t.Log("Keyclaok Port: ", env.Configuration.Port)
-
-	session, err := env.GetUserSession("admin", "admin")
-	if err != nil {
-		t.Error(err)
-		panic(err)
-	}
-
-	t.Log("Session: ", session.AccessToken)
 
 	// Initialize database connection
 	t.Log("Initializing database connection")
@@ -400,92 +389,92 @@ func TestUserIntegration(t *testing.T) {
 
 	})
 
-	// t.Run("DELETE /admin/users/{userId}", func(t *testing.T) {
+	t.Run("DELETE /admin/users/{userId}", func(t *testing.T) {
 
-	// 	t.Run("should return 204 and delete user", func(t *testing.T) {
+		t.Run("should return 204 and delete user", func(t *testing.T) {
 
-	// 		session, err := env.GetUserSession("admin", "admin")
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
+			assert.NotNil(t, session)
 
-	// 		body := dto.CreateUserInputBody{
-	// 			FirstName: "John",
-	// 			LastName:  "Test",
-	// 			Email:     "john.test@local.de",
-	// 			Password:  "password123",
-	// 		}
+			body := dto.CreateUserInputBody{
+				FirstName: "John",
+				LastName:  "Test",
+				Email:     "john.test@local.de",
+				Password:  "password123",
+			}
 
-	// 		response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 
-	// 		assert.Equal(t, 201, response.Code)
+			assert.Equal(t, 201, response.Code)
 
-	// 		response = api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response = api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-	// 		assert.Equal(t, 200, response.Code)
+			assert.Equal(t, 200, response.Code)
 
-	// 		var users struct{ Users []models.User }
-	// 		jsonHelper.DecodeJSONAndValidate(response.Result().Body, &users, true)
+			var users struct{ Users []models.User }
+			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &users, true)
 
-	// 		index := slices.IndexFunc(users.Users, func(u models.User) bool {
-	// 			return u.Email == "john.test@local.de"
-	// 		})
+			index := slices.IndexFunc(users.Users, func(u models.User) bool {
+				return u.Email == "john.test@local.de"
+			})
 
-	// 		assert.NotEqual(t, -1, index)
+			assert.NotEqual(t, -1, index)
 
-	// 		userToDelete := users.Users[index]
+			userToDelete := users.Users[index]
 
-	// 		response = api.Delete(fmt.Sprintf("/local/admin/users/%s", userToDelete.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
-	// 		assert.Equal(t, 200, response.Code)
-	// 	})
+			response = api.Delete(fmt.Sprintf("/local/admin/users/%s", userToDelete.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			assert.Equal(t, 200, response.Code)
+		})
 
-	// 	t.Run("should return 401 when no token is provided", func(t *testing.T) {
-	// 		response := api.Delete("/local/admin/users/1", "")
+		t.Run("should return 401 when no token is provided", func(t *testing.T) {
+			response := api.Delete("/local/admin/users/1", "")
 
-	// 		assert.Equal(t, 401, response.Code)
-	// 	})
+			assert.Equal(t, 401, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user is not admin", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("user", "user")
+		t.Run("should return 403 when user is not admin", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
-	// 		response := api.Delete("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			assert.NotNil(t, session)
+			response := api.Delete("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-	// 		assert.Equal(t, 401, response.Code)
-	// 	})
+			assert.Equal(t, 401, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("admin", "admin")
+		t.Run("should return 403 when user access an organization he does not belong to", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
-	// 		response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			assert.NotNil(t, session)
+			response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-	// 		assert.Equal(t, 403, response.Code)
-	// 	})
+			assert.Equal(t, 403, response.Code)
+		})
 
-	// 	t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
-	// 		session, err := env.GetUserSession("admin", "admin")
+		t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
 
-	// 		if err != nil {
-	// 			t.Error(err)
-	// 		}
+			if err != nil {
+				t.Error(err)
+			}
 
-	// 		assert.NotNil(t, session)
+			assert.NotNil(t, session)
 
-	// 		response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-	// 		assert.Equal(t, 403, response.Code)
-	// 	})
-	// })
+			assert.Equal(t, 403, response.Code)
+		})
+	})
 }
