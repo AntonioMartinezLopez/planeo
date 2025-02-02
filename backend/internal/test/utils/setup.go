@@ -92,6 +92,13 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 		operation = "down"
 	}
 
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	fmt.Println(exPath)
+
 	absPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
 	migrationsDir := filepath.Join("..", "..", "..", "db", "migrations")
 	println(absPath, migrationsDir)
@@ -101,7 +108,7 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if err != nil {
 		return fmt.Errorf("failed to run goose migrations: %w", err)
