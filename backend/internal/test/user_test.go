@@ -33,9 +33,10 @@ func TestUserIntegration(t *testing.T) {
 	session, err := env.GetUserSession("admin", "admin")
 	if err != nil {
 		t.Error(err)
+		panic(err)
 	}
 
-	t.Log("Session: ", session)
+	t.Log("Session: ", session.AccessToken)
 
 	// Initialize database connection
 	t.Log("Initializing database connection")
