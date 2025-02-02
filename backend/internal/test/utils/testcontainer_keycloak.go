@@ -27,7 +27,7 @@ func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, err
 		testcontainers.WithHostPortAccess(8080),
 		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp")),
 		keycloak.WithContextPath("/"),
-		keycloak.WithRealmImportFile(realmFile),
+		keycloak.WithRealmImportFile(absPath),
 		keycloak.WithAdminUsername("admin"),
 		keycloak.WithAdminPassword("password"),
 	)
