@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	jsonHelper "planeo/api/pkg/json"
 	"planeo/api/pkg/request"
 
@@ -18,12 +19,15 @@ type UserSession struct {
 }
 
 func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, error) {
+	realmPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "auth", "local", "realm.json"))
 	return keycloak.Run(ctx,
 		"quay.io/keycloak/keycloak:25.0.2",
 		testcontainers.WithHostPortAccess(8080),
-		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp")),
+		testcontainers.WithWaitStrategy(wait.ForAll(
+			wait.ForHTTP("/realms/local/protocol/openid-connect/certs").WithPort("8080"),
+		)),
 		keycloak.WithContextPath("/"),
-		keycloak.WithRealmImportFile("../../../auth/local/realm.json"),
+		keycloak.WithRealmImportFile(realmPath),
 		keycloak.WithAdminUsername("admin"),
 		keycloak.WithAdminPassword("password"),
 	)

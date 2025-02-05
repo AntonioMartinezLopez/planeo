@@ -57,7 +57,12 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 	}
 
 	// run migrations
-	env.MigrateDatabase(false)
+	err = env.MigrateDatabase(false)
+
+	if err != nil {
+		t.Error(err.Error())
+		panic(err)
+	}
 
 	t.Cleanup(func() {
 		ctx := context.Background()
@@ -87,7 +92,7 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 		operation = "down"
 	}
 
-	migrationsDir := filepath.Join("..", "..", "..", "db", "migrations")
+	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
 	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
 		env.Configuration.DbPort), operation)
 

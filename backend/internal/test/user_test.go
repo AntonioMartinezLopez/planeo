@@ -27,6 +27,9 @@ func TestUserIntegration(t *testing.T) {
 
 	// Start integration environment
 	env := utils.NewIntegrationTestEnvironment(t)
+
+	// Initialize database connection
+	t.Log("Initializing database connection")
 	db := db.InitializeDatabaseConnection(context.Background(), env.Configuration.DatabaseConfig())
 	_, api := humatest.New(t)
 

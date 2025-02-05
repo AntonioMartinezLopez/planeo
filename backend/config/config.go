@@ -40,32 +40,33 @@ func (config *ApplicationConfiguration) OauthIssuerUrl() string {
 }
 
 func LoadConfig(filenames ...string) *ApplicationConfiguration {
+
 	err := godotenv.Load(filenames...)
 	if err != nil {
 		logger.Error("Error loading .env file: %v", err)
 	}
 
 	config := &ApplicationConfiguration{
-		Host:                readEnvFile("HOST"),
-		Port:                readEnvFile("PORT"),
-		DbHost:              readEnvFile("DB_HOST"),
-		DbPort:              readEnvFile("DB_PORT"),
-		DbUser:              readEnvFile("DB_USER"),
-		DbPassword:          readEnvFile("DB_PASSWORD"),
-		DbName:              readEnvFile("DB_NAME"),
-		KcBaseUrl:           readEnvFile("KC_BASE_URL"),
-		KcIssuer:            readEnvFile("KC_ISSUER_REALM"),
-		KcOauthClientID:     readEnvFile("KC_OAUTH_CLIENT_ID"),
-		KcAdminClientID:     readEnvFile("KC_ADMIN_CLIENT_ID"),
-		KcAdminClientSecret: readEnvFile("KC_ADMIN_CLIENT_SECRET"),
-		KcAdminUsername:     readEnvFile("KC_ADMIN_USERNAME"),
-		KcAdminPassword:     readEnvFile("KC_ADMIN_PASSWORD"),
+		Host:                readEnvVariable("HOST"),
+		Port:                readEnvVariable("PORT"),
+		DbHost:              readEnvVariable("DB_HOST"),
+		DbPort:              readEnvVariable("DB_PORT"),
+		DbUser:              readEnvVariable("DB_USER"),
+		DbPassword:          readEnvVariable("DB_PASSWORD"),
+		DbName:              readEnvVariable("DB_NAME"),
+		KcBaseUrl:           readEnvVariable("KC_BASE_URL"),
+		KcIssuer:            readEnvVariable("KC_ISSUER_REALM"),
+		KcOauthClientID:     readEnvVariable("KC_OAUTH_CLIENT_ID"),
+		KcAdminClientID:     readEnvVariable("KC_ADMIN_CLIENT_ID"),
+		KcAdminClientSecret: readEnvVariable("KC_ADMIN_CLIENT_SECRET"),
+		KcAdminUsername:     readEnvVariable("KC_ADMIN_USERNAME"),
+		KcAdminPassword:     readEnvVariable("KC_ADMIN_PASSWORD"),
 	}
 
 	return config
 }
 
-func readEnvFile(envName string) string {
+func readEnvVariable(envName string) string {
 	envVariable, envExists := os.LookupEnv(envName)
 	if !envExists {
 		logger.Fatal("Missing env variable '%s'. Aborting...\n", envName)

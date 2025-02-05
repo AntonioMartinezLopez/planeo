@@ -53,7 +53,7 @@ func TestUserService(t *testing.T) {
 
 		})
 
-		t.Run("Should return error if CreateUser fails", func(t *testing.T) {
+		t.Run("Should return error if CreateUser fails after repository layer error", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
 			mockIAMInterface.EXPECT().CreateUser(testOrganizationId, userInput).Return(&user, nil)
