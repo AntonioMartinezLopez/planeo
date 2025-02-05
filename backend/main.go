@@ -17,7 +17,7 @@ func main() {
 
 	// server configuration
 	logger.Log("Loading configuration")
-	config := config.LoadConfig("./.env")
+	config := config.LoadConfig()
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
