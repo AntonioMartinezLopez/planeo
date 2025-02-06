@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - backend/**
+  workflow_call:
 
 jobs:
   backend-dependencies:

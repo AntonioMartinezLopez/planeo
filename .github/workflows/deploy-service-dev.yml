@@ -19,6 +19,8 @@ permissions:
     id-token: write
 
 jobs:
+    test-backend:
+        uses: ./.github/workflows/backend-test.yml
     build-container-image:
         runs-on: ubuntu-latest
         defaults:
