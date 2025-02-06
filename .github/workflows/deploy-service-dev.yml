@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  Account: AntonioMartinezLopez
+  Account: antoniomartinezlopez
   IMAGE_NAME: planeo-backend
 
 permissions:
