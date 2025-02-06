@@ -9,6 +9,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  Account: AntonioMartinezLopez
   IMAGE_NAME: planeo-backend
 
 permissions:
@@ -38,5 +39,5 @@ jobs:
               with:
                 context: ./backend
                 push: true
-                tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ inputs.ref}}
+                tags: ${{ env.REGISTRY }}/${{ env.Account }}/${{ env.IMAGE_NAME }}:${{ inputs.ref}}
             
