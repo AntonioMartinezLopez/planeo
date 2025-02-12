@@ -9,7 +9,7 @@ type KeycloakAdminClientInterface interface {
 	GetKeycloakUserGroups(userId string) ([]keycloak.KeycloakGroup, error)
 }
 
-func UserInOrganisation(kc KeycloakAdminClientInterface, organizationId string, userKeycloakId string) bool {
+func UserInOrganization(kc KeycloakAdminClientInterface, organizationKeycloakId string, userKeycloakId string) bool {
 
 	groups, err := kc.GetKeycloakUserGroups(userKeycloakId)
 
@@ -18,7 +18,7 @@ func UserInOrganisation(kc KeycloakAdminClientInterface, organizationId string, 
 	}
 
 	for _, group := range groups {
-		if group.Path == "/"+organizationId {
+		if group.Path == "/"+organizationKeycloakId {
 			return true
 		}
 	}

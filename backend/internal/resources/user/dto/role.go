@@ -4,7 +4,7 @@ import models "planeo/api/internal/resources/user/models"
 
 // GET roles
 type GetRolesInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
+	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
 }
 
 type GetRolesOutput struct {
@@ -18,9 +18,9 @@ type PutUserRoleInputBody struct {
 	models.Role
 }
 type PutUserRolesInput struct {
-	Organization string                 `path:"organization" doc:"ID of the organization"`
-	UserId       string                 `path:"userId" doc:"ID of the user to be deleted"`
-	Body         []PutUserRoleInputBody `doc:"Array of role representations"`
+	OrganizationId int                    `path:"organizationId" doc:"ID of the organization"`
+	UserId         string                 `path:"userId" doc:"ID of the user to be deleted"`
+	Body           []PutUserRoleInputBody `doc:"Array of role representations"`
 }
 
 type PutUserRoleOutput struct {

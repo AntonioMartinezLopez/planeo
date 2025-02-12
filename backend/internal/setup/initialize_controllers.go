@@ -5,7 +5,7 @@ import (
 	"planeo/api/internal/clients/keycloak"
 	"planeo/api/internal/resources/announcement"
 	"planeo/api/internal/resources/group"
-	"planeo/api/internal/resources/task"
+	"planeo/api/internal/resources/request"
 	"planeo/api/internal/resources/user"
 	"planeo/api/pkg/db"
 
@@ -20,8 +20,10 @@ func InitializeControllers(api huma.API, config *config.ApplicationConfiguration
 	// Group controller
 	groupController := group.NewGroupController(api, config)
 
-	// Task controller
-	taskController := task.NewTaskController(api, config)
+	// Request controller
+	requestRepository := request.NewRequestRepository(db.DB)
+	requestService := request.NewRequestService(requestRepository)
+	requestController := request.NewRequestController(api, config, requestService)
 
 	// Announcement controller
 	announcementController := announcement.NewAnnouncementController(api, config)
@@ -32,5 +34,5 @@ func InitializeControllers(api huma.API, config *config.ApplicationConfiguration
 	userService := user.NewUserService(userRepository, keylcoakService)
 	userController := user.NewUserController(api, config, userService)
 
-	return []Controller{groupController, taskController, announcementController, userController}
+	return []Controller{groupController, requestController, announcementController, userController}
 }

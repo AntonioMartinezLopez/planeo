@@ -20,8 +20,39 @@ func NewUserRepository(database *pgxpool.Pool) *UserRepository {
 	}
 }
 
-func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error) {
-	query := "SELECT * FROM users WHERE organization = @organizationId"
+func (repo *UserRepository) GetOrganizationIamIdentifier(ctx context.Context, organizationId int) (string, error) {
+
+	query := "SELECT iam_organization_id FROM organizations WHERE id = @organizationId LIMIT 1"
+	args := pgx.NamedArgs{"organizationId": organizationId}
+
+	rows, err := repo.db.Query(ctx, query, args)
+
+	if err != nil {
+		return "", err
+	}
+
+	type Organization struct {
+		IamOrganizationID string `json:"iam_organization_id" db:"iam_organization_id"`
+	}
+	organization := Organization{}
+
+	if rows.Next() {
+		err = rows.Scan(&organization.IamOrganizationID)
+		if err != nil {
+			logger.Error("Error scanning row: %s", err.Error())
+			return "", err
+		}
+	}
+	rows.Close()
+
+	if err != nil {
+		return "", err
+	}
+	return organization.IamOrganizationID, nil
+}
+
+func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizationId int) ([]models.BasicUserInformation, error) {
+	query := "SELECT * FROM users WHERE organization_id = @organizationId"
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := repo.db.Query(ctx, query, args)
@@ -33,12 +64,12 @@ func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizatio
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.BasicUserInformation])
 }
 
-func (repo *UserRepository) UpdateUser(ctx context.Context, organizationId string, userId string, user models.User) error {
+func (repo *UserRepository) UpdateUser(ctx context.Context, organizationId int, userId string, user models.User) error {
 
 	query := `
 		UPDATE users 
 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
-		WHERE iam_user_id = @userID AND organization = @organizationId`
+		WHERE iam_user_id = @userID AND organization_id = @organizationId`
 
 	args := pgx.NamedArgs{
 		"organizationId": organizationId,
@@ -58,10 +89,10 @@ func (repo *UserRepository) UpdateUser(ctx context.Context, organizationId strin
 	return nil
 }
 
-func (repo *UserRepository) CreateUser(ctx context.Context, organizationId string, user models.User) error {
+func (repo *UserRepository) CreateUser(ctx context.Context, organizationId int, user models.User) error {
 
 	query := `
-		INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization) 
+		INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization_id) 
 		VALUES (@username, @firstname, @lastname, @email, @userID, @organizationId)`
 
 	args := pgx.NamedArgs{
@@ -85,11 +116,11 @@ func (repo *UserRepository) CreateUser(ctx context.Context, organizationId strin
 	return nil
 }
 
-func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId string, userId string) error {
+func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId int, userId string) error {
 
 	query := `
 		DELETE FROM users 
-		WHERE organization = @organizationId AND iam_user_id = @userId`
+		WHERE organization_id = @organizationId AND iam_user_id = @userId`
 
 	args := pgx.NamedArgs{"organizationId": organizationId, "userId": userId}
 
@@ -105,7 +136,7 @@ func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId strin
 	return nil
 }
 
-func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId string, users []models.User) error {
+func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, users []models.User) error {
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		appError.New(appError.InternalError, "Something went wrong", err)
@@ -123,7 +154,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId string
 	// Delete users that are in the organization but not in the list of user IDs
 	query := `
 		DELETE FROM users 
-		WHERE organization = @organizationId AND NOT iam_user_id = any(@userIds)`
+		WHERE organization_id = @organizationId AND NOT iam_user_id = any(@userIds)`
 
 	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
 
@@ -140,7 +171,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId string
 		query := `
 		UPDATE users 
 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
-		WHERE iam_user_id = @userID AND organization = @organizationId`
+		WHERE iam_user_id = @userID AND organization_id = @organizationId`
 
 		args := pgx.NamedArgs{
 			"organizationId": organizationId,
@@ -163,7 +194,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId string
 		// If no row was updated, insert new user
 		if rowsAffected == 0 {
 			query := `
-			INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization) 
+			INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization_id) 
 			VALUES (@username, @firstname, @lastname, @email, @userID, @organizationId)`
 
 			args := pgx.NamedArgs{

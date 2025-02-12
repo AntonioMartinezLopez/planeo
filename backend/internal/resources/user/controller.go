@@ -30,12 +30,12 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-users",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/admin/users",
+		Path:        "/organizations/{organizationId}/admin/users",
 		Summary:     "[Admin] Get all users from organization",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUsersInput) (*dto.GetUsersOutput, error) {
-		users, err := controller.userService.GetUsers(ctx, input.Organization, input.Sync)
+		users, err := controller.userService.GetUsers(ctx, input.OrganizationId, input.Sync)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -49,12 +49,12 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/admin/users/{userId}",
+		Path:        "/organizations/{organizationId}/admin/users/{userId}",
 		Summary:     "[Admin] Get single user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInput) (*dto.GetUserOutput, error) {
-		user, err := controller.userService.GetUserById(ctx, input.Organization, input.UserId)
+		user, err := controller.userService.GetUserById(ctx, input.OrganizationId, input.UserId)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -68,14 +68,14 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID:   "create-user",
 		Method:        http.MethodPost,
-		Path:          "/{organization}/admin/users",
+		Path:          "/organizations/{organizationId}/admin/users",
 		Summary:       "[Admin] Create user",
 		Tags:          []string{"User"},
 		DefaultStatus: 201,
 		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "create")},
 	}), func(ctx context.Context, input *dto.CreateUserInput) (*dto.CreateUserOutput, error) {
 
-		err := controller.userService.CreateUser(ctx, input.Organization, input.Body)
+		err := controller.userService.CreateUser(ctx, input.OrganizationId, input.Body)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -89,13 +89,13 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "update-user",
 		Method:      http.MethodPut,
-		Path:        "/{organization}/admin/users/{userId}",
+		Path:        "/organizations/{organizationId}/admin/users/{userId}",
 		Summary:     "[Admin] Update user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "update")},
 	}), func(ctx context.Context, input *dto.UpdateUserInput) (*dto.UpdateUserOutput, error) {
 
-		err := controller.userService.UpdateUser(ctx, input.Organization, input.UserId, input.Body)
+		err := controller.userService.UpdateUser(ctx, input.OrganizationId, input.UserId, input.Body)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -109,13 +109,13 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "delete-user",
 		Method:      http.MethodDelete,
-		Path:        "/{organization}/admin/users/{userId}",
+		Path:        "/organizations/{organizationId}/admin/users/{userId}",
 		Summary:     "[Admin] Delete user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteUserInput) (*dto.DeleteUserOutput, error) {
 
-		err := controller.userService.DeleteUser(ctx, input.Organization, input.UserId)
+		err := controller.userService.DeleteUser(ctx, input.OrganizationId, input.UserId)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -129,13 +129,13 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "Assign-user-roles",
 		Method:      http.MethodPut,
-		Path:        "/{organization}/admin/users/{userId}/roles",
+		Path:        "/organizations/{organizationId}/admin/users/{userId}/roles",
 		Summary:     "[Admin] Assign roles to a user",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*dto.PutUserRoleOutput, error) {
 
-		err := controller.userService.AssignRoles(ctx, input.Organization, input.UserId, input.Body)
+		err := controller.userService.AssignRoles(ctx, input.OrganizationId, input.UserId, input.Body)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -149,7 +149,7 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-roles",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/admin/roles",
+		Path:        "/organizations/{organizationId}/admin/roles",
 		Summary:     "[Admin] Get roles",
 		Tags:        []string{"Roles"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "role", "read")},
@@ -169,13 +169,13 @@ func (controller *UserController) InitializeRoutes() {
 	huma.Register(controller.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-basic-user-information",
 		Method:      http.MethodGet,
-		Path:        "/{organization}/users",
+		Path:        "/organizations/{organizationId}/users",
 		Summary:     "Get basic information of users",
 		Tags:        []string{"User"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(controller.api, controller.config, "userinfo", "read")},
 	}), func(ctx context.Context, input *dto.GetUserInfoInput) (*dto.GetUserInfoOutput, error) {
 
-		users, err := controller.userService.GetUsersInformation(ctx, input.Organization)
+		users, err := controller.userService.GetUsersInformation(ctx, input.OrganizationId)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)

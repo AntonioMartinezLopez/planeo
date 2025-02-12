@@ -49,18 +49,6 @@ func parseToken(token []byte) (*OauthAccessClaims, error) {
 	return accessClaims, nil
 }
 
-func verifyAccess(accessClaims *OauthAccessClaims, organization string, issuer string) bool {
-	isCorrectAuthorizedParty := accessClaims.IsWithinOrganisation(organization)
-	isIssuerCorrect := accessClaims.HasIssuer(issuer)
-
-	if !isIssuerCorrect || !isCorrectAuthorizedParty {
-
-		return false
-	}
-
-	return true
-}
-
 func AuthMiddleware(api huma.API, jwksURL string, issuer string) func(ctx huma.Context, next func(huma.Context)) {
 	keySet := jwks.NewJWKSet(jwksURL)
 
@@ -92,15 +80,7 @@ func AuthMiddleware(api huma.API, jwksURL string, issuer string) func(ctx huma.C
 			return
 		}
 
-		organization := ctx.Param("organization")
-		validAccess := verifyAccess(accessClaims, organization, issuer)
-
-		if !validAccess {
-			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
-			return
-		}
-
-		ctx = huma.WithValue(ctx, AccessClaimsContextKey{}, *accessClaims)
+		ctx = huma.WithValue(ctx, AccessClaimsContextKey{}, accessClaims)
 		ctx = huma.WithValue(ctx, AccessTokenContextKey{}, token)
 
 		next(ctx)

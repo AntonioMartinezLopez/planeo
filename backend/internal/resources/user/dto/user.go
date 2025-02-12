@@ -12,8 +12,8 @@ type GetUsersOutput struct {
 }
 
 type GetUsersInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	Sync         bool   `query:"sync" required:"false" doc:"Flag describing whether to sync users from auth system or not"`
+	OrganizationId int  `path:"organizationId" doc:"ID of the organization"`
+	Sync           bool `query:"sync" required:"false" doc:"Flag describing whether to sync users from auth system or not"`
 }
 
 // GET user
@@ -24,8 +24,8 @@ type GetUserOutput struct {
 }
 
 type GetUserInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	UserId       string `path:"userId" doc:"ID of a user"`
+	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
+	UserId         string `path:"userId" doc:"ID of a user"`
 }
 
 // POST user
@@ -43,9 +43,9 @@ type CreateUserInputBody struct {
 }
 
 type CreateUserInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	Body         CreateUserInputBody
-	RawBody      []byte
+	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
+	Body           CreateUserInputBody
+	RawBody        []byte
 }
 
 // UPDATE user
@@ -60,9 +60,9 @@ type UpdateUserInputBody struct {
 	RequiredActions []models.RequiredAction `json:"requiredActions" validate:"required" doc:"Array of actions that will be conducted after login"`
 }
 type UpdateUserInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	UserId       string `path:"userId" doc:"ID of the user to be deleted"`
-	Body         UpdateUserInputBody
+	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
+	UserId         string `path:"userId" doc:"ID of the user to be deleted"`
+	Body           UpdateUserInputBody
 }
 
 type UpdateUserOutput struct {
@@ -75,6 +75,6 @@ type DeleteUserOutput struct {
 }
 
 type DeleteUserInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
-	UserId       string `path:"userId" doc:"ID of the user to be deleted"`
+	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
+	UserId         string `path:"userId" doc:"ID of the user to be deleted"`
 }
