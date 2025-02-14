@@ -83,7 +83,8 @@ INSERT INTO categories (label, color, label_description, organization_id) VALUES
 ('Maintenance', '#FFC733', 'Request for maintenance', 1),
 ('Repair', '#33FF57', 'Request for repair', 1),
 ('Order', '#33FFC7', 'Request for ordering new equipment', 1),
-('Support', '#3357FF', 'Customer support inquiries', 1);
+('Support', '#3357FF', 'Customer support inquiries', 1),
+('Other', '#FF33C7', 'Other requests', 1);
 
 INSERT INTO requests (text, name, email, address, telephone, category_id, organization_id) VALUES
 ('Install new electrical outlets in the conference room', 'Emily Clark', 'emily.clark@example.com', '123 Main St, Springfield', '555-1234', 1, 1),

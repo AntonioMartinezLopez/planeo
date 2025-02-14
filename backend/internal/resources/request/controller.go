@@ -62,7 +62,12 @@ func (t *RequestController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "create")},
 	}), func(ctx context.Context, input *dto.CreateRequestInput) (*dto.CreateRequestOutput, error) {
 		resp := &dto.CreateRequestOutput{}
-		// result := t.requestService.CreateTask()
+		result := t.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
+
+		if result != nil {
+			return nil, huma_utils.NewHumaError(result)
+		}
+
 		resp.Body.Success = true
 		return resp, nil
 	})
@@ -75,8 +80,14 @@ func (t *RequestController) InitializeRoutes() {
 		Tags:        []string{"Requests"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "update")},
 	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*dto.UpdateRequestOutput, error) {
+
+		err := t.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
+
+		if err != nil {
+			return nil, huma_utils.NewHumaError(err)
+		}
+
 		resp := &dto.UpdateRequestOutput{}
-		// result := t.requestService.UpdateTask(input.TaskId)
 		resp.Body.Success = true
 		return resp, nil
 	})

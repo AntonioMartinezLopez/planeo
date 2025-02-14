@@ -3,6 +3,7 @@ package request
 import (
 	"context"
 	appError "planeo/api/internal/errors"
+	"planeo/api/internal/resources/request/dto"
 	"planeo/api/internal/resources/request/models"
 
 	"github.com/jackc/pgx/v5"
@@ -19,7 +20,7 @@ func NewRequestRepository(database *pgxpool.Pool) *RequestRepository {
 	}
 }
 
-func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId string, cursor int, limit int, getClosed bool) ([]models.Request, error) {
+func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error) {
 
 	var query string
 	if cursor == 0 {
@@ -36,6 +37,60 @@ func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId s
 	}
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Request])
+}
+
+func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId int, request dto.CreateRequestInputBody) error {
+
+	query := `
+		INSERT INTO requests (text, name, email, address, telephone, closed, organization_id, category_id)
+		VALUES (@text, @name, @email, @address, @telephone, @closed, @organizationId, @categoryId)`
+
+	args := pgx.NamedArgs{
+		"text":           request.Text,
+		"name":           request.Name,
+		"email":          request.Email,
+		"address":        request.Address,
+		"telephone":      request.Telephone,
+		"closed":         request.Closed,
+		"organizationId": organizationId,
+		"categoryId":     nil,
+	}
+
+	_, err := repo.db.Exec(ctx, query, args)
+
+	if err != nil {
+		appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	return nil
+}
+
+func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId int, requestId int, request dto.UpdateRequestInputBody) error {
+
+	query := `
+		UPDATE requests
+		SET text = @text, name = @name, email = @email, address = @address, telephone = @telephone, closed = @closed, category_id = @categoryId
+		WHERE organization_id = @organizationId AND id = @requestId`
+
+	args := pgx.NamedArgs{
+		"text":           request.Text,
+		"name":           request.Name,
+		"email":          request.Email,
+		"address":        request.Address,
+		"telephone":      request.Telephone,
+		"closed":         request.Closed,
+		"categoryId":     request.CategoryId,
+		"organizationId": organizationId,
+		"requestId":      requestId,
+	}
+
+	_, err := repo.db.Exec(ctx, query, args)
+
+	if err != nil {
+		appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	return nil
 }
 
 // func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId string, userId string, user models.User) error {

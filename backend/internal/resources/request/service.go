@@ -2,11 +2,14 @@ package request
 
 import (
 	"context"
+	"planeo/api/internal/resources/request/dto"
 	"planeo/api/internal/resources/request/models"
 )
 
 type RequestRepositoryInterface interface {
-	GetRequests(ctx context.Context, organizationId string, cursor int, limit int, getClosed bool) ([]models.Request, error)
+	CreateRequest(ctx context.Context, organizationId int, requestInput dto.CreateRequestInputBody) error
+	GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error)
+	UpdateRequest(ctx context.Context, organizationId int, requestId int, requestInput dto.UpdateRequestInputBody) error
 }
 
 type RequestService struct {
@@ -19,16 +22,16 @@ func NewRequestService(requestRepository RequestRepositoryInterface) *RequestSer
 	}
 }
 
-func (s *RequestService) GetRequests(ctx context.Context, organizationId string, cursor int, limit int, getClosed bool) ([]models.Request, error) {
+func (s *RequestService) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error) {
 	return s.requestRepository.GetRequests(ctx, organizationId, cursor, limit, getClosed)
 }
 
-func (s *RequestService) CreateRequest() string {
-	return "CreateRequest endpoint"
+func (s *RequestService) CreateRequest(ctx context.Context, organizationId int, requestInput dto.CreateRequestInputBody) error {
+	return s.requestRepository.CreateRequest(ctx, organizationId, requestInput)
 }
 
-func (s *RequestService) UpdateRequest(id string) string {
-	return "UpdateRequest endpoint"
+func (s *RequestService) UpdateRequest(ctx context.Context, organizationId int, requestId int, requestInput dto.UpdateRequestInputBody) error {
+	return s.requestRepository.UpdateRequest(ctx, organizationId, requestId, requestInput)
 }
 
 func (s *RequestService) DeleteRequest(id string) string {
