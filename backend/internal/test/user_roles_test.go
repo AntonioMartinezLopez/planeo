@@ -37,7 +37,7 @@ func TestUserRoleIntegration(t *testing.T) {
 	userController := user.NewUserController(api, env.Configuration, userService)
 
 	// Register controllers
-	setup.RegisterControllers(env.Configuration, api, []setup.Controller{userController})
+	setup.RegisterControllers(env.Configuration, api, db, []setup.Controller{userController})
 
 	t.Run("GET admin/roles ", func(t *testing.T) {
 
@@ -50,7 +50,7 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/local/admin/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -68,19 +68,19 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/local/admin/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := api.Get("/local/admin/roles")
+			response := api.Get("/organizations/1/iam/roles")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := api.Get("/local/admin/roles", "Authorization: Bearer invalid")
+			response := api.Get("/organizations/1/iam/roles", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -94,7 +94,7 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/invalid/admin/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/3525/iam/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -113,14 +113,14 @@ func TestUserRoleIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			// pull roles first
-			response := api.Get("/local/admin/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 200, response.Code)
 			var body struct{ Roles []models.Role }
 			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Roles), 0)
 
 			// assign all roles
-			response = api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body.Roles)
+			response = api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body.Roles)
 			assert.Equal(t, 200, response.Code)
 
 			var result struct{ Success bool }
@@ -137,7 +137,7 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), []dto.PutUserRoleInputBody{})
+			response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), []dto.PutUserRoleInputBody{})
 			assert.Equal(t, 200, response.Code)
 		})
 
@@ -150,19 +150,19 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), `{"roles":["admin"]}`)
+			response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), `{"roles":["admin"]}`)
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", "", `{"roles":["admin"]}`)
+			response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", "", `{"roles":["admin"]}`)
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", "Authorization: Bearer invalid", `{"roles":["admin"]}`)
+			response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", "Authorization: Bearer invalid", `{"roles":["admin"]}`)
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -176,11 +176,10 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Put("/invalid/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), `{"roles":["admin"]}`)
+			response := api.Put("/organizations/3525/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), `{"roles":["admin"]}`)
 
 			assert.Equal(t, 403, response.Code)
 		})
-
 	})
 
 }

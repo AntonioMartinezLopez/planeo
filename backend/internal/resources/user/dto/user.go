@@ -25,7 +25,7 @@ type GetUserOutput struct {
 
 type GetUserInput struct {
 	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
-	UserId         string `path:"userId" doc:"ID of a user"`
+	IamUserId      string `path:"iamUserId" doc:"IAM id of a user"`
 }
 
 // POST user
@@ -61,7 +61,7 @@ type UpdateUserInputBody struct {
 }
 type UpdateUserInput struct {
 	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
-	UserId         string `path:"userId" doc:"ID of the user to be deleted"`
+	IamUserId      string `path:"iamUserId" doc:"IAM id of the user to be deleted"`
 	Body           UpdateUserInputBody
 }
 
@@ -76,5 +76,5 @@ type DeleteUserOutput struct {
 
 type DeleteUserInput struct {
 	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
-	UserId         string `path:"userId" doc:"ID of the user to be deleted"`
+	IamUserId      string `path:"iamUserId" doc:"IAM id of the user to be deleted"`
 }

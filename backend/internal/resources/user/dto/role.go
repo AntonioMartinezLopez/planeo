@@ -19,7 +19,7 @@ type PutUserRoleInputBody struct {
 }
 type PutUserRolesInput struct {
 	OrganizationId int                    `path:"organizationId" doc:"ID of the organization"`
-	UserId         string                 `path:"userId" doc:"ID of the user to be deleted"`
+	IamUserId      string                 `path:"iamUserId" doc:"ID of the user to be deleted"`
 	Body           []PutUserRoleInputBody `doc:"Array of role representations"`
 }
 

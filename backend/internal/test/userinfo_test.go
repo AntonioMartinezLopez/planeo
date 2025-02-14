@@ -36,12 +36,14 @@ func TestUserinfoIntegration(t *testing.T) {
 	userController := user.NewUserController(api, env.Configuration, userService)
 
 	// Register controllers
-	setup.RegisterControllers(env.Configuration, api, []setup.Controller{userController})
+	setup.RegisterControllers(env.Configuration, api, db, []setup.Controller{userController})
 
 	t.Run("GET /users ", func(t *testing.T) {
 
 		t.Run("should return 200 when user is admin", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
+
+			println("session", session.AccessToken)
 
 			if err != nil {
 				t.Error(err)
@@ -49,7 +51,7 @@ func TestUserinfoIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/local/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -67,7 +69,7 @@ func TestUserinfoIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/local/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -85,7 +87,7 @@ func TestUserinfoIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/local/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -95,13 +97,13 @@ func TestUserinfoIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := api.Get("/local/users")
+			response := api.Get("/organizations/1/users")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := api.Get("/local/users", "Authorization: Bearer invalid")
+			response := api.Get("/organizations/1/users", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -115,7 +117,7 @@ func TestUserinfoIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Get("/invalid/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/2/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})

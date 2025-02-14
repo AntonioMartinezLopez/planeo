@@ -41,7 +41,7 @@ func TestUserIntegration(t *testing.T) {
 	userController := user.NewUserController(api, env.Configuration, userService)
 
 	// Register controllers
-	setup.RegisterControllers(env.Configuration, api, []setup.Controller{userController})
+	setup.RegisterControllers(env.Configuration, api, db, []setup.Controller{userController})
 
 	t.Run("GET /admin/users", func(t *testing.T) {
 
@@ -54,7 +54,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -64,7 +64,7 @@ func TestUserIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
-			response := api.Get("/local/admin/users", "")
+			response := api.Get("/organizations/1/iam/users", "")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -77,7 +77,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -90,7 +90,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/other/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/3525/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -107,7 +107,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/local/admin/users/d7eddb93-254e-4482-9a53-f31a5975dd1d", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users/d7eddb93-254e-4482-9a53-f31a5975dd1d", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -126,7 +126,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 404, response.Code)
 
@@ -136,7 +136,7 @@ func TestUserIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
-			response := api.Get("/local/admin/users/1", "")
+			response := api.Get("/organizations/1/iam/users/1", "")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -149,7 +149,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -162,9 +162,22 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Get("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/3525/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
+		})
+
+		t.Run("should return 404 when user id can not be found in given organzation", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.NotNil(t, session)
+			response := api.Get("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 404, response.Code)
 		})
 	})
 
@@ -187,14 +200,14 @@ func TestUserIntegration(t *testing.T) {
 				Password:  "password123",
 			}
 
-			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := api.Post("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 
 			assert.Equal(t, 201, response.Code)
 
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
-			response := api.Post("/local/admin/users", "", dto.CreateUserInputBody{})
+			response := api.Post("/organizations/1/iam/users", "", dto.CreateUserInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -207,7 +220,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
+			response := api.Post("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -220,7 +233,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Post("/other/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
+			response := api.Post("/organizations/3525/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateUserInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -241,7 +254,7 @@ func TestUserIntegration(t *testing.T) {
 				Password:  "password123",
 			}
 
-			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := api.Post("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 
 			assert.Equal(t, 500, response.Code)
 		})
@@ -263,7 +276,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			for _, b := range body {
-				response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
+				response := api.Post("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
 				assert.Equal(t, 422, response.Code)
 			}
 
@@ -283,7 +296,7 @@ func TestUserIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			// get user
-			response := api.Get("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Get("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var body struct{ User models.User }
 			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
@@ -299,13 +312,13 @@ func TestUserIntegration(t *testing.T) {
 				RequiredActions: body.User.RequiredActions,
 			}
 
-			response = api.Put(fmt.Sprintf("/local/admin/users/%s", body.User.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
+			response = api.Put(fmt.Sprintf("/organizations/1/iam/users/%s", body.User.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
 
 			assert.Equal(t, 200, response.Code)
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
-			response := api.Put("/local/admin/users/1", "", dto.UpdateUserInputBody{})
+			response := api.Put("/organizations/1/iam/users/1", "", dto.UpdateUserInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -318,7 +331,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Put("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
+			response := api.Put("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -331,12 +344,12 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
+			response := api.Put("/organizations/3525/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateUserInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
 
-		t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
+		t.Run("should return 404 when user does not exist in organization", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
 
 			if err != nil {
@@ -356,9 +369,9 @@ func TestUserIntegration(t *testing.T) {
 				RequiredActions: []models.RequiredAction{},
 			}
 
-			response := api.Put("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
+			response := api.Put("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
 
-			assert.Equal(t, 403, response.Code)
+			assert.Equal(t, 404, response.Code)
 		})
 
 		t.Run("should return 422 when input body is invalid", func(t *testing.T) {
@@ -382,7 +395,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			for _, b := range body {
-				response := api.Put("/local/admin/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
+				response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
 				assert.Equal(t, 422, response.Code)
 			}
 		})
@@ -408,11 +421,11 @@ func TestUserIntegration(t *testing.T) {
 				Password:  "password123",
 			}
 
-			response := api.Post("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := api.Post("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 
 			assert.Equal(t, 201, response.Code)
 
-			response = api.Get("/local/admin/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response = api.Get("/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
@@ -427,12 +440,12 @@ func TestUserIntegration(t *testing.T) {
 
 			userToDelete := users.Users[index]
 
-			response = api.Delete(fmt.Sprintf("/local/admin/users/%s", userToDelete.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response = api.Delete(fmt.Sprintf("/organizations/1/iam/users/%s", userToDelete.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 200, response.Code)
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
-			response := api.Delete("/local/admin/users/1", "")
+			response := api.Delete("/organizations/1/iam/users/1", "")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -445,7 +458,7 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Delete("/local/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Delete("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -458,12 +471,12 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Delete("/organizations/3525/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
 
-		t.Run("should return 403 when user does not exist in organization", func(t *testing.T) {
+		t.Run("should return 404 when user does not exist in organization", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
 
 			if err != nil {
@@ -472,9 +485,9 @@ func TestUserIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
-			response := api.Delete("/other/admin/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := api.Delete("/organizations/1/iam/users/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
-			assert.Equal(t, 403, response.Code)
+			assert.Equal(t, 404, response.Code)
 		})
 	})
 }

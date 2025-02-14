@@ -118,12 +118,12 @@ func (_c *MockUserRepositoryInterface_DeleteUser_Call) RunAndReturn(run func(con
 	return _c
 }
 
-// GetOrganizationIamIdentifier provides a mock function with given fields: ctx, organizationId
-func (_m *MockUserRepositoryInterface) GetOrganizationIamIdentifier(ctx context.Context, organizationId int) (string, error) {
+// GetIamOrganizationIdentifier provides a mock function with given fields: ctx, organizationId
+func (_m *MockUserRepositoryInterface) GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error) {
 	ret := _m.Called(ctx, organizationId)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetOrganizationIamIdentifier")
+		panic("no return value specified for GetIamOrganizationIdentifier")
 	}
 
 	var r0 string
@@ -146,31 +146,31 @@ func (_m *MockUserRepositoryInterface) GetOrganizationIamIdentifier(ctx context.
 	return r0, r1
 }
 
-// MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationIamIdentifier'
-type MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call struct {
+// MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIamOrganizationIdentifier'
+type MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call struct {
 	*mock.Call
 }
 
-// GetOrganizationIamIdentifier is a helper method to define mock.On call
+// GetIamOrganizationIdentifier is a helper method to define mock.On call
 //   - ctx context.Context
 //   - organizationId int
-func (_e *MockUserRepositoryInterface_Expecter) GetOrganizationIamIdentifier(ctx interface{}, organizationId interface{}) *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call {
-	return &MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call{Call: _e.mock.On("GetOrganizationIamIdentifier", ctx, organizationId)}
+func (_e *MockUserRepositoryInterface_Expecter) GetIamOrganizationIdentifier(ctx interface{}, organizationId interface{}) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
+	return &MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call{Call: _e.mock.On("GetIamOrganizationIdentifier", ctx, organizationId)}
 }
 
-func (_c *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call) Run(run func(ctx context.Context, organizationId int)) *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call {
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) Run(run func(ctx context.Context, organizationId int)) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(int))
 	})
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call) Return(_a0 string, _a1 error) *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call {
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) Return(_a0 string, _a1 error) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call) RunAndReturn(run func(context.Context, int) (string, error)) *MockUserRepositoryInterface_GetOrganizationIamIdentifier_Call {
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) RunAndReturn(run func(context.Context, int) (string, error)) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
 	_c.Call.Return(run)
 	return _c
 }

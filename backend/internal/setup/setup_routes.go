@@ -21,7 +21,12 @@ type Controller interface {
 	InitializeRoutes()
 }
 
-func RegisterControllers(config *cfg.ApplicationConfiguration, api huma.API, controllers []Controller) {
+func RegisterControllers(config *cfg.ApplicationConfiguration, api huma.API, db *db.DBConnection, controllers []Controller) {
+
+	// initilize global middlwares
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl())
+	api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl()))
+	api.UseMiddleware(middlewares.OrganizationCheckMiddleware(api, config, db))
 
 	type Message struct {
 		Alive bool `json:"alive" path:"status" doc:"Status of the API server" `
@@ -94,14 +99,9 @@ func SetupRouter(config *cfg.ApplicationConfiguration, db *db.DBConnection) *chi
 		}
 		api := humachi.New(r, humaConfig)
 
-		// initilize global middlwares
-		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl())
-		api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl()))
-		api.UseMiddleware(middlewares.OrganizationCheckMiddleware(api, config, db))
-
 		// initialize controllers
 		controllers := InitializeControllers(api, config, db)
-		RegisterControllers(config, api, controllers)
+		RegisterControllers(config, api, db, controllers)
 	})
 
 	return router

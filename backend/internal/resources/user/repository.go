@@ -20,7 +20,7 @@ func NewUserRepository(database *pgxpool.Pool) *UserRepository {
 	}
 }
 
-func (repo *UserRepository) GetOrganizationIamIdentifier(ctx context.Context, organizationId int) (string, error) {
+func (repo *UserRepository) GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error) {
 
 	query := "SELECT iam_organization_id FROM organizations WHERE id = @organizationId LIMIT 1"
 	args := pgx.NamedArgs{"organizationId": organizationId}
