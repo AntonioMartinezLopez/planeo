@@ -4,7 +4,7 @@ import models "planeo/api/internal/resources/user/models"
 
 // GET userinfo
 type GetUserInfoInput struct {
-	Organization string `path:"organization" doc:"ID of the organization"`
+	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
 }
 
 type GetUserInfoOutput struct {

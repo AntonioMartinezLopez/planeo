@@ -8,21 +8,22 @@ import (
 )
 
 type IAMInterface interface {
-	GetUsers(organizationId string) ([]models.User, error)
-	GetUserById(organizationId string, userId string) (*models.User, error)
-	CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) (*models.User, error)
-	UpdateUser(organizationId string, userId string, updateUserInput dto.UpdateUserInputBody) error
-	DeleteUser(organizationId string, userId string) error
+	GetUsers(organizationIamIdentifier string) ([]models.User, error)
+	GetUserById(organizationIamIdentifier string, userId string) (*models.User, error)
+	CreateUser(organizationIamIdentifier string, createUserInput dto.CreateUserInputBody) (*models.User, error)
+	UpdateUser(organizationIamIdentifier string, userId string, updateUserInput dto.UpdateUserInputBody) error
+	DeleteUser(organizationIamIdentifier string, userId string) error
 	GetRoles() ([]models.Role, error)
-	AssignRolesToUser(organizationId string, userId string, roles []dto.PutUserRoleInputBody) error
+	AssignRolesToUser(organizationIamIdentifier string, userId string, roles []dto.PutUserRoleInputBody) error
 }
 
 type UserRepositoryInterface interface {
-	GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error)
-	SyncUsers(ctx context.Context, organizationId string, users []models.User) error
-	CreateUser(ctx context.Context, organizationId string, user models.User) error
-	DeleteUser(ctx context.Context, organizationId string, userId string) error
-	UpdateUser(ctx context.Context, organizationId string, userId string, user models.User) error
+	GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error)
+	GetUsersInformation(ctx context.Context, organizationId int) ([]models.BasicUserInformation, error)
+	SyncUsers(ctx context.Context, organizationId int, users []models.User) error
+	CreateUser(ctx context.Context, organizationId int, user models.User) error
+	DeleteUser(ctx context.Context, organizationId int, userId string) error
+	UpdateUser(ctx context.Context, organizationId int, userId string, user models.User) error
 }
 
 type UserService struct {
@@ -37,8 +38,14 @@ func NewUserService(userRepository UserRepositoryInterface, iamService IAMInterf
 	}
 }
 
-func (s *UserService) GetUsers(ctx context.Context, organizationId string, sync bool) ([]models.User, error) {
-	users, err := s.iamService.GetUsers(organizationId)
+func (s *UserService) GetUsers(ctx context.Context, organizationId int, sync bool) ([]models.User, error) {
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	users, err := s.iamService.GetUsers(organizationIamIdentifier)
 
 	if err != nil {
 		return nil, err
@@ -55,9 +62,15 @@ func (s *UserService) GetUsers(ctx context.Context, organizationId string, sync 
 	return users, nil
 }
 
-func (s *UserService) CreateUser(ctx context.Context, organizationId string, createUserInput dto.CreateUserInputBody) error {
+func (s *UserService) CreateUser(ctx context.Context, organizationId int, createUserInput dto.CreateUserInputBody) error {
 
-	user, err := s.iamService.CreateUser(organizationId, createUserInput)
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
+
+	if err != nil {
+		return err
+	}
+
+	user, err := s.iamService.CreateUser(organizationIamIdentifier, createUserInput)
 
 	if err != nil {
 		return err
@@ -66,22 +79,28 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId string, cre
 	err = s.userRepository.CreateUser(ctx, organizationId, *user)
 
 	if err != nil {
-		s.iamService.DeleteUser(organizationId, user.Id)
+		s.iamService.DeleteUser(organizationIamIdentifier, user.Id)
 		return err
 	}
 
 	return nil
 }
 
-func (s *UserService) DeleteUser(ctx context.Context, organizationId string, userId string) error {
+func (s *UserService) DeleteUser(ctx context.Context, organizationId int, iamUserId string) error {
 
-	err := s.iamService.DeleteUser(organizationId, userId)
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
 		return err
 	}
 
-	err = s.userRepository.DeleteUser(ctx, organizationId, userId)
+	err = s.iamService.DeleteUser(organizationIamIdentifier, iamUserId)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepository.DeleteUser(ctx, organizationId, iamUserId)
 
 	if err != nil {
 		return err
@@ -90,16 +109,22 @@ func (s *UserService) DeleteUser(ctx context.Context, organizationId string, use
 	return nil
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, organizationId string, userId string, user dto.UpdateUserInputBody) error {
+func (s *UserService) UpdateUser(ctx context.Context, organizationId int, iamUserId string, user dto.UpdateUserInputBody) error {
 
-	err := s.iamService.UpdateUser(organizationId, userId, user)
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
 		return err
 	}
 
-	err = s.userRepository.UpdateUser(ctx, organizationId, userId, models.User{
-		Id:        userId,
+	err = s.iamService.UpdateUser(organizationIamIdentifier, iamUserId, user)
+
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepository.UpdateUser(ctx, organizationId, iamUserId, models.User{
+		Id:        iamUserId,
 		Username:  user.Username,
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
@@ -124,15 +149,27 @@ func (s *UserService) GetAvailableRoles(ctx context.Context) ([]models.Role, err
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(ctx context.Context, organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
-	return s.iamService.AssignRolesToUser(organizationId, userId, roles)
+func (s *UserService) AssignRoles(ctx context.Context, organizationId int, iamUserId string, roles []dto.PutUserRoleInputBody) error {
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
+
+	if err != nil {
+		return err
+	}
+
+	return s.iamService.AssignRolesToUser(organizationIamIdentifier, iamUserId, roles)
 }
 
-func (s *UserService) GetUserById(ctx context.Context, organizationId string, userId string) (*models.User, error) {
-	return s.iamService.GetUserById(organizationId, userId)
+func (s *UserService) GetUserById(ctx context.Context, organizationId int, iamUserId string) (*models.User, error) {
+	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.iamService.GetUserById(organizationIamIdentifier, iamUserId)
 }
 
-func (s *UserService) GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error) {
+func (s *UserService) GetUsersInformation(ctx context.Context, organizationId int) ([]models.BasicUserInformation, error) {
 	user, err := s.userRepository.GetUsersInformation(ctx, organizationId)
 
 	if err != nil {
