@@ -84,83 +84,36 @@ func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId
 		"requestId":      requestId,
 	}
 
-	_, err := repo.db.Exec(ctx, query, args)
+	result, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		return appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return appError.New(appError.EntityNotFound, "Request not found", nil)
 	}
 
 	return nil
 }
 
-// func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId string, userId string, user models.User) error {
+func (repo *RequestRepository) DeleteRequest(ctx context.Context, organizationId int, requestId int) error {
 
-// 	query := `
-// 		UPDATE users
-// 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email
-// 		WHERE iam_user_id = @userID AND organization = @organizationId`
+	query := `
+		DELETE FROM requests
+		WHERE organization_id = @organizationId AND id = @requestId`
 
-// 	args := pgx.NamedArgs{
-// 		"organizationId": organizationId,
-// 		"userID":         userId,
-// 		"username":       user.Username,
-// 		"firstname":      user.FirstName,
-// 		"lastname":       user.LastName,
-// 		"email":          user.Email,
-// 	}
+	args := pgx.NamedArgs{"organizationId": organizationId, "requestId": requestId}
 
-// 	_, err := repo.db.Exec(ctx, query, args)
+	result, err := repo.db.Exec(ctx, query, args)
 
-// 	if err != nil {
-// 		appError.New(appError.InternalError, "Something went wrong", err)
-// 	}
+	if err != nil {
+		return appError.New(appError.InternalError, "Something went wrong", err)
+	}
 
-// 	return nil
-// }
+	if result.RowsAffected() == 0 {
+		return appError.New(appError.EntityNotFound, "Request not found", nil)
+	}
 
-// func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId string, user models.User) error {
-
-// 	query := `
-// 		INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization)
-// 		VALUES (@username, @firstname, @lastname, @email, @userID, @organizationId)`
-
-// 	args := pgx.NamedArgs{
-// 		"organizationId": organizationId,
-// 		"userID":         user.Id,
-// 		"username":       user.Username,
-// 		"firstname":      user.FirstName,
-// 		"lastname":       user.LastName,
-// 		"email":          user.Email,
-// 	}
-
-// 	_, err := repo.db.Exec(ctx, query, args)
-
-// 	if err != nil {
-// 		if err == pgx.ErrNoRows {
-// 			return appError.New(appError.EntityNotFound, "User not found in organization")
-// 		}
-// 		return appError.New(appError.InternalError, "Something went wrong", err)
-// 	}
-
-// 	return nil
-// }
-
-// func (repo *RequestRepository) DeleteRequest(ctx context.Context, organizationId string, userId string) error {
-
-// 	query := `
-// 		DELETE FROM users
-// 		WHERE organization = @organizationId AND iam_user_id = @userId`
-
-// 	args := pgx.NamedArgs{"organizationId": organizationId, "userId": userId}
-
-// 	_, err := repo.db.Exec(ctx, query, args)
-
-// 	if err != nil {
-// 		if err == pgx.ErrNoRows {
-// 			return appError.New(appError.EntityNotFound, "User not found in organization")
-// 		}
-// 		return appError.New(appError.InternalError, "Something went wrong", err)
-// 	}
-
-// 	return nil
-// }
+	return nil
+}

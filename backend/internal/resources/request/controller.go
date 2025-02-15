@@ -100,8 +100,14 @@ func (t *RequestController) InitializeRoutes() {
 		Tags:        []string{"Requests"},
 		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteRequestInput) (*dto.DeleteRequestOutput, error) {
+
+		err := t.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
+
+		if err != nil {
+			return nil, huma_utils.NewHumaError(err)
+		}
+
 		resp := &dto.DeleteRequestOutput{}
-		// result := t.requestService.DeleteTask(input.TaskId)
 		resp.Body.Success = true
 		return resp, nil
 	})
