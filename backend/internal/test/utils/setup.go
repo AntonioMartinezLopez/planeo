@@ -45,7 +45,7 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 		t.Error(err)
 	}
 
-	config := config.LoadConfig("../../.env.test.template")
+	config := config.LoadConfig("../../../.env.test.template")
 	config.DbPort = postresPort.Port()
 	config.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
 
@@ -92,7 +92,7 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 		operation = "down"
 	}
 
-	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
+	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "..", "db", "migrations"))
 	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
 		env.Configuration.DbPort), operation)
 

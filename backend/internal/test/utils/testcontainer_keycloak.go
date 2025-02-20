@@ -19,7 +19,7 @@ type UserSession struct {
 }
 
 func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, error) {
-	realmPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "auth", "local", "realm.json"))
+	realmPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "..", "auth", "local", "realm.json"))
 	return keycloak.Run(ctx,
 		"quay.io/keycloak/keycloak:25.0.2",
 		testcontainers.WithHostPortAccess(8080),
