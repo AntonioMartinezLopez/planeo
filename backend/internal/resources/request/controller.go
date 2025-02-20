@@ -33,7 +33,7 @@ func (t *RequestController) InitializeRoutes() {
 		Path:        "/organizations/{organizationId}/requests",
 		Summary:     "Get Requests",
 		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "read")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "read")},
 	}), func(ctx context.Context, input *dto.GetRequestsInput) (*dto.GetRequestsOutput, error) {
 
 		result, err := t.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
@@ -59,7 +59,7 @@ func (t *RequestController) InitializeRoutes() {
 		Path:        "/organizations/{organizationId}/requests",
 		Summary:     "Create Request",
 		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "create")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "create")},
 	}), func(ctx context.Context, input *dto.CreateRequestInput) (*dto.CreateRequestOutput, error) {
 		resp := &dto.CreateRequestOutput{}
 		result := t.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
@@ -78,7 +78,7 @@ func (t *RequestController) InitializeRoutes() {
 		Path:        "/organizations/{organizationId}/requests/{requestId}",
 		Summary:     "Update Request",
 		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "update")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "update")},
 	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*dto.UpdateRequestOutput, error) {
 
 		err := t.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
@@ -98,7 +98,7 @@ func (t *RequestController) InitializeRoutes() {
 		Path:        "/organizations/{organizationId}/requests/{requestId}",
 		Summary:     "Delete Request",
 		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "task", "delete")},
+		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteRequestInput) (*dto.DeleteRequestOutput, error) {
 
 		err := t.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)

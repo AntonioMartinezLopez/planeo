@@ -43,21 +43,6 @@
   "nodeReRegistrationTimeout": -1,
   "protocolMappers": [
     {
-      "name": "Client IP Address",
-      "protocol": "openid-connect",
-      "protocolMapper": "oidc-usersessionmodel-note-mapper",
-      "consentRequired": false,
-      "config": {
-        "user.session.note": "clientAddress",
-        "introspection.token.claim": "true",
-        "userinfo.token.claim": "true",
-        "id.token.claim": "true",
-        "access.token.claim": "true",
-        "claim.name": "clientAddress",
-        "jsonType.label": "String"
-      }
-    },
-    {
       "name": "Client ID",
       "protocol": "openid-connect",
       "protocolMapper": "oidc-usersessionmodel-note-mapper",
@@ -84,6 +69,21 @@
         "id.token.claim": "true",
         "access.token.claim": "true",
         "claim.name": "clientHost",
+        "jsonType.label": "String"
+      }
+    },
+    {
+      "name": "Client IP Address",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-usersessionmodel-note-mapper",
+      "consentRequired": false,
+      "config": {
+        "user.session.note": "clientAddress",
+        "introspection.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "claim.name": "clientAddress",
         "jsonType.label": "String"
       }
     }

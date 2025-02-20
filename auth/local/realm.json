@@ -264,21 +264,6 @@
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
         {
-          "name": "Client IP Address",
-          "protocol": "openid-connect",
-          "protocolMapper": "oidc-usersessionmodel-note-mapper",
-          "consentRequired": false,
-          "config": {
-            "user.session.note": "clientAddress",
-            "introspection.token.claim": "true",
-            "userinfo.token.claim": "true",
-            "id.token.claim": "true",
-            "access.token.claim": "true",
-            "claim.name": "clientAddress",
-            "jsonType.label": "String"
-          }
-        },
-        {
           "name": "Client ID",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usersessionmodel-note-mapper",
@@ -307,13 +292,28 @@
             "claim.name": "clientHost",
             "jsonType.label": "String"
           }
+        },
+        {
+          "name": "Client IP Address",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "clientAddress",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "clientAddress",
+            "jsonType.label": "String"
+          }
         }
       ],
       "defaultClientScopes": [
         "web-origins",
         "acr",
-        "roles",
         "profile",
+        "roles",
         "groups",
         "basic",
         "email"
@@ -558,6 +558,30 @@
               }
             ],
             "icon_uri": ""
+          },
+          {
+            "name": "Request",
+            "ownerManagedAccess": false,
+            "displayName": "request",
+            "attributes": {},
+            "uris": [
+              "*/requests"
+            ],
+            "scopes": [
+              {
+                "name": "read"
+              },
+              {
+                "name": "update"
+              },
+              {
+                "name": "delete"
+              },
+              {
+                "name": "create"
+              }
+            ],
+            "icon_uri": ""
           }
         ],
         "policies": [
@@ -603,7 +627,7 @@
             "config": {
               "resources": "[\"Reminder\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -614,7 +638,7 @@
             "decisionStrategy": "AFFIRMATIVE",
             "config": {
               "resources": "[\"Announcement\"]",
-              "scopes": "[\"update\",\"read\",\"create\",\"delete\"]",
+              "scopes": "[\"read\",\"delete\",\"update\",\"create\"]",
               "applyPolicies": "[\"Admin\"]"
             }
           },
@@ -664,7 +688,7 @@
               "defaultResourceType": "Task",
               "resources": "[\"Task\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -677,7 +701,7 @@
               "defaultResourceType": "Task",
               "resources": "[\"Task\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -701,7 +725,7 @@
             "config": {
               "resources": "[\"Group\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -725,7 +749,7 @@
             "config": {
               "resources": "[\"Group\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -761,7 +785,7 @@
             "config": {
               "resources": "[\"Label\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -797,7 +821,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -821,7 +845,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"create\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -833,7 +857,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -845,7 +869,7 @@
             "config": {
               "resources": "[\"Conversation\"]",
               "scopes": "[\"delete\"]",
-              "applyPolicies": "[\"User\",\"Planner\"]"
+              "applyPolicies": "[\"Planner\",\"User\"]"
             }
           },
           {
@@ -930,7 +954,56 @@
             "config": {
               "resources": "[\"Userinfo\"]",
               "scopes": "[\"read\"]",
-              "applyPolicies": "[\"User\",\"Planner\",\"Admin\"]"
+              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
+            }
+          },
+          {
+            "name": "request:read",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Request\"]",
+              "scopes": "[\"read\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\"]"
+            }
+          },
+          {
+            "name": "request:create",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "defaultResourceType": "",
+              "resources": "[\"Request\"]",
+              "scopes": "[\"create\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\"]"
+            }
+          },
+          {
+            "name": "request:update",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Request\"]",
+              "scopes": "[\"update\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\"]"
+            }
+          },
+          {
+            "name": "request:delete",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Request\"]",
+              "scopes": "[\"delete\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\"]"
             }
           }
         ],
