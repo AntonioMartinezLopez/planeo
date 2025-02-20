@@ -410,30 +410,6 @@
             "icon_uri": ""
           },
           {
-            "name": "Label",
-            "ownerManagedAccess": false,
-            "displayName": "label",
-            "attributes": {},
-            "uris": [
-              "*/labels"
-            ],
-            "scopes": [
-              {
-                "name": "read"
-              },
-              {
-                "name": "update"
-              },
-              {
-                "name": "delete"
-              },
-              {
-                "name": "create"
-              }
-            ],
-            "icon_uri": ""
-          },
-          {
             "name": "Conversation",
             "ownerManagedAccess": false,
             "displayName": "conversation",
@@ -582,6 +558,30 @@
               }
             ],
             "icon_uri": ""
+          },
+          {
+            "name": "Category",
+            "ownerManagedAccess": false,
+            "displayName": "category",
+            "attributes": {},
+            "uris": [
+              "*/categories"
+            ],
+            "scopes": [
+              {
+                "name": "read"
+              },
+              {
+                "name": "update"
+              },
+              {
+                "name": "delete"
+              },
+              {
+                "name": "create"
+              }
+            ],
+            "icon_uri": ""
           }
         ],
         "policies": [
@@ -638,7 +638,7 @@
             "decisionStrategy": "AFFIRMATIVE",
             "config": {
               "resources": "[\"Announcement\"]",
-              "scopes": "[\"read\",\"delete\",\"update\",\"create\"]",
+              "scopes": "[\"read\",\"create\",\"delete\",\"update\"]",
               "applyPolicies": "[\"Admin\"]"
             }
           },
@@ -765,54 +765,6 @@
             }
           },
           {
-            "name": "label:create",
-            "description": "",
-            "type": "scope",
-            "logic": "POSITIVE",
-            "decisionStrategy": "AFFIRMATIVE",
-            "config": {
-              "resources": "[\"Label\"]",
-              "scopes": "[\"create\"]",
-              "applyPolicies": "[\"Planner\"]"
-            }
-          },
-          {
-            "name": "label:read",
-            "description": "",
-            "type": "scope",
-            "logic": "POSITIVE",
-            "decisionStrategy": "AFFIRMATIVE",
-            "config": {
-              "resources": "[\"Label\"]",
-              "scopes": "[\"read\"]",
-              "applyPolicies": "[\"Planner\",\"User\"]"
-            }
-          },
-          {
-            "name": "label:update",
-            "description": "",
-            "type": "scope",
-            "logic": "POSITIVE",
-            "decisionStrategy": "AFFIRMATIVE",
-            "config": {
-              "resources": "[\"Label\"]",
-              "scopes": "[\"update\"]",
-              "applyPolicies": "[\"Planner\"]"
-            }
-          },
-          {
-            "name": "label:delete",
-            "description": "",
-            "type": "scope",
-            "logic": "POSITIVE",
-            "decisionStrategy": "AFFIRMATIVE",
-            "config": {
-              "resources": "[\"Label\"]",
-              "scopes": "[\"delete\"]",
-              "applyPolicies": "[\"Planner\"]"
-            }
-          },
-          {
             "name": "conversation:read",
             "description": "",
             "type": "scope",
@@ -919,6 +871,54 @@
               "resources": "[\"User\"]",
               "scopes": "[\"delete\"]",
               "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "category:create",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Category\"]",
+              "scopes": "[\"create\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "category:delete",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Category\"]",
+              "scopes": "[\"delete\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "category:update",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Category\"]",
+              "scopes": "[\"update\"]",
+              "applyPolicies": "[\"Admin\"]"
+            }
+          },
+          {
+            "name": "category:read",
+            "description": "",
+            "type": "scope",
+            "logic": "POSITIVE",
+            "decisionStrategy": "AFFIRMATIVE",
+            "config": {
+              "resources": "[\"Category\"]",
+              "scopes": "[\"read\"]",
+              "applyPolicies": "[\"Planner\",\"Admin\",\"User\"]"
             }
           },
           {
