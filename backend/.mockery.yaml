@@ -22,4 +22,8 @@ packages:
     interfaces:
       RequestRepositoryInterface:
         config:
-        
+  planeo/api/internal/resources/category:
+    config:
+    interfaces:
+      CategoryRepositoryInterface:
+        config:

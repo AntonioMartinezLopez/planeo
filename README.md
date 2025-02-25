@@ -6,7 +6,8 @@ AI-driven process management platform tailored for various service providers, su
 
 ## Development
 
-### Prerequisites ###
+### Prerequisites
+
 - Golang > 1.23.0 installed
 - Docker and Docker compose installed
 - `.env` file generated from `.env.template`
@@ -24,11 +25,11 @@ AI-driven process management platform tailored for various service providers, su
 <br>
 <center>
 
-| Username              | Role      | Password  |
-|-----------------------|---------- |---------- |
-| `admin@local.de`      | Admin     | `admin`   |
-| `planner@local.de`    | Planner   | `planner` |
-| `user@local.de`       | User      | `user`    |
+| Username           | Role    | Password  |
+| ------------------ | ------- | --------- |
+| `admin@local.de`   | Admin   | `admin`   |
+| `planner@local.de` | Planner | `planner` |
+| `user@local.de`    | User    | `user`    |
 
 </center>
 
@@ -44,11 +45,11 @@ Migrations files can be found under `db/migrations`. For actually conducting mig
 
 for more commands see: https://github.com/pressly/goose?tab=readme-ov-file#usage
 
-#### Run  migrations in the dev environment
+#### Run migrations in the dev environment
 
 1. start all containers and processes using `dev/start.sh`
 2. `source` the `.envrc` file in order to create environmental variables (or use something like `direnv` to automatically load those when enetering the `db/migrations` directory)
-2. Run `goose up`
+3. Run `goose up`
 
 ## Testing
 
@@ -61,7 +62,7 @@ go test ./... -v -short
 
 #### Generate mocks for larger interfaces
 
-This project uses mockery (https://github.com/vektra/mockery) to auto-generate mocks. The configuration can be found in `backend/.mockery.yaml`. 
+This project uses mockery (https://github.com/vektra/mockery) to auto-generate mocks. The configuration can be found in `backend/.mockery.yaml`.
 
 In order to create new mocks or update existing ones, specify corresponding in the configuration file and run the mockery binary
 
@@ -86,4 +87,4 @@ go test ./... -run TestUserIntegration/DELETE_/admin/users
 
 ## Documentation
 
-- Swagger docs can be opened during running dev environment under following link: http://localhost:8888/api/docs#/
+- Swagger docs can be opened during running dev environment under following link: http://localhost:8000/api/docs#/
