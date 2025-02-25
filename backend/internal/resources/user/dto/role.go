@@ -22,9 +22,3 @@ type PutUserRolesInput struct {
 	IamUserId      string                 `path:"iamUserId" doc:"ID of the user to be deleted"`
 	Body           []PutUserRoleInputBody `doc:"Array of role representations"`
 }
-
-type PutUserRoleOutput struct {
-	Body struct {
-		Success bool
-	}
-}

@@ -41,7 +41,7 @@ CREATE TABLE requests (
     address TEXT,
     telephone TEXT,
     closed BOOLEAN DEFAULT FALSE,
-    category_id INTEGER REFERENCES categories(id),
+    category_id INTEGER REFERENCES categories(id) DEFAULT NULL,
     organization_id INTEGER REFERENCES organizations(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

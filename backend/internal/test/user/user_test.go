@@ -285,7 +285,7 @@ func TestUserIntegration(t *testing.T) {
 
 	t.Run("PUT /admin/users/{userId}", func(t *testing.T) {
 
-		t.Run("should return 200 and update user", func(t *testing.T) {
+		t.Run("should return 204 and update user", func(t *testing.T) {
 
 			session, err := env.GetUserSession("admin", "admin")
 
@@ -314,7 +314,7 @@ func TestUserIntegration(t *testing.T) {
 
 			response = api.Put(fmt.Sprintf("/organizations/1/iam/users/%s", body.User.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), updatePayload)
 
-			assert.Equal(t, 200, response.Code)
+			assert.Equal(t, 204, response.Code)
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {
@@ -441,7 +441,7 @@ func TestUserIntegration(t *testing.T) {
 			userToDelete := users.Users[index]
 
 			response = api.Delete(fmt.Sprintf("/organizations/1/iam/users/%s", userToDelete.Id), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
-			assert.Equal(t, 200, response.Code)
+			assert.Equal(t, 204, response.Code)
 		})
 
 		t.Run("should return 401 when no token is provided", func(t *testing.T) {

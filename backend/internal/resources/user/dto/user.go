@@ -29,12 +29,6 @@ type GetUserInput struct {
 }
 
 // POST user
-type CreateUserOutput struct {
-	Body struct {
-		Success bool
-	}
-}
-
 type CreateUserInputBody struct {
 	FirstName string `json:"firstName" doc:"First name of the user to be created" example:"John"`
 	LastName  string `json:"lastName" doc:"Last name of the user to be created" example:"Doe"`
@@ -65,15 +59,7 @@ type UpdateUserInput struct {
 	Body           UpdateUserInputBody
 }
 
-type UpdateUserOutput struct {
-	CreateUserOutput
-}
-
 // DELETE user
-type DeleteUserOutput struct {
-	CreateUserOutput
-}
-
 type DeleteUserInput struct {
 	OrganizationId int    `path:"organizationId" doc:"ID of the organization"`
 	IamUserId      string `path:"iamUserId" doc:"IAM id of the user to be deleted"`

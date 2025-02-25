@@ -33,12 +33,6 @@ type CreateRequestInput struct {
 	Body           CreateRequestInputBody
 }
 
-type CreateRequestOutput struct {
-	Body struct {
-		Success bool
-	}
-}
-
 // UPDATE Request
 type UpdateRequestInputBody struct {
 	Text       string `json:"text" doc:"Description of the request" example:"Some request text" validate:"required"`
@@ -56,20 +50,8 @@ type UpdateRequestInput struct {
 	Body           UpdateRequestInputBody
 }
 
-type UpdateRequestOutput struct {
-	Body struct {
-		Success bool
-	}
-}
-
 // DELETE Request
 type DeleteRequestInput struct {
 	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
 	RequestId      int `path:"requestId" doc:"ID of the request"`
-}
-
-type DeleteRequestOutput struct {
-	Body struct {
-		Success bool
-	}
 }

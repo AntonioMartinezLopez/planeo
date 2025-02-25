@@ -54,32 +54,31 @@ func (t *RequestController) InitializeRoutes() {
 	})
 
 	huma.Register(t.api, operations.WithAuth(huma.Operation{
-		OperationID: "create-request",
-		Method:      http.MethodPost,
-		Path:        "/organizations/{organizationId}/requests",
-		Summary:     "Create Request",
-		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "create")},
-	}), func(ctx context.Context, input *dto.CreateRequestInput) (*dto.CreateRequestOutput, error) {
-		resp := &dto.CreateRequestOutput{}
+		OperationID:   "create-request",
+		Method:        http.MethodPost,
+		DefaultStatus: http.StatusCreated,
+		Path:          "/organizations/{organizationId}/requests",
+		Summary:       "Create Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "create")},
+	}), func(ctx context.Context, input *dto.CreateRequestInput) (*struct{}, error) {
 		result := t.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
 
 		if result != nil {
 			return nil, huma_utils.NewHumaError(result)
 		}
-
-		resp.Body.Success = true
-		return resp, nil
+		return nil, nil
 	})
 
 	huma.Register(t.api, operations.WithAuth(huma.Operation{
-		OperationID: "update-request",
-		Method:      http.MethodPut,
-		Path:        "/organizations/{organizationId}/requests/{requestId}",
-		Summary:     "Update Request",
-		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "update")},
-	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*dto.UpdateRequestOutput, error) {
+		OperationID:   "update-request",
+		Method:        http.MethodPut,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/organizations/{organizationId}/requests/{requestId}",
+		Summary:       "Update Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "update")},
+	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*struct{}, error) {
 
 		err := t.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
 
@@ -87,19 +86,18 @@ func (t *RequestController) InitializeRoutes() {
 			return nil, huma_utils.NewHumaError(err)
 		}
 
-		resp := &dto.UpdateRequestOutput{}
-		resp.Body.Success = true
-		return resp, nil
+		return nil, nil
 	})
 
 	huma.Register(t.api, operations.WithAuth(huma.Operation{
-		OperationID: "delete-request",
-		Method:      http.MethodDelete,
-		Path:        "/organizations/{organizationId}/requests/{requestId}",
-		Summary:     "Delete Request",
-		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "delete")},
-	}), func(ctx context.Context, input *dto.DeleteRequestInput) (*dto.DeleteRequestOutput, error) {
+		OperationID:   "delete-request",
+		Method:        http.MethodDelete,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/organizations/{organizationId}/requests/{requestId}",
+		Summary:       "Delete Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "delete")},
+	}), func(ctx context.Context, input *dto.DeleteRequestInput) (*struct{}, error) {
 
 		err := t.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
 
@@ -107,8 +105,6 @@ func (t *RequestController) InitializeRoutes() {
 			return nil, huma_utils.NewHumaError(err)
 		}
 
-		resp := &dto.DeleteRequestOutput{}
-		resp.Body.Success = true
-		return resp, nil
+		return nil, nil
 	})
 }

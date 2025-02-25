@@ -192,7 +192,119 @@ func TestRequestIntegration(t *testing.T) {
 			}
 
 			response := api.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
-			assert.Equal(t, 200, response.Code)
+			assert.Equal(t, 201, response.Code)
+		})
+	})
+
+	t.Run("PUT /requests/:id", func(t *testing.T) {
+
+		t.Run("should return 403 when user is not authorized", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+			response := api.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateRequestInputBody{})
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
+			response := api.Put("/organizations/1/requests/1", "", dto.UpdateRequestInputBody{})
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
+			response := api.Put("/organizations/1/requests/1", "Authorization: Bearer invalid", dto.UpdateRequestInputBody{})
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 for unknown organization to user", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+			response := api.Put("/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateRequestInputBody{})
+
+			assert.Equal(t, 403, response.Code)
+		})
+
+		t.Run("should update a request", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+
+			body := dto.UpdateRequestInputBody{
+				Text:       "Updated request",
+				Name:       "Updated name",
+				Email:      "updated.email@test.com",
+				Address:    "456 Updated St",
+				Telephone:  "987-654-3210",
+				Closed:     true,
+				CategoryId: 1,
+			}
+
+			response := api.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			assert.Equal(t, 204, response.Code)
+		})
+	})
+
+	t.Run("DELETE /requests/:id", func(t *testing.T) {
+
+		t.Run("should return 403 when user is not authorized", func(t *testing.T) {
+			session, err := env.GetUserSession("user", "user")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+			response := api.Delete("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
+			response := api.Delete("/organizations/1/requests/1", "")
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
+			response := api.Delete("/organizations/1/requests/1", "Authorization: Bearer invalid")
+
+			assert.Equal(t, 401, response.Code)
+		})
+
+		t.Run("should return 403 for unknown organization to user", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+			response := api.Delete("/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			assert.Equal(t, 403, response.Code)
+		})
+
+		t.Run("should delete a request", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+
+			response := api.Delete("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			assert.Equal(t, 204, response.Code)
 		})
 	})
 }

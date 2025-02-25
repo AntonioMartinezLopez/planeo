@@ -103,7 +103,7 @@ func TestUserRoleIntegration(t *testing.T) {
 
 	t.Run("PUT admin/users/{userId}/roles", func(t *testing.T) {
 
-		t.Run("should return 200 when user is admin", func(t *testing.T) {
+		t.Run("should return 204 when user is admin", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
 
 			if err != nil {
@@ -121,14 +121,10 @@ func TestUserRoleIntegration(t *testing.T) {
 
 			// assign all roles
 			response = api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body.Roles)
-			assert.Equal(t, 200, response.Code)
-
-			var result struct{ Success bool }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &result, true)
-			assert.True(t, result.Success)
+			assert.Equal(t, 204, response.Code)
 		})
 
-		t.Run("should return 200 when user is admin and roles are empty", func(t *testing.T) {
+		t.Run("should return 204 when user is admin and roles are empty", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
 
 			if err != nil {
@@ -138,7 +134,7 @@ func TestUserRoleIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			response := api.Put("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), []dto.PutUserRoleInputBody{})
-			assert.Equal(t, 200, response.Code)
+			assert.Equal(t, 204, response.Code)
 		})
 
 		t.Run("should return 401 when user is not admin", func(t *testing.T) {
