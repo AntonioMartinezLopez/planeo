@@ -34,6 +34,176 @@ func TestRequestIntegration(t *testing.T) {
 	// Register controllers
 	setup.RegisterControllers(env.Configuration, api, db, []setup.Controller{requestController})
 
+	// table tests for creating and updating requests
+	testCases := []struct {
+		name string
+		body string
+	}{
+		{
+			"missing Text field",
+			`{
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+
+			}`,
+		},
+		{
+			"missing Name field",
+			`{
+				"Text": "Test request",
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"missing Email field",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"missing Address field",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"missing Telephone field",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"missing Closed field",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Text field type",
+			`{
+				"Text": 123,
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Name field type",
+			`{
+				"Text": "Test request",
+				"Name": 123,
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Email field type",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": 123,
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Address field type",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Address": 123,
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Telephone field type",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "test.test@test.com",
+				"Address": "123 Main St",
+				"Telephone": 123,
+				"Closed": false,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid Closed field type",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": 123,
+				"CategoryId": 1
+			}`,
+		},
+		{
+			"invalid CategoryId field type",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": "invalid"
+			}`,
+		},
+		{
+			"invalid CategoryId field value",
+			`{
+				"Text": "Test request",
+				"Name": "Test request",
+				"Email": "",
+				"Address": "123 Main St",
+				"Telephone": "123-456-7890",
+				"Closed": false,
+				"CategoryId": 0
+			}`,
+		},
+	}
+
 	t.Run("GET /requests ", func(t *testing.T) {
 
 		t.Run("Test authorization for request access", func(t *testing.T) {
@@ -108,7 +278,6 @@ func TestRequestIntegration(t *testing.T) {
 			response := api.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
-			// Add more assertions to check the response body if needed
 		})
 
 		t.Run("should return paginated requests", func(t *testing.T) {
@@ -183,16 +352,33 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			body := dto.CreateRequestInputBody{
-				Text:      "Test request",
-				Name:      "Test request",
-				Email:     "test.test@test.com",
-				Address:   "123 Main St",
-				Telephone: "123-456-7890",
-				Closed:    false,
+				Text:       "Test request",
+				Name:       "Test request",
+				Email:      "test.test@test.com",
+				Address:    "123 Main St",
+				Telephone:  "123-456-7890",
+				Closed:     false,
+				CategoryId: 1,
 			}
 
 			response := api.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 			assert.Equal(t, 201, response.Code)
+		})
+
+		t.Run("should return 400 when required fields are missing or have invalid types", func(t *testing.T) {
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					session, err := env.GetUserSession("admin", "admin")
+
+					if err != nil {
+						t.Error(err)
+					}
+					assert.NotNil(t, session)
+
+					response := api.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
+					assert.Equal(t, 400, response.Code)
+				})
+			}
 		})
 	})
 
@@ -254,6 +440,22 @@ func TestRequestIntegration(t *testing.T) {
 
 			response := api.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 			assert.Equal(t, 204, response.Code)
+		})
+
+		t.Run("should return 400 when required fields are missing or have invalid types", func(t *testing.T) {
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					session, err := env.GetUserSession("admin", "admin")
+
+					if err != nil {
+						t.Error(err)
+					}
+					assert.NotNil(t, session)
+
+					response := api.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
+					assert.Equal(t, 400, response.Code)
+				})
+			}
 		})
 	})
 

@@ -1,5 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
+
+-- define tables
 CREATE TABLE organizations (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name TEXT NOT NULL UNIQUE,
@@ -18,7 +20,7 @@ CREATE TABLE users (
     last_name text NOT NULL,
     email text NOT NULL,
     iam_user_id text NOT NULL,
-    organization_id INTEGER REFERENCES organizations(id),
+    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -28,7 +30,7 @@ CREATE TABLE categories (
     label TEXT NOT NULL,
     color TEXT NOT NULL,
     label_description TEXT NOT NULL,
-    organization_id INTEGER REFERENCES organizations(id),
+    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -41,12 +43,13 @@ CREATE TABLE requests (
     address TEXT,
     telephone TEXT,
     closed BOOLEAN DEFAULT FALSE,
-    category_id INTEGER REFERENCES categories(id) DEFAULT NULL,
-    organization_id INTEGER REFERENCES organizations(id),
+    category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL DEFAULT NULL,
+    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-  
+
+-- Define triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -75,6 +78,7 @@ BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
 
+-- add default data
 INSERT INTO organizations (name, address, email, iam_organization_id) VALUES
 ('local', '456 Local St, Hometown', 'contact@local.org', 'local');
 
@@ -101,13 +105,13 @@ INSERT INTO "users" ("username", "first_name", "last_name", "email", "iam_user_i
 
 -- +goose down
 -- +goose StatementBegin
+DROP TABLE IF EXISTS requests;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS organizations;
+DROP TYPE role;
 DROP TRIGGER IF EXISTS update_requests_updated_at ON requests;
 DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
 DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
 DROP FUNCTION IF EXISTS update_updated_at_column;
-DROP TABLE IF EXISTS requests;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS organizations;
-DROP TABLE users;
-DROP TYPE role;
 -- +goose StatementEnd

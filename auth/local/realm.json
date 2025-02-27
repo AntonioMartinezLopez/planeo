@@ -112,18 +112,12 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": [
-        "default-roles-local"
-      ],
+      "realmRoles": ["default-roles-local"],
       "clientRoles": {
-        "local": [
-          "Admin"
-        ]
+        "local": ["Admin"]
       },
       "notBefore": 0,
-      "groups": [
-        "/local"
-      ]
+      "groups": ["/local"]
     },
     {
       "id": "146b3857-090e-453d-b1e6-8cdfbb1a6dcb",
@@ -147,18 +141,12 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": [
-        "default-roles-local"
-      ],
+      "realmRoles": ["default-roles-local"],
       "clientRoles": {
-        "local": [
-          "Planner"
-        ]
+        "local": ["Planner"]
       },
       "notBefore": 0,
-      "groups": [
-        "/local"
-      ]
+      "groups": ["/local"]
     },
     {
       "id": "74e68681-2970-4d61-8394-7de2e7124685",
@@ -171,13 +159,9 @@
       "credentials": [],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": [
-        "default-roles-local"
-      ],
+      "realmRoles": ["default-roles-local"],
       "clientRoles": {
-        "local": [
-          "uma_protection"
-        ]
+        "local": ["uma_protection"]
       },
       "notBefore": 0,
       "groups": []
@@ -204,18 +188,12 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": [
-        "default-roles-local"
-      ],
+      "realmRoles": ["default-roles-local"],
       "clientRoles": {
-        "local": [
-          "User"
-        ]
+        "local": ["User"]
       },
       "notBefore": 0,
-      "groups": [
-        "/local"
-      ]
+      "groups": ["/local"]
     }
   ],
   "clients": [
@@ -231,12 +209,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "t4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu",
-      "redirectUris": [
-        "/*"
-      ],
-      "webOrigins": [
-        "/*"
-      ],
+      "redirectUris": ["/*"],
+      "webOrigins": ["/*"],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -333,18 +307,14 @@
             "type": "urn:local:resources:default",
             "ownerManagedAccess": false,
             "attributes": {},
-            "uris": [
-              "/*"
-            ]
+            "uris": ["/*"]
           },
           {
             "name": "Task",
             "ownerManagedAccess": false,
             "displayName": "task",
             "attributes": {},
-            "uris": [
-              "*/tasks"
-            ],
+            "uris": ["*/tasks"],
             "scopes": [
               {
                 "name": "read"
@@ -366,9 +336,7 @@
             "ownerManagedAccess": false,
             "displayName": "announcement",
             "attributes": {},
-            "uris": [
-              "*/announcement"
-            ],
+            "uris": ["*/announcement"],
             "scopes": [
               {
                 "name": "read"
@@ -390,9 +358,7 @@
             "ownerManagedAccess": false,
             "displayName": "group",
             "attributes": {},
-            "uris": [
-              "*/groups"
-            ],
+            "uris": ["*/groups"],
             "scopes": [
               {
                 "name": "read"
@@ -414,9 +380,7 @@
             "ownerManagedAccess": false,
             "displayName": "conversation",
             "attributes": {},
-            "uris": [
-              "*/conversations"
-            ],
+            "uris": ["*/conversations"],
             "scopes": [
               {
                 "name": "read"
@@ -438,9 +402,7 @@
             "ownerManagedAccess": false,
             "displayName": "reminder",
             "attributes": {},
-            "uris": [
-              "*/reminder"
-            ],
+            "uris": ["*/reminder"],
             "scopes": [
               {
                 "name": "read"
@@ -462,9 +424,7 @@
             "ownerManagedAccess": false,
             "displayName": "organization",
             "attributes": {},
-            "uris": [
-              "*/management"
-            ],
+            "uris": ["*/management"],
             "scopes": [
               {
                 "name": "manage"
@@ -477,9 +437,7 @@
             "ownerManagedAccess": false,
             "displayName": "user",
             "attributes": {},
-            "uris": [
-              "*/users"
-            ],
+            "uris": ["*/users"],
             "scopes": [
               {
                 "name": "read"
@@ -501,9 +459,7 @@
             "ownerManagedAccess": false,
             "displayName": "role",
             "attributes": {},
-            "uris": [
-              "*/roles"
-            ],
+            "uris": ["*/roles"],
             "scopes": [
               {
                 "name": "read"
@@ -525,9 +481,7 @@
             "ownerManagedAccess": false,
             "displayName": "userinfo",
             "attributes": {},
-            "uris": [
-              "*/user_information"
-            ],
+            "uris": ["*/user_information"],
             "scopes": [
               {
                 "name": "read"
@@ -540,9 +494,7 @@
             "ownerManagedAccess": false,
             "displayName": "request",
             "attributes": {},
-            "uris": [
-              "*/requests"
-            ],
+            "uris": ["*/requests"],
             "scopes": [
               {
                 "name": "read"
@@ -564,9 +516,7 @@
             "ownerManagedAccess": false,
             "displayName": "category",
             "attributes": {},
-            "uris": [
-              "*/categories"
-            ],
+            "uris": ["*/categories"],
             "scopes": [
               {
                 "name": "read"
@@ -882,7 +832,7 @@
             "config": {
               "resources": "[\"Category\"]",
               "scopes": "[\"create\"]",
-              "applyPolicies": "[\"Admin\"]"
+              "applyPolicies": "[\"Admin\", \"Planner\"]"
             }
           },
           {
@@ -906,7 +856,7 @@
             "config": {
               "resources": "[\"Category\"]",
               "scopes": "[\"update\"]",
-              "applyPolicies": "[\"Admin\"]"
+              "applyPolicies": "[\"Admin\", \"Planner\"]"
             }
           },
           {

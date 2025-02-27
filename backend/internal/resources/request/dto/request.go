@@ -20,12 +20,13 @@ type GetRequestsOutput struct {
 
 // POST Request
 type CreateRequestInputBody struct {
-	Text      string `json:"text" doc:"Description of the request" example:"Some request text" validate:"required"`
-	Name      string `json:"name" doc:"Name of the requester" example:"John Doe" validate:"required"`
-	Email     string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com" validate:"required"`
-	Address   string `json:"address" doc:"Address of the requester" example:"789 Oak St, Metropolis" validate:"required"`
-	Telephone string `json:"telephone" doc:"Telephone number of the requester" example:"1234567" validate:"required"`
-	Closed    bool   `json:"closed" doc:"Indicates if the request is closed" example:"false" validate:"required"`
+	Text       string `json:"text" doc:"Description of the request" example:"Some request text"`
+	Name       string `json:"name" doc:"Name of the requester" example:"John Doe"`
+	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com"`
+	Address    string `json:"address" doc:"Address of the requester" example:"789 Oak St, Metropolis"`
+	Telephone  string `json:"telephone" doc:"Telephone number of the requester" example:"1234567"`
+	Closed     bool   `json:"closed" doc:"Indicates if the request is closed" example:"false"`
+	CategoryId int    `json:"categoryId" doc:"Identifier of the category" example:"1" required:"false" minimum:"1"`
 }
 
 type CreateRequestInput struct {
@@ -35,13 +36,13 @@ type CreateRequestInput struct {
 
 // UPDATE Request
 type UpdateRequestInputBody struct {
-	Text       string `json:"text" doc:"Description of the request" example:"Some request text" validate:"required"`
-	Name       string `json:"name" doc:"Name of the requester" example:"John Doe" validate:"required"`
-	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com" validate:"required"`
-	Address    string `json:"address" doc:"Address of the requester" example:"789 Oak St, Metropolis" validate:"required"`
-	Telephone  string `json:"telephone" doc:"Telephone number of the requester" example:"1234567" validate:"required"`
-	Closed     bool   `json:"closed" doc:"Indicates if the request is closed" example:"false" validate:"required"`
-	CategoryId int    `json:"categoryId" doc:"Identifier of the category" example:"0" validate:"required"`
+	Text       string `json:"text" doc:"Description of the request" example:"Some request text"`
+	Name       string `json:"name" doc:"Name of the requester" example:"John Doe"`
+	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com"`
+	Address    string `json:"address" doc:"Address of the requester" example:"789 Oak St, Metropolis"`
+	Telephone  string `json:"telephone" doc:"Telephone number of the requester" example:"1234567`
+	Closed     bool   `json:"closed" doc:"Indicates if the request is closed" example:"false"`
+	CategoryId int    `json:"categoryId" doc:"Identifier of the category" example:"1" minimum:"1"`
 }
 
 type UpdateRequestInput struct {

@@ -56,6 +56,10 @@ func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId
 		"categoryId":     nil,
 	}
 
+	if request.CategoryId != 0 {
+		args["categoryId"] = request.CategoryId
+	}
+
 	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
