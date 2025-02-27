@@ -23,7 +23,7 @@ func (_m *MockUserRepositoryInterface) EXPECT() *MockUserRepositoryInterface_Exp
 }
 
 // CreateUser provides a mock function with given fields: ctx, organizationId, _a2
-func (_m *MockUserRepositoryInterface) CreateUser(ctx context.Context, organizationId string, _a2 models.User) error {
+func (_m *MockUserRepositoryInterface) CreateUser(ctx context.Context, organizationId int, _a2 models.User) error {
 	ret := _m.Called(ctx, organizationId, _a2)
 
 	if len(ret) == 0 {
@@ -31,7 +31,7 @@ func (_m *MockUserRepositoryInterface) CreateUser(ctx context.Context, organizat
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, models.User) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, models.User) error); ok {
 		r0 = rf(ctx, organizationId, _a2)
 	} else {
 		r0 = ret.Error(0)
@@ -47,15 +47,15 @@ type MockUserRepositoryInterface_CreateUser_Call struct {
 
 // CreateUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - organizationId string
+//   - organizationId int
 //   - _a2 models.User
 func (_e *MockUserRepositoryInterface_Expecter) CreateUser(ctx interface{}, organizationId interface{}, _a2 interface{}) *MockUserRepositoryInterface_CreateUser_Call {
 	return &MockUserRepositoryInterface_CreateUser_Call{Call: _e.mock.On("CreateUser", ctx, organizationId, _a2)}
 }
 
-func (_c *MockUserRepositoryInterface_CreateUser_Call) Run(run func(ctx context.Context, organizationId string, _a2 models.User)) *MockUserRepositoryInterface_CreateUser_Call {
+func (_c *MockUserRepositoryInterface_CreateUser_Call) Run(run func(ctx context.Context, organizationId int, _a2 models.User)) *MockUserRepositoryInterface_CreateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(models.User))
+		run(args[0].(context.Context), args[1].(int), args[2].(models.User))
 	})
 	return _c
 }
@@ -65,13 +65,13 @@ func (_c *MockUserRepositoryInterface_CreateUser_Call) Return(_a0 error) *MockUs
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_CreateUser_Call) RunAndReturn(run func(context.Context, string, models.User) error) *MockUserRepositoryInterface_CreateUser_Call {
+func (_c *MockUserRepositoryInterface_CreateUser_Call) RunAndReturn(run func(context.Context, int, models.User) error) *MockUserRepositoryInterface_CreateUser_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // DeleteUser provides a mock function with given fields: ctx, organizationId, userId
-func (_m *MockUserRepositoryInterface) DeleteUser(ctx context.Context, organizationId string, userId string) error {
+func (_m *MockUserRepositoryInterface) DeleteUser(ctx context.Context, organizationId int, userId string) error {
 	ret := _m.Called(ctx, organizationId, userId)
 
 	if len(ret) == 0 {
@@ -79,7 +79,7 @@ func (_m *MockUserRepositoryInterface) DeleteUser(ctx context.Context, organizat
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, string) error); ok {
 		r0 = rf(ctx, organizationId, userId)
 	} else {
 		r0 = ret.Error(0)
@@ -95,15 +95,15 @@ type MockUserRepositoryInterface_DeleteUser_Call struct {
 
 // DeleteUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - organizationId string
+//   - organizationId int
 //   - userId string
 func (_e *MockUserRepositoryInterface_Expecter) DeleteUser(ctx interface{}, organizationId interface{}, userId interface{}) *MockUserRepositoryInterface_DeleteUser_Call {
 	return &MockUserRepositoryInterface_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, organizationId, userId)}
 }
 
-func (_c *MockUserRepositoryInterface_DeleteUser_Call) Run(run func(ctx context.Context, organizationId string, userId string)) *MockUserRepositoryInterface_DeleteUser_Call {
+func (_c *MockUserRepositoryInterface_DeleteUser_Call) Run(run func(ctx context.Context, organizationId int, userId string)) *MockUserRepositoryInterface_DeleteUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(int), args[2].(string))
 	})
 	return _c
 }
@@ -113,13 +113,70 @@ func (_c *MockUserRepositoryInterface_DeleteUser_Call) Return(_a0 error) *MockUs
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_DeleteUser_Call) RunAndReturn(run func(context.Context, string, string) error) *MockUserRepositoryInterface_DeleteUser_Call {
+func (_c *MockUserRepositoryInterface_DeleteUser_Call) RunAndReturn(run func(context.Context, int, string) error) *MockUserRepositoryInterface_DeleteUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetIamOrganizationIdentifier provides a mock function with given fields: ctx, organizationId
+func (_m *MockUserRepositoryInterface) GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error) {
+	ret := _m.Called(ctx, organizationId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIamOrganizationIdentifier")
+	}
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int) (string, error)); ok {
+		return rf(ctx, organizationId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int) string); ok {
+		r0 = rf(ctx, organizationId)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = rf(ctx, organizationId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIamOrganizationIdentifier'
+type MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call struct {
+	*mock.Call
+}
+
+// GetIamOrganizationIdentifier is a helper method to define mock.On call
+//   - ctx context.Context
+//   - organizationId int
+func (_e *MockUserRepositoryInterface_Expecter) GetIamOrganizationIdentifier(ctx interface{}, organizationId interface{}) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
+	return &MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call{Call: _e.mock.On("GetIamOrganizationIdentifier", ctx, organizationId)}
+}
+
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) Run(run func(ctx context.Context, organizationId int)) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int))
+	})
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) Return(_a0 string, _a1 error) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call) RunAndReturn(run func(context.Context, int) (string, error)) *MockUserRepositoryInterface_GetIamOrganizationIdentifier_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetUsersInformation provides a mock function with given fields: ctx, organizationId
-func (_m *MockUserRepositoryInterface) GetUsersInformation(ctx context.Context, organizationId string) ([]models.BasicUserInformation, error) {
+func (_m *MockUserRepositoryInterface) GetUsersInformation(ctx context.Context, organizationId int) ([]models.BasicUserInformation, error) {
 	ret := _m.Called(ctx, organizationId)
 
 	if len(ret) == 0 {
@@ -128,10 +185,10 @@ func (_m *MockUserRepositoryInterface) GetUsersInformation(ctx context.Context, 
 
 	var r0 []models.BasicUserInformation
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]models.BasicUserInformation, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int) ([]models.BasicUserInformation, error)); ok {
 		return rf(ctx, organizationId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []models.BasicUserInformation); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int) []models.BasicUserInformation); ok {
 		r0 = rf(ctx, organizationId)
 	} else {
 		if ret.Get(0) != nil {
@@ -139,7 +196,7 @@ func (_m *MockUserRepositoryInterface) GetUsersInformation(ctx context.Context, 
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
 		r1 = rf(ctx, organizationId)
 	} else {
 		r1 = ret.Error(1)
@@ -155,14 +212,14 @@ type MockUserRepositoryInterface_GetUsersInformation_Call struct {
 
 // GetUsersInformation is a helper method to define mock.On call
 //   - ctx context.Context
-//   - organizationId string
+//   - organizationId int
 func (_e *MockUserRepositoryInterface_Expecter) GetUsersInformation(ctx interface{}, organizationId interface{}) *MockUserRepositoryInterface_GetUsersInformation_Call {
 	return &MockUserRepositoryInterface_GetUsersInformation_Call{Call: _e.mock.On("GetUsersInformation", ctx, organizationId)}
 }
 
-func (_c *MockUserRepositoryInterface_GetUsersInformation_Call) Run(run func(ctx context.Context, organizationId string)) *MockUserRepositoryInterface_GetUsersInformation_Call {
+func (_c *MockUserRepositoryInterface_GetUsersInformation_Call) Run(run func(ctx context.Context, organizationId int)) *MockUserRepositoryInterface_GetUsersInformation_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(int))
 	})
 	return _c
 }
@@ -172,13 +229,13 @@ func (_c *MockUserRepositoryInterface_GetUsersInformation_Call) Return(_a0 []mod
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_GetUsersInformation_Call) RunAndReturn(run func(context.Context, string) ([]models.BasicUserInformation, error)) *MockUserRepositoryInterface_GetUsersInformation_Call {
+func (_c *MockUserRepositoryInterface_GetUsersInformation_Call) RunAndReturn(run func(context.Context, int) ([]models.BasicUserInformation, error)) *MockUserRepositoryInterface_GetUsersInformation_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // SyncUsers provides a mock function with given fields: ctx, organizationId, users
-func (_m *MockUserRepositoryInterface) SyncUsers(ctx context.Context, organizationId string, users []models.User) error {
+func (_m *MockUserRepositoryInterface) SyncUsers(ctx context.Context, organizationId int, users []models.User) error {
 	ret := _m.Called(ctx, organizationId, users)
 
 	if len(ret) == 0 {
@@ -186,7 +243,7 @@ func (_m *MockUserRepositoryInterface) SyncUsers(ctx context.Context, organizati
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, []models.User) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, []models.User) error); ok {
 		r0 = rf(ctx, organizationId, users)
 	} else {
 		r0 = ret.Error(0)
@@ -202,15 +259,15 @@ type MockUserRepositoryInterface_SyncUsers_Call struct {
 
 // SyncUsers is a helper method to define mock.On call
 //   - ctx context.Context
-//   - organizationId string
+//   - organizationId int
 //   - users []models.User
 func (_e *MockUserRepositoryInterface_Expecter) SyncUsers(ctx interface{}, organizationId interface{}, users interface{}) *MockUserRepositoryInterface_SyncUsers_Call {
 	return &MockUserRepositoryInterface_SyncUsers_Call{Call: _e.mock.On("SyncUsers", ctx, organizationId, users)}
 }
 
-func (_c *MockUserRepositoryInterface_SyncUsers_Call) Run(run func(ctx context.Context, organizationId string, users []models.User)) *MockUserRepositoryInterface_SyncUsers_Call {
+func (_c *MockUserRepositoryInterface_SyncUsers_Call) Run(run func(ctx context.Context, organizationId int, users []models.User)) *MockUserRepositoryInterface_SyncUsers_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]models.User))
+		run(args[0].(context.Context), args[1].(int), args[2].([]models.User))
 	})
 	return _c
 }
@@ -220,13 +277,13 @@ func (_c *MockUserRepositoryInterface_SyncUsers_Call) Return(_a0 error) *MockUse
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_SyncUsers_Call) RunAndReturn(run func(context.Context, string, []models.User) error) *MockUserRepositoryInterface_SyncUsers_Call {
+func (_c *MockUserRepositoryInterface_SyncUsers_Call) RunAndReturn(run func(context.Context, int, []models.User) error) *MockUserRepositoryInterface_SyncUsers_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UpdateUser provides a mock function with given fields: ctx, organizationId, userId, _a3
-func (_m *MockUserRepositoryInterface) UpdateUser(ctx context.Context, organizationId string, userId string, _a3 models.User) error {
+func (_m *MockUserRepositoryInterface) UpdateUser(ctx context.Context, organizationId int, userId string, _a3 models.User) error {
 	ret := _m.Called(ctx, organizationId, userId, _a3)
 
 	if len(ret) == 0 {
@@ -234,7 +291,7 @@ func (_m *MockUserRepositoryInterface) UpdateUser(ctx context.Context, organizat
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, models.User) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, string, models.User) error); ok {
 		r0 = rf(ctx, organizationId, userId, _a3)
 	} else {
 		r0 = ret.Error(0)
@@ -250,16 +307,16 @@ type MockUserRepositoryInterface_UpdateUser_Call struct {
 
 // UpdateUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - organizationId string
+//   - organizationId int
 //   - userId string
 //   - _a3 models.User
 func (_e *MockUserRepositoryInterface_Expecter) UpdateUser(ctx interface{}, organizationId interface{}, userId interface{}, _a3 interface{}) *MockUserRepositoryInterface_UpdateUser_Call {
 	return &MockUserRepositoryInterface_UpdateUser_Call{Call: _e.mock.On("UpdateUser", ctx, organizationId, userId, _a3)}
 }
 
-func (_c *MockUserRepositoryInterface_UpdateUser_Call) Run(run func(ctx context.Context, organizationId string, userId string, _a3 models.User)) *MockUserRepositoryInterface_UpdateUser_Call {
+func (_c *MockUserRepositoryInterface_UpdateUser_Call) Run(run func(ctx context.Context, organizationId int, userId string, _a3 models.User)) *MockUserRepositoryInterface_UpdateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(models.User))
+		run(args[0].(context.Context), args[1].(int), args[2].(string), args[3].(models.User))
 	})
 	return _c
 }
@@ -269,7 +326,7 @@ func (_c *MockUserRepositoryInterface_UpdateUser_Call) Return(_a0 error) *MockUs
 	return _c
 }
 
-func (_c *MockUserRepositoryInterface_UpdateUser_Call) RunAndReturn(run func(context.Context, string, string, models.User) error) *MockUserRepositoryInterface_UpdateUser_Call {
+func (_c *MockUserRepositoryInterface_UpdateUser_Call) RunAndReturn(run func(context.Context, int, string, models.User) error) *MockUserRepositoryInterface_UpdateUser_Call {
 	_c.Call.Return(run)
 	return _c
 }

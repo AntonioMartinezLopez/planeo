@@ -23,9 +23,9 @@ func (_m *MockIAMInterface) EXPECT() *MockIAMInterface_Expecter {
 	return &MockIAMInterface_Expecter{mock: &_m.Mock}
 }
 
-// AssignRolesToUser provides a mock function with given fields: organizationId, userId, roles
-func (_m *MockIAMInterface) AssignRolesToUser(organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
-	ret := _m.Called(organizationId, userId, roles)
+// AssignRolesToUser provides a mock function with given fields: organizationIamIdentifier, userId, roles
+func (_m *MockIAMInterface) AssignRolesToUser(organizationIamIdentifier string, userId string, roles []dto.PutUserRoleInputBody) error {
+	ret := _m.Called(organizationIamIdentifier, userId, roles)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AssignRolesToUser")
@@ -33,7 +33,7 @@ func (_m *MockIAMInterface) AssignRolesToUser(organizationId string, userId stri
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, []dto.PutUserRoleInputBody) error); ok {
-		r0 = rf(organizationId, userId, roles)
+		r0 = rf(organizationIamIdentifier, userId, roles)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -47,14 +47,14 @@ type MockIAMInterface_AssignRolesToUser_Call struct {
 }
 
 // AssignRolesToUser is a helper method to define mock.On call
-//   - organizationId string
+//   - organizationIamIdentifier string
 //   - userId string
 //   - roles []dto.PutUserRoleInputBody
-func (_e *MockIAMInterface_Expecter) AssignRolesToUser(organizationId interface{}, userId interface{}, roles interface{}) *MockIAMInterface_AssignRolesToUser_Call {
-	return &MockIAMInterface_AssignRolesToUser_Call{Call: _e.mock.On("AssignRolesToUser", organizationId, userId, roles)}
+func (_e *MockIAMInterface_Expecter) AssignRolesToUser(organizationIamIdentifier interface{}, userId interface{}, roles interface{}) *MockIAMInterface_AssignRolesToUser_Call {
+	return &MockIAMInterface_AssignRolesToUser_Call{Call: _e.mock.On("AssignRolesToUser", organizationIamIdentifier, userId, roles)}
 }
 
-func (_c *MockIAMInterface_AssignRolesToUser_Call) Run(run func(organizationId string, userId string, roles []dto.PutUserRoleInputBody)) *MockIAMInterface_AssignRolesToUser_Call {
+func (_c *MockIAMInterface_AssignRolesToUser_Call) Run(run func(organizationIamIdentifier string, userId string, roles []dto.PutUserRoleInputBody)) *MockIAMInterface_AssignRolesToUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(string), args[2].([]dto.PutUserRoleInputBody))
 	})
@@ -71,9 +71,9 @@ func (_c *MockIAMInterface_AssignRolesToUser_Call) RunAndReturn(run func(string,
 	return _c
 }
 
-// CreateUser provides a mock function with given fields: organizationId, createUserInput
-func (_m *MockIAMInterface) CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) (*models.User, error) {
-	ret := _m.Called(organizationId, createUserInput)
+// CreateUser provides a mock function with given fields: organizationIamIdentifier, createUserInput
+func (_m *MockIAMInterface) CreateUser(organizationIamIdentifier string, createUserInput dto.CreateUserInputBody) (*models.User, error) {
+	ret := _m.Called(organizationIamIdentifier, createUserInput)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateUser")
@@ -82,10 +82,10 @@ func (_m *MockIAMInterface) CreateUser(organizationId string, createUserInput dt
 	var r0 *models.User
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string, dto.CreateUserInputBody) (*models.User, error)); ok {
-		return rf(organizationId, createUserInput)
+		return rf(organizationIamIdentifier, createUserInput)
 	}
 	if rf, ok := ret.Get(0).(func(string, dto.CreateUserInputBody) *models.User); ok {
-		r0 = rf(organizationId, createUserInput)
+		r0 = rf(organizationIamIdentifier, createUserInput)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.User)
@@ -93,7 +93,7 @@ func (_m *MockIAMInterface) CreateUser(organizationId string, createUserInput dt
 	}
 
 	if rf, ok := ret.Get(1).(func(string, dto.CreateUserInputBody) error); ok {
-		r1 = rf(organizationId, createUserInput)
+		r1 = rf(organizationIamIdentifier, createUserInput)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -107,13 +107,13 @@ type MockIAMInterface_CreateUser_Call struct {
 }
 
 // CreateUser is a helper method to define mock.On call
-//   - organizationId string
+//   - organizationIamIdentifier string
 //   - createUserInput dto.CreateUserInputBody
-func (_e *MockIAMInterface_Expecter) CreateUser(organizationId interface{}, createUserInput interface{}) *MockIAMInterface_CreateUser_Call {
-	return &MockIAMInterface_CreateUser_Call{Call: _e.mock.On("CreateUser", organizationId, createUserInput)}
+func (_e *MockIAMInterface_Expecter) CreateUser(organizationIamIdentifier interface{}, createUserInput interface{}) *MockIAMInterface_CreateUser_Call {
+	return &MockIAMInterface_CreateUser_Call{Call: _e.mock.On("CreateUser", organizationIamIdentifier, createUserInput)}
 }
 
-func (_c *MockIAMInterface_CreateUser_Call) Run(run func(organizationId string, createUserInput dto.CreateUserInputBody)) *MockIAMInterface_CreateUser_Call {
+func (_c *MockIAMInterface_CreateUser_Call) Run(run func(organizationIamIdentifier string, createUserInput dto.CreateUserInputBody)) *MockIAMInterface_CreateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(dto.CreateUserInputBody))
 	})
@@ -130,9 +130,9 @@ func (_c *MockIAMInterface_CreateUser_Call) RunAndReturn(run func(string, dto.Cr
 	return _c
 }
 
-// DeleteUser provides a mock function with given fields: organizationId, userId
-func (_m *MockIAMInterface) DeleteUser(organizationId string, userId string) error {
-	ret := _m.Called(organizationId, userId)
+// DeleteUser provides a mock function with given fields: organizationIamIdentifier, userId
+func (_m *MockIAMInterface) DeleteUser(organizationIamIdentifier string, userId string) error {
+	ret := _m.Called(organizationIamIdentifier, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteUser")
@@ -140,7 +140,7 @@ func (_m *MockIAMInterface) DeleteUser(organizationId string, userId string) err
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(organizationId, userId)
+		r0 = rf(organizationIamIdentifier, userId)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -154,13 +154,13 @@ type MockIAMInterface_DeleteUser_Call struct {
 }
 
 // DeleteUser is a helper method to define mock.On call
-//   - organizationId string
+//   - organizationIamIdentifier string
 //   - userId string
-func (_e *MockIAMInterface_Expecter) DeleteUser(organizationId interface{}, userId interface{}) *MockIAMInterface_DeleteUser_Call {
-	return &MockIAMInterface_DeleteUser_Call{Call: _e.mock.On("DeleteUser", organizationId, userId)}
+func (_e *MockIAMInterface_Expecter) DeleteUser(organizationIamIdentifier interface{}, userId interface{}) *MockIAMInterface_DeleteUser_Call {
+	return &MockIAMInterface_DeleteUser_Call{Call: _e.mock.On("DeleteUser", organizationIamIdentifier, userId)}
 }
 
-func (_c *MockIAMInterface_DeleteUser_Call) Run(run func(organizationId string, userId string)) *MockIAMInterface_DeleteUser_Call {
+func (_c *MockIAMInterface_DeleteUser_Call) Run(run func(organizationIamIdentifier string, userId string)) *MockIAMInterface_DeleteUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(string))
 	})
@@ -234,9 +234,9 @@ func (_c *MockIAMInterface_GetRoles_Call) RunAndReturn(run func() ([]models.Role
 	return _c
 }
 
-// GetUserById provides a mock function with given fields: organizationId, userId
-func (_m *MockIAMInterface) GetUserById(organizationId string, userId string) (*models.User, error) {
-	ret := _m.Called(organizationId, userId)
+// GetUserById provides a mock function with given fields: organizationIamIdentifier, userId
+func (_m *MockIAMInterface) GetUserById(organizationIamIdentifier string, userId string) (*models.User, error) {
+	ret := _m.Called(organizationIamIdentifier, userId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserById")
@@ -245,10 +245,10 @@ func (_m *MockIAMInterface) GetUserById(organizationId string, userId string) (*
 	var r0 *models.User
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string, string) (*models.User, error)); ok {
-		return rf(organizationId, userId)
+		return rf(organizationIamIdentifier, userId)
 	}
 	if rf, ok := ret.Get(0).(func(string, string) *models.User); ok {
-		r0 = rf(organizationId, userId)
+		r0 = rf(organizationIamIdentifier, userId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*models.User)
@@ -256,7 +256,7 @@ func (_m *MockIAMInterface) GetUserById(organizationId string, userId string) (*
 	}
 
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(organizationId, userId)
+		r1 = rf(organizationIamIdentifier, userId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -270,13 +270,13 @@ type MockIAMInterface_GetUserById_Call struct {
 }
 
 // GetUserById is a helper method to define mock.On call
-//   - organizationId string
+//   - organizationIamIdentifier string
 //   - userId string
-func (_e *MockIAMInterface_Expecter) GetUserById(organizationId interface{}, userId interface{}) *MockIAMInterface_GetUserById_Call {
-	return &MockIAMInterface_GetUserById_Call{Call: _e.mock.On("GetUserById", organizationId, userId)}
+func (_e *MockIAMInterface_Expecter) GetUserById(organizationIamIdentifier interface{}, userId interface{}) *MockIAMInterface_GetUserById_Call {
+	return &MockIAMInterface_GetUserById_Call{Call: _e.mock.On("GetUserById", organizationIamIdentifier, userId)}
 }
 
-func (_c *MockIAMInterface_GetUserById_Call) Run(run func(organizationId string, userId string)) *MockIAMInterface_GetUserById_Call {
+func (_c *MockIAMInterface_GetUserById_Call) Run(run func(organizationIamIdentifier string, userId string)) *MockIAMInterface_GetUserById_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(string))
 	})
@@ -293,9 +293,9 @@ func (_c *MockIAMInterface_GetUserById_Call) RunAndReturn(run func(string, strin
 	return _c
 }
 
-// GetUsers provides a mock function with given fields: organizationId
-func (_m *MockIAMInterface) GetUsers(organizationId string) ([]models.User, error) {
-	ret := _m.Called(organizationId)
+// GetUsers provides a mock function with given fields: organizationIamIdentifier
+func (_m *MockIAMInterface) GetUsers(organizationIamIdentifier string) ([]models.User, error) {
+	ret := _m.Called(organizationIamIdentifier)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUsers")
@@ -304,10 +304,10 @@ func (_m *MockIAMInterface) GetUsers(organizationId string) ([]models.User, erro
 	var r0 []models.User
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string) ([]models.User, error)); ok {
-		return rf(organizationId)
+		return rf(organizationIamIdentifier)
 	}
 	if rf, ok := ret.Get(0).(func(string) []models.User); ok {
-		r0 = rf(organizationId)
+		r0 = rf(organizationIamIdentifier)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.User)
@@ -315,7 +315,7 @@ func (_m *MockIAMInterface) GetUsers(organizationId string) ([]models.User, erro
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(organizationId)
+		r1 = rf(organizationIamIdentifier)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -329,12 +329,12 @@ type MockIAMInterface_GetUsers_Call struct {
 }
 
 // GetUsers is a helper method to define mock.On call
-//   - organizationId string
-func (_e *MockIAMInterface_Expecter) GetUsers(organizationId interface{}) *MockIAMInterface_GetUsers_Call {
-	return &MockIAMInterface_GetUsers_Call{Call: _e.mock.On("GetUsers", organizationId)}
+//   - organizationIamIdentifier string
+func (_e *MockIAMInterface_Expecter) GetUsers(organizationIamIdentifier interface{}) *MockIAMInterface_GetUsers_Call {
+	return &MockIAMInterface_GetUsers_Call{Call: _e.mock.On("GetUsers", organizationIamIdentifier)}
 }
 
-func (_c *MockIAMInterface_GetUsers_Call) Run(run func(organizationId string)) *MockIAMInterface_GetUsers_Call {
+func (_c *MockIAMInterface_GetUsers_Call) Run(run func(organizationIamIdentifier string)) *MockIAMInterface_GetUsers_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string))
 	})
@@ -351,9 +351,9 @@ func (_c *MockIAMInterface_GetUsers_Call) RunAndReturn(run func(string) ([]model
 	return _c
 }
 
-// UpdateUser provides a mock function with given fields: organizationId, userId, updateUserInput
-func (_m *MockIAMInterface) UpdateUser(organizationId string, userId string, updateUserInput dto.UpdateUserInputBody) error {
-	ret := _m.Called(organizationId, userId, updateUserInput)
+// UpdateUser provides a mock function with given fields: organizationIamIdentifier, userId, updateUserInput
+func (_m *MockIAMInterface) UpdateUser(organizationIamIdentifier string, userId string, updateUserInput dto.UpdateUserInputBody) error {
+	ret := _m.Called(organizationIamIdentifier, userId, updateUserInput)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateUser")
@@ -361,7 +361,7 @@ func (_m *MockIAMInterface) UpdateUser(organizationId string, userId string, upd
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string, string, dto.UpdateUserInputBody) error); ok {
-		r0 = rf(organizationId, userId, updateUserInput)
+		r0 = rf(organizationIamIdentifier, userId, updateUserInput)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -375,14 +375,14 @@ type MockIAMInterface_UpdateUser_Call struct {
 }
 
 // UpdateUser is a helper method to define mock.On call
-//   - organizationId string
+//   - organizationIamIdentifier string
 //   - userId string
 //   - updateUserInput dto.UpdateUserInputBody
-func (_e *MockIAMInterface_Expecter) UpdateUser(organizationId interface{}, userId interface{}, updateUserInput interface{}) *MockIAMInterface_UpdateUser_Call {
-	return &MockIAMInterface_UpdateUser_Call{Call: _e.mock.On("UpdateUser", organizationId, userId, updateUserInput)}
+func (_e *MockIAMInterface_Expecter) UpdateUser(organizationIamIdentifier interface{}, userId interface{}, updateUserInput interface{}) *MockIAMInterface_UpdateUser_Call {
+	return &MockIAMInterface_UpdateUser_Call{Call: _e.mock.On("UpdateUser", organizationIamIdentifier, userId, updateUserInput)}
 }
 
-func (_c *MockIAMInterface_UpdateUser_Call) Run(run func(organizationId string, userId string, updateUserInput dto.UpdateUserInputBody)) *MockIAMInterface_UpdateUser_Call {
+func (_c *MockIAMInterface_UpdateUser_Call) Run(run func(organizationIamIdentifier string, userId string, updateUserInput dto.UpdateUserInputBody)) *MockIAMInterface_UpdateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(string), args[2].(dto.UpdateUserInputBody))
 	})

@@ -86,7 +86,7 @@ if [ -f "$GOPATH/bin/mockery" ]; then
 else
     echo "Mockery is not installed."
     echo "Installing 'mockery' binary..."
-    go install github.com/vektra/mockery/v2@v2.51.0
+    go install github.com/vektra/mockery/v2@v2.52.2
     if [ $? -eq 0 ]; then
         echo "The 'mockery' binary has been successfully installed."
     else

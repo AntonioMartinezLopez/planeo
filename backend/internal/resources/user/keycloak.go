@@ -23,8 +23,8 @@ func NewKeycloakService(keycloakAdminClient *keycloak.KeycloakAdminClient, confi
 	}
 }
 
-func (k *KeycloakService) GetUsers(organizationId string) ([]models.User, error) {
-	keycloakUsers, err := k.keycloakAdminClient.GetKeycloakUsers(organizationId)
+func (k *KeycloakService) GetUsers(organizationUuid string) ([]models.User, error) {
+	keycloakUsers, err := k.keycloakAdminClient.GetKeycloakUsers(organizationUuid)
 
 	if err != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -38,9 +38,9 @@ func (k *KeycloakService) GetUsers(organizationId string) ([]models.User, error)
 	return users, nil
 }
 
-func (k *KeycloakService) GetUserById(organizationId string, userId string) (*models.User, error) {
+func (k *KeycloakService) GetUserById(organizationUuid string, userId string) (*models.User, error) {
 
-	result := policies.UserInOrganisation(k.keycloakAdminClient, organizationId, userId)
+	result := policies.UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
 		return nil, appError.New(appError.EntityNotFound, "User not found in organization")
@@ -77,7 +77,7 @@ func (k *KeycloakService) GetUserById(organizationId string, userId string) (*mo
 
 }
 
-func (k *KeycloakService) CreateUser(organizationId string, createUserInput dto.CreateUserInputBody) (*models.User, error) {
+func (k *KeycloakService) CreateUser(organizationUuid string, createUserInput dto.CreateUserInputBody) (*models.User, error) {
 
 	createUserData := keycloak.CreateUserParams{
 		FirstName: createUserInput.FirstName,
@@ -85,7 +85,7 @@ func (k *KeycloakService) CreateUser(organizationId string, createUserInput dto.
 		Email:     createUserInput.Email,
 		Password:  createUserInput.Password,
 	}
-	err := k.keycloakAdminClient.CreateKeycloakUser(organizationId, createUserData)
+	err := k.keycloakAdminClient.CreateKeycloakUser(organizationUuid, createUserData)
 
 	if err != nil {
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
@@ -130,9 +130,9 @@ func (k *KeycloakService) CreateUser(organizationId string, createUserInput dto.
 	return &userModel, nil
 }
 
-func (k *KeycloakService) UpdateUser(organizationId string, userId string, updateUserInput dto.UpdateUserInputBody) error {
+func (k *KeycloakService) UpdateUser(organizationUuid string, userId string, updateUserInput dto.UpdateUserInputBody) error {
 
-	result := policies.UserInOrganisation(k.keycloakAdminClient, organizationId, userId)
+	result := policies.UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
 		return appError.New(appError.EntityNotFound, "User not found in organization")
@@ -159,9 +159,9 @@ func (k *KeycloakService) UpdateUser(organizationId string, userId string, updat
 	return nil
 }
 
-func (k *KeycloakService) DeleteUser(organizationId string, userId string) error {
+func (k *KeycloakService) DeleteUser(organizationUuid string, userId string) error {
 
-	result := policies.UserInOrganisation(k.keycloakAdminClient, organizationId, userId)
+	result := policies.UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
 		return appError.New(appError.EntityNotFound, "User not found in organization")
@@ -198,8 +198,8 @@ func (k *KeycloakService) GetRoles() ([]models.Role, error) {
 	return roles, nil
 }
 
-func (k *KeycloakService) AssignRolesToUser(organizationId string, userId string, roles []dto.PutUserRoleInputBody) error {
-	result := policies.UserInOrganisation(k.keycloakAdminClient, organizationId, userId)
+func (k *KeycloakService) AssignRolesToUser(organizationUuid string, userId string, roles []dto.PutUserRoleInputBody) error {
+	result := policies.UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
 		return appError.New(appError.EntityNotFound, "User not found in organization")

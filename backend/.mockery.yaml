@@ -17,4 +17,13 @@ packages:
         config:
       IAMRepositoryInterface:
         config:
-        
+  planeo/api/internal/resources/request:
+    config:
+    interfaces:
+      RequestRepositoryInterface:
+        config:
+  planeo/api/internal/resources/category:
+    config:
+    interfaces:
+      CategoryRepositoryInterface:
+        config:
