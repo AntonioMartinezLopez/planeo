@@ -40,7 +40,7 @@ type UpdateRequestInputBody struct {
 	Name       string `json:"name" doc:"Name of the requester" example:"John Doe"`
 	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com"`
 	Address    string `json:"address" doc:"Address of the requester" example:"789 Oak St, Metropolis"`
-	Telephone  string `json:"telephone" doc:"Telephone number of the requester" example:"1234567`
+	Telephone  string `json:"telephone" doc:"Telephone number of the requester" example:"1234567"`
 	Closed     bool   `json:"closed" doc:"Indicates if the request is closed" example:"false"`
 	CategoryId int    `json:"categoryId" doc:"Identifier of the category" example:"1" minimum:"1"`
 }
