@@ -1,6 +1,5 @@
 services:
-
-##### application related services #####
+  ##### application related services #####
   postgres:
     image: postgres:alpine3.20
     container_name: postgres
@@ -22,7 +21,7 @@ services:
     volumes:
       - pg-data:/var/lib/pgadmin
 
-##### Keycloak services #####
+  ##### Keycloak services #####
   keycloak_postgres:
     image: postgres:16.2
     environment:
@@ -55,6 +54,31 @@ services:
       - postgres
     networks:
       - keycloak_network
+
+  # email services
+  greenmail:
+    image: greenmail/standalone:latest
+    environment:
+      - JAVA_OPTS=-Dgreenmail.verbose
+    ports:
+      - 3025:3025 # SMTP
+      - 3110:3110 # POP3
+      - 3143:3143 # IMAP
+      - 3465:3465 # SMTPS
+      - 3993:3993 # IMAPS
+      - 3995:3995 # POP3S
+      - 8088:8088 # API
+  roundcube:
+    image: roundcube/roundcubemail:latest
+    depends_on:
+      - greenmail
+    ports:
+      - 8089:80
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=greenmail # IMAP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_DEFAULT_PORT=3143 # IMAP port
+      - ROUNDCUBEMAIL_SMTP_SERVER=greenmail # SMTP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
 
 networks:
   keycloak_network:
