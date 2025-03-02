@@ -1,17 +1,17 @@
-name: "Backend Test"
-run-name: Build backend service on ${{ github.ref }}
+name: "Core Test"
+run-name: Build core service on ${{ github.ref }}
 on:
   push:
     paths:
-      - backend/**
+      - services/core/**
   workflow_call:
 
 jobs:
-  backend-dependencies:
+  core-dependencies:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./services/core
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,12 +31,12 @@ jobs:
           go mod tidy
           git diff --exit-code go.mod go.sum
 
-  backend-format:
+  core-format:
     runs-on: ubuntu-latest
-    needs: backend-dependencies
+    needs: core-dependencies
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./services/core
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,12 +65,12 @@ jobs:
             exit 1
           fi
 
-  backend-vet:
+  core-vet:
     runs-on: ubuntu-latest
-    needs: backend-dependencies
+    needs: core-dependencies
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./services/core
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -88,12 +88,12 @@ jobs:
       - name: Check Go vet
         run: go vet ./...
 
-  backend-unit-test:
+  core-unit-test:
     runs-on: ubuntu-latest
-    needs: backend-dependencies
+    needs: core-dependencies
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./services/core
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,12 +111,12 @@ jobs:
       - name: Run unit tests
         run: go test ./... -v -short
 
-  backend-integration-test:
+  core-integration-test:
     runs-on: ubuntu-latest
-    needs: backend-dependencies
+    needs: core-dependencies
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./services/core
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

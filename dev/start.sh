@@ -38,10 +38,10 @@ done
 echo "Preparing Keycloak..."
 ./check_and_install_realm.sh
 
-# start backend
-BACKEND_DIR="backend"
-echo "Starting backend application"
-cd "../$BACKEND_DIR"
+# start core
+BACKEND_DIR="core"
+echo "Starting core application"
+cd "../services/$BACKEND_DIR"
 air . &
 cd ..
 
