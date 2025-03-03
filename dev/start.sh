@@ -38,12 +38,5 @@ done
 echo "Preparing Keycloak..."
 ./check_and_install_realm.sh
 
-# start core
-BACKEND_DIR="core"
-echo "Starting core application"
-cd "../services/$BACKEND_DIR"
-air . &
-cd ..
-
 # Wait for all background processes to finish
 wait

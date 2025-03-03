@@ -43,7 +43,7 @@ func LoadConfig(filenames ...string) *ApplicationConfiguration {
 
 	err := godotenv.Load(filenames...)
 	if err != nil {
-		logger.Error("Error loading .env file: %v", err)
+		logger.Warn("Error loading .env file: %v", err)
 	}
 
 	config := &ApplicationConfiguration{

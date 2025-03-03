@@ -24,14 +24,13 @@ COPY . .
 RUN go mod download
 RUN go mod verify
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /main .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /main ./services/core
 
 FROM scratch
 
 COPY --from=base /etc/passwd /etc/passwd
 COPY --from=base /etc/group /etc/group
-COPY --from=base /main .
-COPY .env.template .env
+COPY --from=base ./main .
 
 ENV HOST=0.0.0.0
 ENV PORT=8080
