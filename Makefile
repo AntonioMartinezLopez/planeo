@@ -14,27 +14,40 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "Targets:"
-	@echo "  setup                  Install all dependencies and prepare dev environment."
-	@echo "  up                     Start up the dev environment."
-	@echo "  down                   Shut down the dev environment."
-	@echo "  run <service>          Run a service with Air auto-reloading."
+	@echo "  setup                  - Install all dependencies and prepare dev environment."
+	@echo "  login                  - User login to the dev environment."
+	@echo "  up                     - Start up the dev environment."
+	@echo "  down                   - Shut down the dev environment."
+	@echo "  run <service>          - Run a service with Air auto-reloading."
 	@echo "  test <service> [unit|integration]"
-	@echo "                         Test a service."
+	@echo "                         - Test a service."
 	@echo "  build <service> [VERSION=<tag>]"
-	@echo "                         Build a Docker image for a service."
-	@echo "  help                   Show this help message."
+	@echo "                         - Build a Docker image for a service."
+	@echo "  help                   - Show this help message."
 
 ## Install all dependencies and prepare dev environment.
 ## Usage: make setup
 setup:
 	@echo "Installing dependencies..."
 	cd dev && ./install.sh
+	@echo "Setting up the dev environment variables..."
+	cp ./dev/.env.template ./dev/.env
+	cp ./services/core/db/.envrc.template ./services/core/db/.envrc
+	cp ./services/core/.env.template ./services/core/.env
+
+## User login to the dev environment.
+## Usage: make login
+login:
+	@echo "Login to the dev environment..."
+	cd dev && ./get_test_token.sh
 
 ## Start up the dev environment.
 ## Usage: make up
 up:
 	@echo "Starting up the dev environment..."
 	cd dev && ./start.sh
+	@echo "Start migration of core database..."
+	cd ./services/core/db && source .envrc && goose up
 
 ## Shut down the dev environment.
 ## Usage: make down
