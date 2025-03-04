@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	jsonHelper "planeo/services/core/pkg/json"
-	"planeo/services/core/pkg/request"
+	jsonHelper "planeo/libs/json"
+	"planeo/libs/request"
 
 	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/testcontainers/testcontainers-go"

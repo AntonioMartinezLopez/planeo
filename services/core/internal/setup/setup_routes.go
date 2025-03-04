@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"planeo/libs/db"
 	"planeo/services/core/config"
 	cfg "planeo/services/core/config"
 	"planeo/services/core/internal/middlewares"
-	"planeo/services/core/pkg/db"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"

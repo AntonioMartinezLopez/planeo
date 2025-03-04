@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
-	"planeo/services/core/pkg/logger"
+	"planeo/libs/logger"
 
 	"github.com/joho/godotenv"
 )

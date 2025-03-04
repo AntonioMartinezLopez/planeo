@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"planeo/services/core/pkg/logger"
+	"planeo/libs/logger"
 	"time"
 )
 

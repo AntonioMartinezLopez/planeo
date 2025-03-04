@@ -2,8 +2,8 @@ package keycloak
 
 import (
 	"fmt"
-	jsonHelper "planeo/services/core/pkg/json"
-	"planeo/services/core/pkg/request"
+	jsonHelper "planeo/libs/json"
+	"planeo/libs/request"
 )
 
 func (kc *KeycloakAdminClient) AuthenticateAdmin() error {

@@ -2,7 +2,7 @@ package keycloak
 
 import (
 	"fmt"
-	"planeo/services/core/pkg/request"
+	"planeo/libs/request"
 )
 
 func (kc *KeycloakAdminClient) GetKeycloakUsers(groupId string) ([]KeycloakUser, error) {

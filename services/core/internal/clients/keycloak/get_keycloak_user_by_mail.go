@@ -3,7 +3,7 @@ package keycloak
 import (
 	"errors"
 	"fmt"
-	"planeo/services/core/pkg/request"
+	"planeo/libs/request"
 )
 
 func (kc *KeycloakAdminClient) GetKeycloakUserByEmail(email string) (*KeycloakUser, error) {

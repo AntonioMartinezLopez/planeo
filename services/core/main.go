@@ -6,8 +6,8 @@ import (
 	"planeo/services/core/config"
 	"planeo/services/core/internal/setup"
 
-	"planeo/services/core/pkg/db"
-	"planeo/services/core/pkg/logger"
+	"planeo/libs/db"
+	"planeo/libs/logger"
 	"time"
 )
 

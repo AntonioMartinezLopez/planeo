@@ -3,9 +3,9 @@ package middlewares
 import (
 	"context"
 	"net/http"
+	"planeo/libs/db"
+	"planeo/libs/logger"
 	cfg "planeo/services/core/config"
-	"planeo/services/core/pkg/db"
-	"planeo/services/core/pkg/logger"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"

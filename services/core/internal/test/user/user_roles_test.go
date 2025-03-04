@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"planeo/libs/db"
+	jsonHelper "planeo/libs/json"
 	"planeo/services/core/internal/clients/keycloak"
 	"planeo/services/core/internal/resources/user"
 	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"
 	"planeo/services/core/internal/setup"
 	"planeo/services/core/internal/test/utils"
-	"planeo/services/core/pkg/db"
-	jsonHelper "planeo/services/core/pkg/json"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2/humatest"

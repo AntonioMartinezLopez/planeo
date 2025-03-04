@@ -3,9 +3,9 @@ package keycloak
 import (
 	"fmt"
 	"io"
-	jsonHelper "planeo/services/core/pkg/json"
-	"planeo/services/core/pkg/logger"
-	"planeo/services/core/pkg/request"
+	jsonHelper "planeo/libs/json"
+	"planeo/libs/logger"
+	"planeo/libs/request"
 	"slices"
 )
 

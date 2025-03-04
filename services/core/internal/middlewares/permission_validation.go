@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"planeo/libs/request"
 	cfg "planeo/services/core/config"
-	"planeo/services/core/pkg/request"
 	"slices"
 	"strings"
 

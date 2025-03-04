@@ -2,9 +2,9 @@ package user
 
 import (
 	"context"
+	"planeo/libs/logger"
 	appError "planeo/services/core/internal/errors"
 	"planeo/services/core/internal/resources/user/models"
-	"planeo/services/core/pkg/logger"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

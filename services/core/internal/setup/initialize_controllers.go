@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"planeo/libs/db"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/clients/keycloak"
 	"planeo/services/core/internal/resources/announcement"
@@ -8,7 +9,6 @@ import (
 	"planeo/services/core/internal/resources/group"
 	"planeo/services/core/internal/resources/request"
 	"planeo/services/core/internal/resources/user"
-	"planeo/services/core/pkg/db"
 
 	"github.com/danielgtaylor/huma/v2"
 )

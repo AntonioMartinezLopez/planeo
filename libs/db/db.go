@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"planeo/services/core/pkg/logger"
+	"planeo/libs/logger"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool" // Standard library bindings for pgx

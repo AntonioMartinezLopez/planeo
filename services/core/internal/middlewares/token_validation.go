@@ -3,7 +3,7 @@ package middlewares
 import (
 	"errors"
 	"net/http"
-	"planeo/services/core/pkg/jwks"
+	"planeo/libs/jwks"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"

@@ -1,8 +1,8 @@
 package policies
 
 import (
+	"planeo/libs/logger"
 	"planeo/services/core/internal/clients/keycloak"
-	"planeo/services/core/pkg/logger"
 )
 
 type KeycloakAdminClientInterface interface {
