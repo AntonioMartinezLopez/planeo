@@ -6,9 +6,9 @@ import (
 	"planeo/libs/api"
 	"planeo/libs/db"
 	"planeo/libs/middlewares"
-	internal_middlewares "planeo/services/core/internal/middlewares"
 	"planeo/services/core/internal/resources/category"
 	"planeo/services/core/internal/resources/category/dto"
+	"planeo/services/core/internal/resources/organization"
 	"planeo/services/core/internal/test/utils"
 	"testing"
 
@@ -33,11 +33,12 @@ func TestCategoryIntegration(t *testing.T) {
 	categoryController := category.NewCategoryController(testApi, env.Configuration, categoryService)
 
 	// Register controllers
-	// setup.RegisterControllers(env.Configuration, api, db, []setup.Controller{categoryController})
 	api.RegisterControllers(env.Configuration, testApi, []api.Controller{categoryController}, func(a huma.API) {
 		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
 		a.UseMiddleware(middlewares.AuthMiddleware(a, jwksURL, env.Configuration.OauthIssuerUrl()))
-		a.UseMiddleware(internal_middlewares.OrganizationCheckMiddleware(a, env.Configuration, db))
+		a.UseMiddleware(middlewares.OrganizationCheckMiddleware(a, func(organizationId string) (string, error) {
+			return organization.GetOrganizationIamById(db.DB, organizationId)
+		}))
 	})
 
 	t.Run("GET /categories", func(t *testing.T) {

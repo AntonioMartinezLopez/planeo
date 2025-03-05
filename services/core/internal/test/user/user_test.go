@@ -10,7 +10,7 @@ import (
 	jsonHelper "planeo/libs/json"
 	"planeo/libs/middlewares"
 	"planeo/services/core/internal/clients/keycloak"
-	internal_middlewares "planeo/services/core/internal/middlewares"
+	"planeo/services/core/internal/resources/organization"
 	"planeo/services/core/internal/resources/user"
 	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"
@@ -47,7 +47,9 @@ func TestUserIntegration(t *testing.T) {
 	api.RegisterControllers(env.Configuration, testApi, []api.Controller{userController}, func(a huma.API) {
 		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
 		a.UseMiddleware(middlewares.AuthMiddleware(a, jwksURL, env.Configuration.OauthIssuerUrl()))
-		a.UseMiddleware(internal_middlewares.OrganizationCheckMiddleware(a, env.Configuration, db))
+		a.UseMiddleware(middlewares.OrganizationCheckMiddleware(a, func(organizationId string) (string, error) {
+			return organization.GetOrganizationIamById(db.DB, organizationId)
+		}))
 	})
 
 	t.Run("GET /admin/users", func(t *testing.T) {

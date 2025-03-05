@@ -7,7 +7,7 @@ import (
 	"planeo/libs/db"
 	jsonHelper "planeo/libs/json"
 	"planeo/libs/middlewares"
-	internal_middlewares "planeo/services/core/internal/middlewares"
+	"planeo/services/core/internal/resources/organization"
 	"planeo/services/core/internal/resources/request"
 	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/resources/request/models"
@@ -38,7 +38,9 @@ func TestRequestIntegration(t *testing.T) {
 	api.RegisterControllers(env.Configuration, testApi, []api.Controller{requestController}, func(a huma.API) {
 		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
 		a.UseMiddleware(middlewares.AuthMiddleware(a, jwksURL, env.Configuration.OauthIssuerUrl()))
-		a.UseMiddleware(internal_middlewares.OrganizationCheckMiddleware(a, env.Configuration, db))
+		a.UseMiddleware(middlewares.OrganizationCheckMiddleware(a, func(organizationId string) (string, error) {
+			return organization.GetOrganizationIamById(db.DB, organizationId)
+		}))
 	})
 
 	// table tests for creating and updating requests

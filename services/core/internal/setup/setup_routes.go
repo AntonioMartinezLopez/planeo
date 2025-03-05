@@ -8,9 +8,9 @@ import (
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/clients/keycloak"
-	internal_middlewares "planeo/services/core/internal/middlewares"
 	"planeo/services/core/internal/resources/category"
 	"planeo/services/core/internal/resources/group"
+	"planeo/services/core/internal/resources/organization"
 	"planeo/services/core/internal/resources/request"
 	"planeo/services/core/internal/resources/user"
 
@@ -27,7 +27,9 @@ func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *
 		api.RegisterControllers(config, humaAPI, controllers, func(api huma.API) {
 			jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl())
 			api.UseMiddleware(middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl()))
-			api.UseMiddleware(internal_middlewares.OrganizationCheckMiddleware(api, config, db))
+			api.UseMiddleware(middlewares.OrganizationCheckMiddleware(api, func(organizationId string) (string, error) {
+				return organization.GetOrganizationIamById(db.DB, organizationId)
+			}))
 		})
 	})
 }
