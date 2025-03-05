@@ -3,8 +3,8 @@ package request
 import (
 	"context"
 	"net/http"
+	"planeo/libs/middlewares"
 	"planeo/services/core/config"
-	"planeo/services/core/internal/middlewares"
 	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/setup/operations"
 	"planeo/services/core/internal/utils/huma_utils"
@@ -26,17 +26,18 @@ func NewRequestController(api huma.API, config *config.ApplicationConfiguration,
 	}
 }
 
-func (t *RequestController) InitializeRoutes() {
-	huma.Register(t.api, operations.WithAuth(huma.Operation{
+func (r *RequestController) InitializeRoutes() {
+	permissions := middlewares.NewPermissionMiddlewareConfig(r.api, r.config.OauthIssuerUrl(), r.config.KcOauthClientID)
+	huma.Register(r.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-requests",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/requests",
 		Summary:     "Get Requests",
 		Tags:        []string{"Requests"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "read")},
+		Middlewares: huma.Middlewares{permissions.Apply("request", "read")},
 	}), func(ctx context.Context, input *dto.GetRequestsInput) (*dto.GetRequestsOutput, error) {
 
-		result, err := t.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
+		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
 
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)
@@ -53,16 +54,16 @@ func (t *RequestController) InitializeRoutes() {
 		return resp, nil
 	})
 
-	huma.Register(t.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, operations.WithAuth(huma.Operation{
 		OperationID:   "create-request",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusCreated,
 		Path:          "/organizations/{organizationId}/requests",
 		Summary:       "Create Request",
 		Tags:          []string{"Requests"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "create")},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "create")},
 	}), func(ctx context.Context, input *dto.CreateRequestInput) (*struct{}, error) {
-		result := t.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
+		result := r.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
 
 		if result != nil {
 			return nil, huma_utils.NewHumaError(result)
@@ -70,17 +71,17 @@ func (t *RequestController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(t.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, operations.WithAuth(huma.Operation{
 		OperationID:   "update-request",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
 		Path:          "/organizations/{organizationId}/requests/{requestId}",
 		Summary:       "Update Request",
 		Tags:          []string{"Requests"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "update")},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "update")},
 	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*struct{}, error) {
 
-		err := t.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
+		err := r.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
 
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)
@@ -89,17 +90,17 @@ func (t *RequestController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(t.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, operations.WithAuth(huma.Operation{
 		OperationID:   "delete-request",
 		Method:        http.MethodDelete,
 		DefaultStatus: http.StatusNoContent,
 		Path:          "/organizations/{organizationId}/requests/{requestId}",
 		Summary:       "Delete Request",
 		Tags:          []string{"Requests"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(t.api, t.config, "request", "delete")},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteRequestInput) (*struct{}, error) {
 
-		err := t.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
+		err := r.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
 
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)

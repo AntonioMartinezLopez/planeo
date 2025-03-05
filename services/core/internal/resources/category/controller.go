@@ -3,8 +3,8 @@ package category
 import (
 	"context"
 	"net/http"
+	"planeo/libs/middlewares"
 	"planeo/services/core/config"
-	"planeo/services/core/internal/middlewares"
 	"planeo/services/core/internal/resources/category/dto"
 	"planeo/services/core/internal/setup/operations"
 	"planeo/services/core/internal/utils/huma_utils"
@@ -27,13 +27,14 @@ func NewCategoryController(api huma.API, config *config.ApplicationConfiguration
 }
 
 func (c *CategoryController) InitializeRoutes() {
+	permissions := middlewares.NewPermissionMiddlewareConfig(c.api, c.config.OauthIssuerUrl(), c.config.KcOauthClientID)
 	huma.Register(c.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-categories",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/categories",
 		Summary:     "Get Categories",
 		Tags:        []string{"Categories"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(c.api, c.config, "category", "read")},
+		Middlewares: huma.Middlewares{permissions.Apply("category", "read")},
 	}), func(ctx context.Context, input *dto.GetCategoriesInput) (*dto.GetCategoriesOutput, error) {
 		result, err := c.categoryService.GetCategories(ctx, input.OrganizationId)
 		if err != nil {
@@ -51,7 +52,7 @@ func (c *CategoryController) InitializeRoutes() {
 		Path:          "/organizations/{organizationId}/categories",
 		Summary:       "Create Category",
 		Tags:          []string{"Categories"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(c.api, c.config, "category", "create")},
+		Middlewares:   huma.Middlewares{permissions.Apply("category", "create")},
 	}), func(ctx context.Context, input *dto.CreateCategoryInput) (*struct{}, error) {
 		err := c.categoryService.CreateCategory(ctx, input.OrganizationId, input.Body)
 		if err != nil {
@@ -67,7 +68,7 @@ func (c *CategoryController) InitializeRoutes() {
 		Path:          "/organizations/{organizationId}/categories/{categoryId}",
 		Summary:       "Update Category",
 		Tags:          []string{"Categories"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(c.api, c.config, "category", "update")},
+		Middlewares:   huma.Middlewares{permissions.Apply("category", "update")},
 	}), func(ctx context.Context, input *dto.UpdateCategoryInput) (*struct{}, error) {
 		err := c.categoryService.UpdateCategory(ctx, input.OrganizationId, input.CategoryId, input.Body)
 		if err != nil {
@@ -83,7 +84,7 @@ func (c *CategoryController) InitializeRoutes() {
 		Path:          "/organizations/{organizationId}/categories/{categoryId}",
 		Summary:       "Delete Category",
 		Tags:          []string{"Categories"},
-		Middlewares:   huma.Middlewares{middlewares.PermissionMiddleware(c.api, c.config, "category", "delete")},
+		Middlewares:   huma.Middlewares{permissions.Apply("category", "delete")},
 	}), func(ctx context.Context, input *dto.DeleteCategoryInput) (*struct{}, error) {
 		err := c.categoryService.DeleteCategory(ctx, input.OrganizationId, input.CategoryId)
 		if err != nil {

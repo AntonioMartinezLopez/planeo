@@ -3,8 +3,8 @@ package group
 import (
 	"context"
 	"net/http"
+	"planeo/libs/middlewares"
 	"planeo/services/core/config"
-	"planeo/services/core/internal/middlewares"
 	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -26,13 +26,14 @@ func NewGroupController(api huma.API, config *config.ApplicationConfiguration) *
 }
 
 func (g *GroupController) InitializeRoutes() {
+	permissions := middlewares.NewPermissionMiddlewareConfig(g.api, g.config.OauthIssuerUrl(), g.config.KcOauthClientID)
 	huma.Register(g.api, operations.WithAuth(huma.Operation{
 		OperationID: "get-group",
 		Method:      http.MethodGet,
 		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Get Group",
 		Tags:        []string{"Groups"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(g.api, g.config, "group", "read")},
+		Middlewares: huma.Middlewares{permissions.Apply("group", "read")},
 	}), func(ctx context.Context, input *GetGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
 		result, err := g.groupService.GetGroup(input.GroupId)
@@ -50,7 +51,7 @@ func (g *GroupController) InitializeRoutes() {
 		Path:        "/{organization}/groups",
 		Summary:     "Create Group",
 		Tags:        []string{"Groups"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(g.api, g.config, "group", "create")},
+		Middlewares: huma.Middlewares{permissions.Apply("group", "create")},
 	}), func(ctx context.Context, input *CreateGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
 		result := g.groupService.CreateGroup()
@@ -64,7 +65,7 @@ func (g *GroupController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Update Group",
 		Tags:        []string{"Groups"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(g.api, g.config, "group", "update")},
+		Middlewares: huma.Middlewares{permissions.Apply("group", "update")},
 	}), func(ctx context.Context, input *UpdateGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
 		result := g.groupService.UpdateGroup(input.GroupId)
@@ -78,7 +79,7 @@ func (g *GroupController) InitializeRoutes() {
 		Path:        "/{organization}/groups/{groupId}",
 		Summary:     "Delete Group",
 		Tags:        []string{"Groups"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(g.api, g.config, "group", "delete")},
+		Middlewares: huma.Middlewares{permissions.Apply("group", "delete")},
 	}), func(ctx context.Context, input *DeleteGroupInput) (*GroupOutput, error) {
 		resp := &GroupOutput{}
 		result := g.groupService.DeleteGroup(input.GroupId)
@@ -92,7 +93,7 @@ func (g *GroupController) InitializeRoutes() {
 		Path:        "/{organization}/groups",
 		Summary:     "Get Groups",
 		Tags:        []string{"Groups"},
-		Middlewares: huma.Middlewares{middlewares.PermissionMiddleware(g.api, g.config, "group", "read")},
+		Middlewares: huma.Middlewares{permissions.Apply("group", "read")},
 	}), func(ctx context.Context, input *struct{}) (*GroupOutput, error) {
 		resp := &GroupOutput{}
 		result := g.groupService.GetGroups()

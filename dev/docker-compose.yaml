@@ -9,6 +9,8 @@ services:
       POSTGRES_DB: planeo
     ports:
       - "5432:5432"
+    volumes:
+      - ./mail_service_init.sh:/docker-entrypoint-initdb.d/mail_service_init.sh
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4_container

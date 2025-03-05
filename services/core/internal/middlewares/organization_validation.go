@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"planeo/libs/db"
 	"planeo/libs/logger"
+	"planeo/libs/middlewares"
 	cfg "planeo/services/core/config"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 )
 
-func verifyAccess(accessClaims *OauthAccessClaims, organization string) bool {
+func verifyAccess(accessClaims *middlewares.OauthAccessClaims, organization string) bool {
 	return accessClaims.IsWithinOrganisation(organization)
 }
 
@@ -49,7 +50,7 @@ func resolveOrganization(organizationId string, database *db.DBConnection) (stri
 func OrganizationCheckMiddleware(api huma.API, config *cfg.ApplicationConfiguration, database *db.DBConnection) func(ctx huma.Context, next func(huma.Context)) {
 
 	return func(ctx huma.Context, next func(huma.Context)) {
-		accessClaims, assertionCorrect := ctx.Context().Value(AccessClaimsContextKey{}).(*OauthAccessClaims)
+		accessClaims, assertionCorrect := ctx.Context().Value(middlewares.AccessClaimsContextKey{}).(*middlewares.OauthAccessClaims)
 
 		if !assertionCorrect {
 			logger.Error("Assertion not correct")

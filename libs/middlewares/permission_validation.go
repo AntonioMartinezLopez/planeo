@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"planeo/libs/request"
-	cfg "planeo/services/core/config"
 	"slices"
 	"strings"
 
@@ -69,20 +68,33 @@ func fetchUserPermissions(issuer string, audience string, token string) (*[]Perm
 	return &permissions, nil
 }
 
-func PermissionMiddleware(api huma.API, config *cfg.ApplicationConfiguration, resourceName string, permission string) func(ctx huma.Context, next func(huma.Context)) {
+type PermissionMiddlewareConfig struct {
+	api       huma.API
+	IssuerUrl string
+	ClientId  string
+}
 
+func NewPermissionMiddlewareConfig(api huma.API, issuerUrl string, clientId string) *PermissionMiddlewareConfig {
+	return &PermissionMiddlewareConfig{
+		api:       api,
+		IssuerUrl: issuerUrl,
+		ClientId:  clientId,
+	}
+}
+
+func (p *PermissionMiddlewareConfig) Apply(resourceName string, permission string) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		accessToken, assertionCorrect := ctx.Context().Value(AccessTokenContextKey{}).(string)
 
 		if !assertionCorrect {
-			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
+			huma.WriteErr(p.api, ctx, http.StatusForbidden, "Forbidden")
 			return
 		}
 
-		permissions, err := fetchUserPermissions(config.OauthIssuerUrl(), config.KcOauthClientID, accessToken)
+		permissions, err := fetchUserPermissions(p.IssuerUrl, p.ClientId, accessToken)
 
 		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())
+			huma.WriteErr(p.api, ctx, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -93,6 +105,6 @@ func PermissionMiddleware(api huma.API, config *cfg.ApplicationConfiguration, re
 			}
 		}
 
-		huma.WriteErr(api, ctx, http.StatusUnauthorized, "no permission")
+		huma.WriteErr(p.api, ctx, http.StatusUnauthorized, "no permission")
 	}
 }
