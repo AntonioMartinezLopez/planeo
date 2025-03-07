@@ -34,6 +34,7 @@ setup:
 	cp ./dev/.env.template ./dev/.env
 	cp ./services/core/db/.envrc.template ./services/core/db/.envrc
 	cp ./services/core/.env.template ./services/core/.env
+	cp ./services/email/.env.template ./services/email/.env
 
 ## User login to the dev environment.
 ## Usage: make login
@@ -48,6 +49,8 @@ up:
 	cd dev && ./start.sh
 	@echo "Start migration of core database..."
 	cd ./services/core/db && source .envrc && goose up
+	@echo "Start migration of email database..."
+	cd ./services/email/db && source .envrc && goose up
 
 ## Shut down the dev environment.
 ## Usage: make down

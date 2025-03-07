@@ -6,6 +6,8 @@ import (
 	"planeo/libs/db"
 	"planeo/libs/middlewares"
 	"planeo/services/email/config"
+	"planeo/services/email/internal"
+	"planeo/services/email/internal/resources/settings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
@@ -25,5 +27,13 @@ func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *
 }
 
 func InitializeControllers(humaAPi huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []api.Controller {
-	return []api.Controller{}
+
+	settingsRepository := settings.NewSettingsRepository(db.DB)
+	settingsService := settings.NewSettingsService(settingsRepository)
+	settingsController := settings.NewSettingsController(humaAPi, config, settingsService)
+
+	cronService := internal.NewCronService(settingsRepository)
+	cronService.Start()
+
+	return []api.Controller{settingsController}
 }

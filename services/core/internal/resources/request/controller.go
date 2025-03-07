@@ -3,11 +3,11 @@ package request
 import (
 	"context"
 	"net/http"
+	"planeo/libs/huma_utils"
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/setup/operations"
-	"planeo/services/core/internal/utils/huma_utils"
 
 	"github.com/danielgtaylor/huma/v2"
 )

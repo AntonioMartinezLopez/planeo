@@ -2,7 +2,7 @@ package user
 
 import (
 	"context"
-	appError "planeo/services/core/internal/errors"
+	appError "planeo/libs/errors"
 	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"
 )

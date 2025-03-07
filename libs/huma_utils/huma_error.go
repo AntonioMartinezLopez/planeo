@@ -2,7 +2,7 @@ package huma_utils
 
 import (
 	"errors"
-	appError "planeo/services/core/internal/errors"
+	appError "planeo/libs/errors"
 
 	"github.com/danielgtaylor/huma/v2"
 )

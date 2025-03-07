@@ -2,7 +2,7 @@ package request
 
 import (
 	"context"
-	appError "planeo/services/core/internal/errors"
+	appError "planeo/libs/errors"
 	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/resources/request/models"
 

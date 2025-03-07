@@ -1,9 +1,9 @@
 package user
 
 import (
+	appError "planeo/libs/errors"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/clients/keycloak"
-	appError "planeo/services/core/internal/errors"
 	"planeo/services/core/internal/resources/user/acl"
 	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"

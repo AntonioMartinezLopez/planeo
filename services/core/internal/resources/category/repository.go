@@ -2,7 +2,7 @@ package category
 
 import (
 	"context"
-	appError "planeo/services/core/internal/errors"
+	appError "planeo/libs/errors"
 	"planeo/services/core/internal/resources/category/dto"
 	"planeo/services/core/internal/resources/category/models"
 
