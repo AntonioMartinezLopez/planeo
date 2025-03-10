@@ -26,7 +26,7 @@ type GetSettingOutput struct {
 // POST Setting
 type CreateSettingInputBody struct {
 	Host     string `json:"host" doc:"IMAP host" example:"imap.example.com" validate:"required"`
-	Port     string `json:"port" doc:"IMAP port" example:"587" validate:"required"`
+	Port     int    `json:"port" doc:"IMAP port" example:"587" validate:"required"`
 	Username string `json:"username" doc:"IMAP username" example:"user@example.com"`
 	Password string `json:"password" doc:"IMAP password" example:"password123"`
 }
@@ -39,7 +39,7 @@ type CreateSettingInput struct {
 // UPDATE Setting
 type UpdateSettingInputBody struct {
 	Host     string `json:"host" doc:"IMAP host" example:"imap.example.com" validate:"required"`
-	Port     string `json:"port" doc:"IMAP port" example:"587" validate:"required"`
+	Port     int    `json:"port" doc:"IMAP port" example:"587" validate:"required"`
 	Username string `json:"username" doc:"IMAP username" example:"user@example.com"`
 	Password string `json:"password" doc:"IMAP password" example:"password123"`
 }

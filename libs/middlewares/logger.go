@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 
-	"planeo/libs/logger" // Replace with your actual import path
+	"planeo/libs/logger"
 )
 
 // LoggerMiddleware adds a request-scoped logger to the context and logs request details
@@ -29,9 +29,6 @@ func LoggerMiddleware(next http.Handler) http.Handler {
 			Str(logger.FieldMethod, r.Method).
 			Str(logger.FieldPath, r.URL.Path).
 			Logger()
-
-		// Log request start
-		requestLogger.Info().Msg("Request started")
 
 		// Create a wrapper to capture response details
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)

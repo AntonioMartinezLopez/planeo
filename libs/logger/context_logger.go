@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -33,9 +34,19 @@ type Config struct {
 
 // DefaultConfig returns a default logger configuration
 func DefaultConfig() Config {
+	envVariable, _ := os.LookupEnv("CONTAINER_ENV")
+
+	logLevel := "debug"
+	pretty := true
+
+	if envVariable == "production" {
+		logLevel = "info"
+		pretty = false
+	}
+	fmt.Println(envVariable)
 	return Config{
-		Level:      "info",
-		Pretty:     false,
+		Level:      logLevel,
+		Pretty:     pretty,
 		TimeFormat: time.RFC3339,
 		Output:     os.Stdout,
 	}

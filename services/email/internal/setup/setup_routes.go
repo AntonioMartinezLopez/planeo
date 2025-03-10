@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"context"
 	"fmt"
 	"planeo/libs/api"
 	"planeo/libs/db"
@@ -16,7 +17,7 @@ import (
 func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *chi.Mux {
 	return api.SetupRouter(config, "/api", func(r chi.Router, humaAPI huma.API) {
 		// Initialize controllers
-		controllers := InitializeControllers(humaAPI, config, db)
+		controllers := InitializeApplication(humaAPI, config, db)
 
 		// Register controllers with middleware setup
 		api.RegisterControllers(config, humaAPI, controllers, func(api huma.API) {
@@ -26,14 +27,20 @@ func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *
 	})
 }
 
-func InitializeControllers(humaAPi huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []api.Controller {
+func InitializeApplication(humaAPi huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []api.Controller {
 
 	settingsRepository := settings.NewSettingsRepository(db.DB)
 	settingsService := settings.NewSettingsService(settingsRepository)
 	settingsController := settings.NewSettingsController(humaAPi, config, settingsService)
 
-	cronService := internal.NewCronService(settingsRepository)
+	cronService := internal.NewCronService()
 	cronService.Start()
+	emailService := internal.NewEmailService(cronService)
+	settings, err := settingsRepository.GetAllSettings(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	emailService.StartFetching(settings)
 
 	return []api.Controller{settingsController}
 }

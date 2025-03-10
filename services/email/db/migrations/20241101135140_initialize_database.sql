@@ -5,7 +5,7 @@
 CREATE TABLE settings (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     host TEXT NOT NULL,
-    port TEXT NOT NULL,
+    port INTEGER NOT NULL,
     username TEXT NOT NULL,
     password TEXT NOT NULL,
     organization_id INTEGER NOT NULL,
@@ -29,7 +29,7 @@ EXECUTE FUNCTION update_updated_at_column();
 
 -- add default data
 INSERT INTO settings (host, port, username, password, organization_id)
-VALUES ('smtp.gmail.com', '587', 'test.test@test.de', 'test', 1);
+VALUES ('localhost', 3143, 'test@test.de', 'test', 1);
 
 -- +goose StatementEnd
 

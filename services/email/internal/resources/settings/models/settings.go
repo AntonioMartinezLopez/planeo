@@ -7,7 +7,7 @@ import (
 type Setting struct {
 	ID             int       `json:"id" pgx:"id"`
 	Host           string    `json:"host" pgx:"host"`
-	Port           string    `json:"port" pgx:"port"`
+	Port           int       `json:"port" pgx:"port"`
 	Username       string    `json:"username" pgx:"username"`
 	Password       string    `json:"password" pgx:"password"`
 	OrganizationID int       `json:"organization_id" pgx:"organization_id"`

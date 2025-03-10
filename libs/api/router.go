@@ -25,7 +25,8 @@ type Controller interface {
 // SetupRouter creates and configures a chi Router with common middleware
 func SetupRouter(config RouterConfig, basePath string, setupFunc func(r chi.Router, api huma.API)) *chi.Mux {
 	router := chi.NewRouter()
-	router.Use(middleware.Logger)
+	// router.Use(middleware.Logger)
+	router.Use(middlewares.LoggerMiddleware)
 	router.Use(middleware.Recoverer)
 	router.Use(middlewares.Cors())
 

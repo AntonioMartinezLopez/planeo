@@ -1,75 +1,90 @@
 package internal
 
 import (
-	"context"
 	"planeo/libs/logger"
-	"planeo/services/email/internal/resources/settings/models"
-	"strconv"
+	"slices"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
-type SettingsRepositoryInterface interface {
-	GetAllSettings(ctx context.Context) ([]models.Setting, error)
-}
-
 type CronService struct {
-	settingsRepository SettingsRepositoryInterface
-	scheduler          gocron.Scheduler
+	scheduler gocron.Scheduler
+	logger    zerolog.Logger
 }
 
-func NewCronService(settingsRepository SettingsRepositoryInterface) *CronService {
+func NewCronService() *CronService {
 
 	scheduler, err := gocron.NewScheduler(
 		gocron.WithLimitConcurrentJobs(20, gocron.LimitModeWait),
 	)
+
+	logger := logger.New("cron-service")
 
 	if err != nil {
 		panic(err)
 	}
 
 	return &CronService{
-		settingsRepository: settingsRepository,
-		scheduler:          scheduler,
+		scheduler: scheduler,
+		logger:    logger,
+	}
+}
+
+func (s *CronService) AddJob(task func(), fetchInterval time.Duration, tags []string) {
+
+	_, err := s.scheduler.NewJob(
+		gocron.DurationJob(fetchInterval),
+		gocron.NewTask(task),
+		gocron.WithTags(tags...),
+		gocron.WithEventListeners(
+			gocron.AfterJobRunsWithError(
+				func(jobID uuid.UUID, jobName string, err error) {
+					s.logger.Error().Msgf("Job with id %s has failed: %s", jobID.String(), err.Error())
+				},
+			),
+		),
+	)
+
+	if err != nil {
+		s.logger.Fatal().Msgf("Error scheduling job: %s", err.Error())
 	}
 }
 
 func (s *CronService) Start() {
+	s.scheduler.Start()
+}
 
-	// Get all settings
-	settings, err := s.settingsRepository.GetAllSettings(context.Background())
+func (s *CronService) Stop() {
+	s.scheduler.StopJobs()
+}
 
-	if err != nil {
-		logger.Fatal("Error retrieving settings: %s", err.Error())
-	}
-	logger.Info("Settings retrieved: %d", len(settings))
-
-	// Schedule jobs
-	for _, setting := range settings {
-		_, err := s.scheduler.NewJob(
-			gocron.DurationJob(10*time.Second),
-			gocron.NewTask(func() {
-				logger.Info("Running job for setting: %d", setting.ID)
-			}),
-			gocron.WithEventListeners(
-				gocron.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
-					logger.Info("Job with id %s is about to run", jobID.String())
-				}),
-				gocron.AfterJobRunsWithError(
-					func(jobID uuid.UUID, jobName string, err error) {
-						logger.Error("Job with id %s has failed: %s", jobID.String(), err.Error())
-					},
-				),
-			),
-			gocron.WithTags(strconv.Itoa(setting.ID)),
-		)
-
-		if err != nil {
-			logger.Fatal("Error scheduling job: %s", err.Error())
+func (s *CronService) GetJob(id uuid.UUID) *gocron.Job {
+	jobs := s.scheduler.Jobs()
+	for _, job := range jobs {
+		if job.ID() == id {
+			return &job
 		}
 	}
+	return nil
+}
 
-	s.scheduler.Start()
+func (s *CronService) GetJobByTag(tag string) *gocron.Job {
+	jobs := s.scheduler.Jobs()
+	for _, job := range jobs {
+		if slices.Contains(job.Tags(), tag) {
+			return &job
+		}
+	}
+	return nil
+}
+
+func (s *CronService) RemoveJob(id uuid.UUID) error {
+	return s.scheduler.RemoveJob(id)
+}
+
+func (s *CronService) RemoveJobByTag(tag string) {
+	s.scheduler.RemoveByTags(tag)
 }

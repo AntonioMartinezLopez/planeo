@@ -14,13 +14,20 @@ func main() {
 
 	ctx := context.Background()
 
+	// Initialize logger
+	logConfig := logger.DefaultConfig()
+	logger.Setup(logConfig)
+	logger := logger.New("main")
+
 	// server configuration
-	logger.Log("Loading configuration")
+	logger.Info().Msg("Loading environment variables")
 	config := config.LoadConfig()
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
 	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
+
+	// initilalize cron service
 
 	// initialize api
 	router := setup.SetupRouter(config, db)
@@ -34,6 +41,6 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	logger.Log("Server Running at %s", serverConfig)
-	logger.Fatal("%v", server.ListenAndServe())
+	logger.Info().Msgf("Server Running at %s", serverConfig)
+	logger.Fatal().Msgf("%v", server.ListenAndServe())
 }
