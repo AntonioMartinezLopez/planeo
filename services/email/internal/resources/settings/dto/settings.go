@@ -55,3 +55,8 @@ type DeleteSettingInput struct {
 	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
 	SettingId      int `path:"settingId" doc:"ID of the email setting"`
 }
+
+// Test Connection
+type TestSettingInput struct {
+	Body CreateSettingInputBody
+}

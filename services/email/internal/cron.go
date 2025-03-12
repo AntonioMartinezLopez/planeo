@@ -2,7 +2,6 @@ package internal
 
 import (
 	"planeo/libs/logger"
-	"slices"
 	"time"
 
 	"github.com/go-co-op/gocron/v2"
@@ -61,30 +60,11 @@ func (s *CronService) Stop() {
 	s.scheduler.StopJobs()
 }
 
-func (s *CronService) GetJob(id uuid.UUID) *gocron.Job {
-	jobs := s.scheduler.Jobs()
-	for _, job := range jobs {
-		if job.ID() == id {
-			return &job
-		}
-	}
-	return nil
-}
-
-func (s *CronService) GetJobByTag(tag string) *gocron.Job {
-	jobs := s.scheduler.Jobs()
-	for _, job := range jobs {
-		if slices.Contains(job.Tags(), tag) {
-			return &job
-		}
-	}
-	return nil
-}
-
 func (s *CronService) RemoveJob(id uuid.UUID) error {
 	return s.scheduler.RemoveJob(id)
 }
 
 func (s *CronService) RemoveJobByTag(tag string) {
+	s.logger.Info().Msgf("Removing jobs with tag: %s", tag)
 	s.scheduler.RemoveByTags(tag)
 }

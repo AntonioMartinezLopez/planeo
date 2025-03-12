@@ -113,6 +113,30 @@ func (s *SettingsController) InitializeRoutes() {
 			return nil, humaUtils.NewHumaError(err)
 		}
 
-		return &struct{}{}, nil
+		return nil, nil
 	})
+
+	// Test a setting
+	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "test-setting",
+		Method:        http.MethodPost,
+		DefaultStatus: http.StatusOK,
+		Path:          "/settings/test",
+		Summary:       "Test an email setting",
+		Tags:          []string{"Settings"},
+		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
+	}), func(ctx context.Context, input *dto.TestSettingInput) (*struct{}, error) {
+		err := s.settingsService.TestConnection(ctx, models.Setting{
+			Host:     input.Body.Host,
+			Port:     input.Body.Port,
+			Username: input.Body.Username,
+			Password: input.Body.Password,
+		})
+		if err != nil {
+			return nil, humaUtils.NewHumaError(err)
+		}
+
+		return nil, nil
+	})
+
 }

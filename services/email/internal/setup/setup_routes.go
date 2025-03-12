@@ -1,7 +1,6 @@
 package setup
 
 import (
-	"context"
 	"fmt"
 	"planeo/libs/api"
 	"planeo/libs/db"
@@ -29,18 +28,14 @@ func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *
 
 func InitializeApplication(humaAPi huma.API, config *config.ApplicationConfiguration, db *db.DBConnection) []api.Controller {
 
-	settingsRepository := settings.NewSettingsRepository(db.DB)
-	settingsService := settings.NewSettingsService(settingsRepository)
-	settingsController := settings.NewSettingsController(humaAPi, config, settingsService)
-
 	cronService := internal.NewCronService()
 	cronService.Start()
-	emailService := internal.NewEmailService(cronService)
-	settings, err := settingsRepository.GetAllSettings(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	emailService.StartFetching(settings)
+	imapService := internal.NewIMAPService()
+	emailService := internal.NewEmailService(cronService, imapService)
+
+	settingsRepository := settings.NewSettingsRepository(db.DB)
+	settingsService := settings.NewSettingsService(settingsRepository, emailService)
+	settingsController := settings.NewSettingsController(humaAPi, config, settingsService)
 
 	return []api.Controller{settingsController}
 }
