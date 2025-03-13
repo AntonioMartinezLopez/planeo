@@ -64,7 +64,7 @@ func (repo *SettingsRepository) GetSettings(ctx context.Context, organizationId 
 	return settings, nil
 }
 
-func (repo *SettingsRepository) CreateSetting(ctx context.Context, setting models.Setting) (models.Setting, error) {
+func (repo *SettingsRepository) CreateSetting(ctx context.Context, setting models.NewSetting) (models.Setting, error) {
 	query := `
 	INSERT INTO settings (host, port, username, password, organization_id) 
 	VALUES (@host, @port, @username, @password, @organizationId)
@@ -96,7 +96,7 @@ func (repo *SettingsRepository) CreateSetting(ctx context.Context, setting model
 	return createdSetting, nil
 }
 
-func (repo *SettingsRepository) UpdateSetting(ctx context.Context, setting models.Setting) (models.Setting, error) {
+func (repo *SettingsRepository) UpdateSetting(ctx context.Context, setting models.UpdateSetting) (models.Setting, error) {
 	query := `
 	UPDATE settings SET host = @host, port = @port, username = @username, password = @password 
 	WHERE id = @settingId AND organization_id = @organizationId

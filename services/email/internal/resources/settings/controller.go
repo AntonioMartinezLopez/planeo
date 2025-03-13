@@ -57,7 +57,7 @@ func (s *SettingsController) InitializeRoutes() {
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
 	}), func(ctx context.Context, input *dto.CreateSettingInput) (*struct{}, error) {
-		setting := models.Setting{
+		setting := models.NewSetting{
 			Host:           input.Body.Host,
 			Port:           input.Body.Port,
 			Username:       input.Body.Username,
@@ -82,7 +82,7 @@ func (s *SettingsController) InitializeRoutes() {
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
 	}), func(ctx context.Context, input *dto.UpdateSettingInput) (*struct{}, error) {
-		setting := models.Setting{
+		setting := models.UpdateSetting{
 			ID:             input.SettingId,
 			Host:           input.Body.Host,
 			Port:           input.Body.Port,

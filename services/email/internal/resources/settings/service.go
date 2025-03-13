@@ -7,8 +7,8 @@ import (
 
 type SettingsRepositoryInterface interface {
 	GetSettings(ctx context.Context, organizationId int) ([]models.Setting, error)
-	CreateSetting(ctx context.Context, setting models.Setting) (models.Setting, error)
-	UpdateSetting(ctx context.Context, setting models.Setting) (models.Setting, error)
+	CreateSetting(ctx context.Context, setting models.NewSetting) (models.Setting, error)
+	UpdateSetting(ctx context.Context, setting models.UpdateSetting) (models.Setting, error)
 	DeleteSetting(ctx context.Context, organizationId int, settingId int) error
 	GetAllSettings(ctx context.Context) ([]models.Setting, error)
 }
@@ -46,7 +46,7 @@ func (s *SettingsService) GetSettings(ctx context.Context, organizationId int) (
 	return s.settingsRepository.GetSettings(ctx, organizationId)
 }
 
-func (s *SettingsService) CreateSetting(ctx context.Context, setting models.Setting) error {
+func (s *SettingsService) CreateSetting(ctx context.Context, setting models.NewSetting) error {
 	createdSetting, err := s.settingsRepository.CreateSetting(ctx, setting)
 
 	if err == nil {
@@ -57,7 +57,7 @@ func (s *SettingsService) CreateSetting(ctx context.Context, setting models.Sett
 
 }
 
-func (s *SettingsService) UpdateSetting(ctx context.Context, setting models.Setting) error {
+func (s *SettingsService) UpdateSetting(ctx context.Context, setting models.UpdateSetting) error {
 	updatedSetting, err := s.settingsRepository.UpdateSetting(ctx, setting)
 	if err != nil {
 		return err
