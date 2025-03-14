@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"time"
@@ -43,7 +42,7 @@ func DefaultConfig() Config {
 		logLevel = "info"
 		pretty = false
 	}
-	fmt.Println(envVariable)
+
 	return Config{
 		Level:      logLevel,
 		Pretty:     pretty,
