@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"planeo/libs/logger"
@@ -35,33 +36,35 @@ func (config *ApplicationConfiguration) OauthIssuerUrl() string {
 	return fmt.Sprintf("%s/realms/%s", config.KcBaseUrl, config.KcIssuer)
 }
 
-func LoadConfig(filenames ...string) *ApplicationConfiguration {
+func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfiguration {
 
 	err := godotenv.Load(filenames...)
 	if err != nil {
-		logger.Warn("Error loading .env file: %v", err)
+		logger := logger.FromContext(ctx)
+		logger.Warn().Err(err).Msg("Error loading .env file")
 	}
 
 	config := &ApplicationConfiguration{
-		Host:            readEnvVariable("HOST"),
-		Port:            readEnvVariable("PORT"),
-		DbHost:          readEnvVariable("DB_HOST"),
-		DbPort:          readEnvVariable("DB_PORT"),
-		DbUser:          readEnvVariable("DB_USER"),
-		DbPassword:      readEnvVariable("DB_PASSWORD"),
-		DbName:          readEnvVariable("DB_NAME"),
-		KcBaseUrl:       readEnvVariable("KC_BASE_URL"),
-		KcIssuer:        readEnvVariable("KC_ISSUER_REALM"),
-		KcOauthClientID: readEnvVariable("KC_OAUTH_CLIENT_ID"),
+		Host:            readEnvVariable(ctx, "HOST"),
+		Port:            readEnvVariable(ctx, "PORT"),
+		DbHost:          readEnvVariable(ctx, "DB_HOST"),
+		DbPort:          readEnvVariable(ctx, "DB_PORT"),
+		DbUser:          readEnvVariable(ctx, "DB_USER"),
+		DbPassword:      readEnvVariable(ctx, "DB_PASSWORD"),
+		DbName:          readEnvVariable(ctx, "DB_NAME"),
+		KcBaseUrl:       readEnvVariable(ctx, "KC_BASE_URL"),
+		KcIssuer:        readEnvVariable(ctx, "KC_ISSUER_REALM"),
+		KcOauthClientID: readEnvVariable(ctx, "KC_OAUTH_CLIENT_ID"),
 	}
 
 	return config
 }
 
-func readEnvVariable(envName string) string {
+func readEnvVariable(ctx context.Context, envName string) string {
 	envVariable, envExists := os.LookupEnv(envName)
 	if !envExists {
-		logger.Fatal("Missing env variable '%s'. Aborting...\n", envName)
+		logger := logger.FromContext(ctx)
+		logger.Fatal().Msgf("Missing env variable '%s'. Aborting...\n", envName)
 	}
 
 	return envVariable

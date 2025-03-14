@@ -3,7 +3,7 @@ package category
 import (
 	"context"
 	appError "planeo/libs/errors"
-	"planeo/services/core/internal/resources/category/dto"
+	"planeo/libs/logger"
 	"planeo/services/core/internal/resources/category/models"
 
 	"github.com/jackc/pgx/v5"
@@ -26,6 +26,8 @@ func (repo *CategoryRepository) GetCategories(ctx context.Context, organizationI
 
 	rows, err := repo.db.Query(ctx, query, args)
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetCategories").Msg("Error querying database")
 		return nil, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 	defer rows.Close()
@@ -33,7 +35,7 @@ func (repo *CategoryRepository) GetCategories(ctx context.Context, organizationI
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Category])
 }
 
-func (repo *CategoryRepository) CreateCategory(ctx context.Context, organizationId int, category dto.CreateCategoryInputBody) error {
+func (repo *CategoryRepository) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error {
 	query := `
         INSERT INTO categories (label, color, label_description, organization_id)
         VALUES (@label, @color, @labelDescription, @organizationId)`
@@ -47,13 +49,15 @@ func (repo *CategoryRepository) CreateCategory(ctx context.Context, organization
 
 	_, err := repo.db.Exec(ctx, query, args)
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "CreateCategory").Msg("Error querying database")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return nil
 }
 
-func (repo *CategoryRepository) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category dto.UpdateCategoryInputBody) error {
+func (repo *CategoryRepository) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category models.UpdateCategory) error {
 	query := `
         UPDATE categories
         SET label = @label, color = @color, label_description = @labelDescription
@@ -69,6 +73,8 @@ func (repo *CategoryRepository) UpdateCategory(ctx context.Context, organization
 
 	result, err := repo.db.Exec(ctx, query, args)
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "UpdateCategory").Msg("Error querying database")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
@@ -88,6 +94,8 @@ func (repo *CategoryRepository) DeleteCategory(ctx context.Context, organization
 
 	result, err := repo.db.Exec(ctx, query, args)
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "DeleteCategory").Msg("Error querying database")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 

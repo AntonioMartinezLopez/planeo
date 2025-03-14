@@ -7,6 +7,7 @@ import (
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/category/dto"
+	"planeo/services/core/internal/resources/category/models"
 	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -54,7 +55,13 @@ func (c *CategoryController) InitializeRoutes() {
 		Tags:          []string{"Categories"},
 		Middlewares:   huma.Middlewares{permissions.Apply("category", "create")},
 	}), func(ctx context.Context, input *dto.CreateCategoryInput) (*struct{}, error) {
-		err := c.categoryService.CreateCategory(ctx, input.OrganizationId, input.Body)
+		category := models.NewCategory{
+			Label:            input.Body.Label,
+			Color:            input.Body.Color,
+			LabelDescription: input.Body.LabelDescription,
+			OrganizationId:   input.OrganizationId,
+		}
+		err := c.categoryService.CreateCategory(ctx, input.OrganizationId, category)
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)
 		}
@@ -70,7 +77,14 @@ func (c *CategoryController) InitializeRoutes() {
 		Tags:          []string{"Categories"},
 		Middlewares:   huma.Middlewares{permissions.Apply("category", "update")},
 	}), func(ctx context.Context, input *dto.UpdateCategoryInput) (*struct{}, error) {
-		err := c.categoryService.UpdateCategory(ctx, input.OrganizationId, input.CategoryId, input.Body)
+		category := models.UpdateCategory{
+			Id:               input.CategoryId,
+			Label:            input.Body.Label,
+			Color:            input.Body.Color,
+			LabelDescription: input.Body.LabelDescription,
+			OrganizationId:   input.OrganizationId,
+		}
+		err := c.categoryService.UpdateCategory(ctx, input.OrganizationId, input.CategoryId, category)
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)
 		}

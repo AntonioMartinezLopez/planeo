@@ -7,6 +7,7 @@ import (
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/request/dto"
+	"planeo/services/core/internal/resources/request/models"
 	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -63,7 +64,17 @@ func (r *RequestController) InitializeRoutes() {
 		Tags:          []string{"Requests"},
 		Middlewares:   huma.Middlewares{permissions.Apply("request", "create")},
 	}), func(ctx context.Context, input *dto.CreateRequestInput) (*struct{}, error) {
-		result := r.requestService.CreateRequest(ctx, input.OrganizationId, input.Body)
+		request := models.NewRequest{
+			Text:           input.Body.Text,
+			Name:           input.Body.Name,
+			Email:          input.Body.Email,
+			Address:        input.Body.Address,
+			Telephone:      input.Body.Telephone,
+			Closed:         input.Body.Closed,
+			OrganizationId: input.OrganizationId,
+			CategoryId:     input.Body.CategoryId,
+		}
+		result := r.requestService.CreateRequest(ctx, request)
 
 		if result != nil {
 			return nil, huma_utils.NewHumaError(result)
@@ -81,7 +92,18 @@ func (r *RequestController) InitializeRoutes() {
 		Middlewares:   huma.Middlewares{permissions.Apply("request", "update")},
 	}), func(ctx context.Context, input *dto.UpdateRequestInput) (*struct{}, error) {
 
-		err := r.requestService.UpdateRequest(ctx, input.OrganizationId, input.RequestId, input.Body)
+		request := models.UpdateRequest{
+			Text:           input.Body.Text,
+			Name:           input.Body.Name,
+			Email:          input.Body.Email,
+			Address:        input.Body.Address,
+			Telephone:      input.Body.Telephone,
+			Closed:         input.Body.Closed,
+			CategoryId:     input.Body.CategoryId,
+			OrganizationId: input.OrganizationId,
+			Id:             input.RequestId,
+		}
+		err := r.requestService.UpdateRequest(ctx, request)
 
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)

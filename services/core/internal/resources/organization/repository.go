@@ -2,6 +2,8 @@ package organization
 
 import (
 	"context"
+	appError "planeo/libs/errors"
+	"planeo/libs/logger"
 	"planeo/services/core/internal/resources/organization/models"
 
 	"github.com/jackc/pgx/v5"
@@ -25,7 +27,9 @@ func (repo *OrganizationRepository) GetOrganizationIamById(ctx context.Context, 
 	row, err := repo.db.Query(ctx, query, args)
 
 	if err != nil {
-		return models.Organization{}, err
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetOrganizationIamById").Msg("Error querying database")
+		return models.Organization{}, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return pgx.CollectOneRow(row, pgx.RowToStructByName[models.Organization])
@@ -44,7 +48,9 @@ func GetOrganizationIamById(db *pgxpool.Pool, id string) (string, error) {
 	organization, err := pgx.CollectOneRow(row, pgx.RowToStructByName[models.Organization])
 
 	if err != nil {
-		return "", err
+		logger := logger.FromContext(context.Background())
+		logger.Error().Err(err).Str("operation", "GetOrganizationIamById").Msg("Error querying database")
+		return "", appError.New(appError.InternalError, "Something went wrong", err)
 	}
 	return organization.IAMOrganizationID, nil
 }

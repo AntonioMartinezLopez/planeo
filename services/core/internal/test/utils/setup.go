@@ -45,7 +45,7 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 		t.Error(err)
 	}
 
-	config := config.LoadConfig("../../../.env.test.template")
+	config := config.LoadConfig(context.Background(), "../../../.env.test.template")
 	config.DbPort = postresPort.Port()
 	config.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
 

@@ -2,7 +2,6 @@ package category
 
 import (
 	"context"
-	"planeo/services/core/internal/resources/category/dto"
 	"planeo/services/core/internal/resources/category/mocks"
 	"planeo/services/core/internal/resources/category/models"
 	"testing"
@@ -18,15 +17,18 @@ func TestCategoryService(t *testing.T) {
 	}
 
 	testOrganizationId := 1
-	categoryCreateInput := dto.CreateCategoryInputBody{
+	categoryCreateInput := models.NewCategory{
 		Label:            "New Category",
 		LabelDescription: "A new category description",
 		Color:            "#000000",
+		OrganizationId:   testOrganizationId,
 	}
-	categoryUpdateInput := dto.UpdateCategoryInputBody{
+	categoryUpdateInput := models.UpdateCategory{
+		Id:               1,
 		Label:            "Updated Category",
 		LabelDescription: "An updated category description",
 		Color:            "#FFFFFF",
+		OrganizationId:   testOrganizationId,
 	}
 	category := models.Category{
 		Label:            categoryCreateInput.Label,

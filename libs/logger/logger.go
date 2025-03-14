@@ -1,69 +1,102 @@
 package logger
 
 import (
-	"encoding/json"
+	"context"
+	"fmt"
+	"io"
 	"os"
-	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-var logger zerolog.Logger
+// Field names for standardized logging
+const (
+	FieldRequestID      = "request_id"
+	FieldUserID         = "user_id"
+	FieldOrganizationID = "org_id"
+	FieldMethod         = "method"
+	FieldPath           = "path"
+	FieldStatusCode     = "status"
+	FieldDuration       = "duration_ms"
+	FieldError          = "error"
+	FieldComponent      = "component"
+)
 
-func init() {
-	logger = log.With().Timestamp().CallerWithSkipFrameCount(3).Stack().Logger()
+// Config holds logger configuration
+type Config struct {
+	Level      string
+	Pretty     bool
+	TimeFormat string
+	Output     io.Writer
 }
 
-func SetLogLevel(level string) {
-	var l zerolog.Level
+// DefaultConfig returns a default logger configuration
+func DefaultConfig() Config {
+	envVariable, _ := os.LookupEnv("CONTAINER_ENV")
 
-	switch strings.ToLower(level) {
-	case "error":
-		l = zerolog.ErrorLevel
-	case "warn":
-		l = zerolog.WarnLevel
-	case "info":
-		l = zerolog.InfoLevel
-	case "debug":
-		l = zerolog.DebugLevel
-	default:
-		l = zerolog.InfoLevel
+	logLevel := "debug"
+	pretty := true
+
+	if envVariable == "production" {
+		logLevel = "info"
+		pretty = false
 	}
-	zerolog.SetGlobalLevel(l)
-
-}
-
-func Info(message string, args ...any) {
-	log.Info().Msgf(message, args...)
-}
-
-func DebugJson(message string, data any) {
-	value, _ := json.Marshal(data)
-	logger.Debug().RawJSON(message, value).Msg("")
-}
-
-func Debug(message string, args ...any) {
-	logger.Debug().Msgf(message, args...)
-}
-
-func Warn(message string, args ...any) {
-	log.Warn().Msgf(message, args...)
-}
-
-func Error(message string, args ...any) {
-	logger.Error().Msgf(message, args...)
-}
-
-func Fatal(message string, args ...any) {
-	logger.Fatal().Msgf(message, args...)
-	os.Exit(1)
-}
-
-func Log(message string, args ...any) {
-	if len(args) == 0 {
-		log.Info().Msg(message)
-	} else {
-		log.Info().Msgf(message, args...)
+	fmt.Println(envVariable)
+	return Config{
+		Level:      logLevel,
+		Pretty:     pretty,
+		TimeFormat: time.RFC3339,
+		Output:     os.Stdout,
 	}
+}
+
+// Setup configures the global zerolog logger
+func Setup(cfg Config) {
+	// Set time format
+	zerolog.TimeFieldFormat = cfg.TimeFormat
+
+	// Set log level
+	level, err := zerolog.ParseLevel(cfg.Level)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(level)
+
+	// Configure output (pretty or standard JSON)
+	var output io.Writer = cfg.Output
+	if cfg.Pretty {
+		output = zerolog.ConsoleWriter{
+			Out:        cfg.Output,
+			TimeFormat: cfg.TimeFormat,
+		}
+	}
+
+	// Set global logger
+	log.Logger = zerolog.New(output).With().Timestamp().Logger()
+}
+
+// New creates a new logger instance with the given component name
+func New(component string) zerolog.Logger {
+	return log.With().Str(FieldComponent, component).Logger()
+}
+
+// FromContext extracts a logger from context or returns the default logger
+func FromContext(ctx context.Context) zerolog.Logger {
+	if ctx == nil {
+		return log.Logger
+	}
+
+	logger := zerolog.Ctx(ctx)
+	if logger.GetLevel() == zerolog.Disabled {
+		return log.Logger
+	}
+
+	return *logger
+}
+
+// WithContext adds a logger to context
+func WithContext(ctx context.Context, logger zerolog.Logger) context.Context {
+	return logger.WithContext(ctx)
 }

@@ -24,33 +24,36 @@ func InitializeDatabaseConnection(ctx context.Context, connString string) *DBCon
 
 	db, err := pgxpool.New(ctx, connString)
 	if err != nil {
-		logger.Error("unable to create connection pool: %s", err.Error())
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Msg("unable to create connection pool")
 		panic("Failed to connect to database")
 	}
 
 	pgInstance := &DBConnection{db}
 
-	go pingDatabase(pgInstance)
+	go pingDatabase(ctx, pgInstance)
 
 	return pgInstance
 }
 
-func pingDatabase(pg *DBConnection) {
+func pingDatabase(ctx context.Context, pg *DBConnection) {
 	var errorCounter int
+	logger := logger.FromContext(ctx)
 	for {
 		func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			err := pg.DB.Ping(ctx)
 			if err != nil {
-				logger.Error("Failed to ping the database: %v", err)
+
+				logger.Error().Err(err).Msg("Failed to ping the database")
 				errorCounter++
 				if errorCounter >= 5 {
 					panic("Failed to connect to the database after 5 attempts")
 				}
 			} else {
 				if errorCounter > 0 {
-					logger.Log("Database connection restored.")
+					logger.Info().Msg("Database connection restored.")
 				}
 				errorCounter = 0
 			}

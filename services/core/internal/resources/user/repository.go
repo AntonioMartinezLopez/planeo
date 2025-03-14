@@ -39,7 +39,8 @@ func (repo *UserRepository) GetIamOrganizationIdentifier(ctx context.Context, or
 	if rows.Next() {
 		err = rows.Scan(&organization.IamOrganizationID)
 		if err != nil {
-			logger.Error("Error scanning row: %s", err.Error())
+			logger := logger.FromContext(ctx)
+			logger.Error().Err(err).Str("operation", "GetIamOrganizationIdentifier").Msg("Error scanning row")
 			return "", err
 		}
 	}
@@ -58,7 +59,9 @@ func (repo *UserRepository) GetUsersInformation(ctx context.Context, organizatio
 	rows, err := repo.db.Query(ctx, query, args)
 
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetUsersInformation").Msg("Error querying database")
+		return nil, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.BasicUserInformation])
@@ -83,7 +86,9 @@ func (repo *UserRepository) UpdateUser(ctx context.Context, organizationId int, 
 	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "UpdateUser").Msg("Error updating user")
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return nil
@@ -110,6 +115,8 @@ func (repo *UserRepository) CreateUser(ctx context.Context, organizationId int, 
 		if err == pgx.ErrNoRows {
 			return appError.New(appError.EntityNotFound, "User not found in organization")
 		}
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "CreateUser").Msg("Error creating user")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
@@ -130,6 +137,8 @@ func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId int, 
 		if err == pgx.ErrNoRows {
 			return appError.New(appError.EntityNotFound, "User not found in organization")
 		}
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "DeleteUser").Msg("Error deleting user")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
@@ -137,6 +146,7 @@ func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId int, 
 }
 
 func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, users []models.User) error {
+	logger := logger.FromContext(ctx)
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
 		appError.New(appError.InternalError, "Something went wrong", err)
@@ -161,7 +171,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 	_, err = tx.Exec(ctx, query, args)
 
 	if err != nil {
-		logger.Error("Error deleting in SyncUsers: %s", err.Error())
+		logger.Error().Err(err).Msg("Error deleting in SyncUsers.")
 		tx.Rollback(ctx)
 		return appError.New(appError.InternalError, "Error deleting in SyncUsers", err)
 	}
@@ -185,7 +195,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 		result, err := tx.Exec(ctx, query, args)
 
 		if err != nil {
-			logger.Error("Error updating user in SyncUsers: %s", err.Error())
+			logger.Error().Err(err).Msg("Error updating user in SyncUsers")
 			tx.Rollback(ctx)
 			return appError.New(appError.InternalError, "Error updating user in SyncUsers", err)
 		}
@@ -208,7 +218,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 
 			_, err := tx.Exec(ctx, query, args)
 			if err != nil {
-				logger.Error("Error creating user in SyncUsers: %s", err.Error())
+				logger.Error().Err(err).Msg("Error creating user in SyncUsers.")
 				tx.Rollback(ctx)
 				return appError.New(appError.InternalError, "Error creating user in SyncUsers", err)
 			}

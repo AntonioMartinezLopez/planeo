@@ -11,8 +11,8 @@ import (
 )
 
 type CronServiceInterface interface {
-	AddJob(task func(), fetchInterval time.Duration, tags []string)
-	RemoveJobByTag(tag string)
+	AddJob(ctx context.Context, task func(), fetchInterval time.Duration, tags []string)
+	RemoveJobByTag(ctx context.Context, tag string)
 }
 
 type IMAPServiceInterface interface {
@@ -39,14 +39,14 @@ func (s *EmailService) StartFetching(ctx context.Context, settings []models.Sett
 	for _, setting := range settings {
 
 		task := s.createTask(setting)
-		s.cronService.AddJob(task, time.Second*10, []string{strconv.Itoa(setting.ID)})
+		s.cronService.AddJob(ctx, task, time.Second*10, []string{strconv.Itoa(setting.ID)})
 
 	}
 	return nil
 }
 
 func (s *EmailService) StopFetching(ctx context.Context, settingsId int) {
-	s.cronService.RemoveJobByTag(strconv.Itoa(settingsId))
+	s.cronService.RemoveJobByTag(ctx, strconv.Itoa(settingsId))
 }
 
 func (s *EmailService) TestConnection(ctx context.Context, settings models.Setting) error {

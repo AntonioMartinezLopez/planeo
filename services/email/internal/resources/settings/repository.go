@@ -32,7 +32,8 @@ func (repo *SettingsRepository) GetAllSettings(ctx context.Context) ([]models.Se
 
 	settings, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Setting])
 	if err != nil {
-		logger.Error("Error collecting row: %s", err.Error())
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Msg("Error collecting row.")
 		return nil, err
 	}
 

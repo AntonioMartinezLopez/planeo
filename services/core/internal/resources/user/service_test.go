@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/mocks"
 	"planeo/services/core/internal/resources/user/models"
 	"testing"
@@ -18,7 +17,7 @@ func TestUserService(t *testing.T) {
 
 	testOrganizationId := 1
 	testOrganizationIamId := "local"
-	userInput := dto.CreateUserInputBody{
+	userInput := models.NewUser{
 		FirstName: "test",
 		LastName:  "test",
 		Email:     "test",
@@ -35,19 +34,20 @@ func TestUserService(t *testing.T) {
 		EmailVerified:   true,
 		RequiredActions: []models.RequiredAction{},
 	}
+	ctx := context.Background()
 
 	t.Run("CreateUser", func(t *testing.T) {
 		t.Run("Should return error if CreateUser fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().CreateUser(testOrganizationIamId, userInput).Return(nil, assert.AnError)
+			mockIAMInterface.EXPECT().CreateUser(ctx, testOrganizationIamId, userInput).Return(nil, assert.AnError)
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.CreateUser(context.Background(), testOrganizationId, userInput)
+			result := userService.CreateUser(ctx, testOrganizationId, userInput)
 
 			// Assert
 			assert.NotNil(t, result)
@@ -58,17 +58,17 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if CreateUser fails after repository layer error", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().CreateUser(testOrganizationIamId, userInput).Return(&user, nil)
-			mockIAMInterface.EXPECT().DeleteUser(testOrganizationIamId, user.Id).Return(nil)
+			mockIAMInterface.EXPECT().CreateUser(ctx, testOrganizationIamId, userInput).Return(&user, nil)
+			mockIAMInterface.EXPECT().DeleteUser(ctx, testOrganizationIamId, user.Id).Return(nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
-			mockUserRepository.EXPECT().CreateUser(context.Background(), testOrganizationId, user).Return(assert.AnError)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().CreateUser(ctx, testOrganizationId, user).Return(assert.AnError)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.CreateUser(context.Background(), testOrganizationId, userInput)
+			result := userService.CreateUser(ctx, testOrganizationId, userInput)
 
 			// Assert
 			assert.NotNil(t, result)
@@ -78,15 +78,15 @@ func TestUserService(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockIAMInterface.EXPECT().CreateUser(testOrganizationIamId, userInput).Return(&user, nil)
+			mockIAMInterface.EXPECT().CreateUser(ctx, testOrganizationIamId, userInput).Return(&user, nil)
 
-			mockUserRepository.EXPECT().CreateUser(context.Background(), testOrganizationId, user).Return(nil)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().CreateUser(ctx, testOrganizationId, user).Return(nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.CreateUser(context.Background(), testOrganizationId, userInput)
+			result := userService.CreateUser(ctx, testOrganizationId, userInput)
 
 			// Assert
 			assert.Nil(t, result)
@@ -98,15 +98,15 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if DeleteUser fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().DeleteUser(testOrganizationIamId, user.Id).Return(assert.AnError)
+			mockIAMInterface.EXPECT().DeleteUser(ctx, testOrganizationIamId, user.Id).Return(assert.AnError)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.DeleteUser(context.Background(), testOrganizationId, user.Id)
+			result := userService.DeleteUser(ctx, testOrganizationId, user.Id)
 
 			// Assert
 			assert.NotNil(t, result)
@@ -116,16 +116,16 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return nil if DeleteUser succeeds", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().DeleteUser(testOrganizationIamId, user.Id).Return(nil)
+			mockIAMInterface.EXPECT().DeleteUser(ctx, testOrganizationIamId, user.Id).Return(nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().DeleteUser(context.Background(), testOrganizationId, user.Id).Return(nil)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().DeleteUser(ctx, testOrganizationId, user.Id).Return(nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.DeleteUser(context.Background(), testOrganizationId, user.Id)
+			result := userService.DeleteUser(ctx, testOrganizationId, user.Id)
 
 			// Assert
 			assert.Nil(t, result)
@@ -136,15 +136,15 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if UpdateUser fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().UpdateUser(testOrganizationIamId, user.Id, dto.UpdateUserInputBody{}).Return(assert.AnError)
+			mockIAMInterface.EXPECT().UpdateUser(ctx, testOrganizationIamId, user.Id, models.UpdateUser{}).Return(assert.AnError)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.UpdateUser(context.Background(), testOrganizationId, user.Id, dto.UpdateUserInputBody{})
+			result := userService.UpdateUser(ctx, testOrganizationId, user.Id, models.UpdateUser{})
 
 			// Assert
 			assert.NotNil(t, result)
@@ -152,18 +152,22 @@ func TestUserService(t *testing.T) {
 		})
 		t.Run("Should return nil if UpdateUser succeeds", func(t *testing.T) {
 			// Setup
-			updatedUser := dto.UpdateUserInputBody{
-				Username:  user.Username,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-				Email:     user.Email,
+			updatedUser := models.UpdateUser{
+				Username:        user.Username,
+				FirstName:       user.FirstName,
+				LastName:        user.LastName,
+				Email:           user.Email,
+				Totp:            user.Totp,
+				Enabled:         user.Enabled,
+				EmailVerified:   user.EmailVerified,
+				RequiredActions: user.RequiredActions,
 			}
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().UpdateUser(testOrganizationIamId, user.Id, updatedUser).Return(nil)
+			mockIAMInterface.EXPECT().UpdateUser(ctx, testOrganizationIamId, user.Id, updatedUser).Return(nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
-			mockUserRepository.EXPECT().UpdateUser(context.Background(), testOrganizationId, user.Id, models.User{
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().UpdateUser(ctx, testOrganizationId, user.Id, models.User{
 				Id:        user.Id,
 				Username:  updatedUser.Username,
 				FirstName: updatedUser.FirstName,
@@ -174,7 +178,7 @@ func TestUserService(t *testing.T) {
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result := userService.UpdateUser(context.Background(), testOrganizationId, user.Id, updatedUser)
+			result := userService.UpdateUser(ctx, testOrganizationId, user.Id, updatedUser)
 
 			// Assert
 			assert.Nil(t, result)
@@ -185,13 +189,13 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if GetRoles fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetRoles().Return(nil, assert.AnError)
+			mockIAMInterface.EXPECT().GetRoles(ctx).Return(nil, assert.AnError)
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetAvailableRoles(context.Background())
+			result, err := userService.GetAvailableRoles(ctx)
 
 			// Assert
 			assert.Nil(t, result)
@@ -206,13 +210,13 @@ func TestUserService(t *testing.T) {
 				},
 			}
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetRoles().Return(roles, nil)
+			mockIAMInterface.EXPECT().GetRoles(ctx).Return(roles, nil)
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetAvailableRoles(context.Background())
+			result, err := userService.GetAvailableRoles(ctx)
 
 			// Assert
 			assert.Nil(t, err)
@@ -224,15 +228,15 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if GetUser fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetUserById(testOrganizationIamId, user.Id).Return(nil, assert.AnError)
+			mockIAMInterface.EXPECT().GetUserById(ctx, testOrganizationIamId, user.Id).Return(nil, assert.AnError)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetUserById(context.Background(), testOrganizationId, user.Id)
+			result, err := userService.GetUserById(ctx, testOrganizationId, user.Id)
 
 			// Assert
 			assert.Nil(t, result)
@@ -248,15 +252,15 @@ func TestUserService(t *testing.T) {
 
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetUserById(testOrganizationIamId, user.Id).Return(&userWithRoles, nil)
+			mockIAMInterface.EXPECT().GetUserById(ctx, testOrganizationIamId, user.Id).Return(&userWithRoles, nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetUserById(context.Background(), testOrganizationId, user.Id)
+			result, err := userService.GetUserById(ctx, testOrganizationId, user.Id)
 
 			// Assert
 			assert.Nil(t, err)
@@ -268,15 +272,15 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return error if GetUsers fails", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetUsers(testOrganizationIamId).Return(nil, assert.AnError)
+			mockIAMInterface.EXPECT().GetUsers(ctx, testOrganizationIamId).Return(nil, assert.AnError)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetUsers(context.Background(), testOrganizationId, false)
+			result, err := userService.GetUsers(ctx, testOrganizationId, false)
 
 			// Assert
 			assert.Nil(t, result)
@@ -285,15 +289,15 @@ func TestUserService(t *testing.T) {
 		t.Run("Should return users if GetUsers succeeds", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetUsers(testOrganizationIamId).Return([]models.User{user}, nil)
+			mockIAMInterface.EXPECT().GetUsers(ctx, testOrganizationIamId).Return([]models.User{user}, nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetUsers(context.Background(), testOrganizationId, false)
+			result, err := userService.GetUsers(ctx, testOrganizationId, false)
 
 			// Assert
 			assert.Nil(t, err)
@@ -302,16 +306,16 @@ func TestUserService(t *testing.T) {
 		t.Run("Should sync users if sync is true", func(t *testing.T) {
 			// Setup
 			mockIAMInterface := mocks.NewMockIAMInterface(t)
-			mockIAMInterface.EXPECT().GetUsers(testOrganizationIamId).Return([]models.User{user}, nil)
+			mockIAMInterface.EXPECT().GetUsers(ctx, testOrganizationIamId).Return([]models.User{user}, nil)
 
 			mockUserRepository := mocks.NewMockUserRepositoryInterface(t)
-			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(context.Background(), testOrganizationId).Return(testOrganizationIamId, nil)
-			mockUserRepository.EXPECT().SyncUsers(context.Background(), testOrganizationId, []models.User{user}).Return(nil)
+			mockUserRepository.EXPECT().GetIamOrganizationIdentifier(ctx, testOrganizationId).Return(testOrganizationIamId, nil)
+			mockUserRepository.EXPECT().SyncUsers(ctx, testOrganizationId, []models.User{user}).Return(nil)
 
 			userService := NewUserService(mockUserRepository, mockIAMInterface)
 
 			// Act
-			result, err := userService.GetUsers(context.Background(), testOrganizationId, true)
+			result, err := userService.GetUsers(ctx, testOrganizationId, true)
 
 			// Assert
 			assert.Nil(t, err)

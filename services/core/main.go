@@ -13,11 +13,15 @@ import (
 
 func main() {
 
-	ctx := context.Background()
+	// Initialize logger
+	logConfig := logger.DefaultConfig()
+	logger.Setup(logConfig)
+	log := logger.New("main")
+	ctx := logger.WithContext(context.Background(), log)
 
 	// server configuration
-	logger.Log("Loading configuration")
-	config := config.LoadConfig()
+	log.Info().Msg("Loading environment variables")
+	config := config.LoadConfig(ctx)
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
@@ -35,6 +39,6 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	logger.Log("Server Running at %s", serverConfig)
-	logger.Fatal("%v", server.ListenAndServe())
+	log.Info().Msgf("Server Running at %s", serverConfig)
+	log.Fatal().Msgf("%v", server.ListenAndServe())
 }

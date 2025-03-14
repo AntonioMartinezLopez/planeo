@@ -12,22 +12,19 @@ import (
 
 func main() {
 
-	ctx := context.Background()
-
 	// Initialize logger
 	logConfig := logger.DefaultConfig()
 	logger.Setup(logConfig)
-	logger := logger.New("main")
+	log := logger.New("main")
+	ctx := logger.WithContext(context.Background(), log)
 
 	// server configuration
-	logger.Info().Msg("Loading environment variables")
-	config := config.LoadConfig()
+	log.Info().Msg("Loading environment variables")
+	config := config.LoadConfig(ctx)
 	serverConfig := config.ServerConfig()
 
 	// initialize database connection
 	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
-
-	// initilalize cron service
 
 	// initialize api
 	router := setup.SetupRouter(config, db)
@@ -41,6 +38,6 @@ func main() {
 		ReadHeaderTimeout: 2 * time.Second,
 	}
 
-	logger.Info().Msgf("Server Running at %s", serverConfig)
-	logger.Fatal().Msgf("%v", server.ListenAndServe())
+	log.Info().Msgf("Server Running at %s", serverConfig)
+	log.Fatal().Msgf("%v", server.ListenAndServe())
 }

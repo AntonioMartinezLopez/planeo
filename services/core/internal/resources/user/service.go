@@ -3,18 +3,17 @@ package user
 import (
 	"context"
 	appError "planeo/libs/errors"
-	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"
 )
 
 type IAMInterface interface {
-	GetUsers(organizationIamIdentifier string) ([]models.User, error)
-	GetUserById(organizationIamIdentifier string, userId string) (*models.User, error)
-	CreateUser(organizationIamIdentifier string, createUserInput dto.CreateUserInputBody) (*models.User, error)
-	UpdateUser(organizationIamIdentifier string, userId string, updateUserInput dto.UpdateUserInputBody) error
-	DeleteUser(organizationIamIdentifier string, userId string) error
-	GetRoles() ([]models.Role, error)
-	AssignRolesToUser(organizationIamIdentifier string, userId string, roles []dto.PutUserRoleInputBody) error
+	GetUsers(ctx context.Context, organizationIamIdentifier string) ([]models.User, error)
+	GetUserById(ctx context.Context, organizationIamIdentifier string, userId string) (*models.User, error)
+	CreateUser(ctx context.Context, organizationIamIdentifier string, newUser models.NewUser) (*models.User, error)
+	UpdateUser(ctx context.Context, organizationIamIdentifier string, userId string, updateUser models.UpdateUser) error
+	DeleteUser(ctx context.Context, organizationIamIdentifier string, userId string) error
+	GetRoles(ctx context.Context) ([]models.Role, error)
+	AssignRolesToUser(ctx context.Context, organizationIamIdentifier string, userId string, roles []models.Role) error
 }
 
 type UserRepositoryInterface interface {
@@ -45,7 +44,7 @@ func (s *UserService) GetUsers(ctx context.Context, organizationId int, sync boo
 		return nil, err
 	}
 
-	users, err := s.iamService.GetUsers(organizationIamIdentifier)
+	users, err := s.iamService.GetUsers(ctx, organizationIamIdentifier)
 
 	if err != nil {
 		return nil, err
@@ -62,7 +61,7 @@ func (s *UserService) GetUsers(ctx context.Context, organizationId int, sync boo
 	return users, nil
 }
 
-func (s *UserService) CreateUser(ctx context.Context, organizationId int, createUserInput dto.CreateUserInputBody) error {
+func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUser models.NewUser) error {
 
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
@@ -70,7 +69,7 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId int, create
 		return err
 	}
 
-	user, err := s.iamService.CreateUser(organizationIamIdentifier, createUserInput)
+	user, err := s.iamService.CreateUser(ctx, organizationIamIdentifier, newUser)
 
 	if err != nil {
 		return err
@@ -79,7 +78,7 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId int, create
 	err = s.userRepository.CreateUser(ctx, organizationId, *user)
 
 	if err != nil {
-		s.iamService.DeleteUser(organizationIamIdentifier, user.Id)
+		s.iamService.DeleteUser(ctx, organizationIamIdentifier, user.Id)
 		return err
 	}
 
@@ -94,7 +93,7 @@ func (s *UserService) DeleteUser(ctx context.Context, organizationId int, iamUse
 		return err
 	}
 
-	err = s.iamService.DeleteUser(organizationIamIdentifier, iamUserId)
+	err = s.iamService.DeleteUser(ctx, organizationIamIdentifier, iamUserId)
 
 	if err != nil {
 		return err
@@ -109,7 +108,7 @@ func (s *UserService) DeleteUser(ctx context.Context, organizationId int, iamUse
 	return nil
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, organizationId int, iamUserId string, user dto.UpdateUserInputBody) error {
+func (s *UserService) UpdateUser(ctx context.Context, organizationId int, iamUserId string, user models.UpdateUser) error {
 
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
@@ -117,7 +116,7 @@ func (s *UserService) UpdateUser(ctx context.Context, organizationId int, iamUse
 		return err
 	}
 
-	err = s.iamService.UpdateUser(organizationIamIdentifier, iamUserId, user)
+	err = s.iamService.UpdateUser(ctx, organizationIamIdentifier, iamUserId, user)
 
 	if err != nil {
 		return err
@@ -140,7 +139,7 @@ func (s *UserService) UpdateUser(ctx context.Context, organizationId int, iamUse
 
 func (s *UserService) GetAvailableRoles(ctx context.Context) ([]models.Role, error) {
 
-	roles, err := s.iamService.GetRoles()
+	roles, err := s.iamService.GetRoles(ctx)
 
 	if err != nil {
 		return nil, err
@@ -149,14 +148,14 @@ func (s *UserService) GetAvailableRoles(ctx context.Context) ([]models.Role, err
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(ctx context.Context, organizationId int, iamUserId string, roles []dto.PutUserRoleInputBody) error {
+func (s *UserService) AssignRoles(ctx context.Context, organizationId int, iamUserId string, roles []models.Role) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
 		return err
 	}
 
-	return s.iamService.AssignRolesToUser(organizationIamIdentifier, iamUserId, roles)
+	return s.iamService.AssignRolesToUser(ctx, organizationIamIdentifier, iamUserId, roles)
 }
 
 func (s *UserService) GetUserById(ctx context.Context, organizationId int, iamUserId string) (*models.User, error) {
@@ -166,7 +165,7 @@ func (s *UserService) GetUserById(ctx context.Context, organizationId int, iamUs
 		return nil, err
 	}
 
-	return s.iamService.GetUserById(organizationIamIdentifier, iamUserId)
+	return s.iamService.GetUserById(ctx, organizationIamIdentifier, iamUserId)
 }
 
 func (s *UserService) GetUsersInformation(ctx context.Context, organizationId int) ([]models.BasicUserInformation, error) {

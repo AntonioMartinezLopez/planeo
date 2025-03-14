@@ -7,6 +7,7 @@ import (
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/user/dto"
+	"planeo/services/core/internal/resources/user/models"
 	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -76,7 +77,13 @@ func (u *UserController) InitializeRoutes() {
 		Middlewares:   huma.Middlewares{permissions.Apply("user", "create")},
 	}), func(ctx context.Context, input *dto.CreateUserInput) (*struct{}, error) {
 
-		err := u.userService.CreateUser(ctx, input.OrganizationId, input.Body)
+		newUser := models.NewUser{
+			Email:     input.Body.Email,
+			FirstName: input.Body.FirstName,
+			LastName:  input.Body.LastName,
+			Password:  input.Body.Password,
+		}
+		err := u.userService.CreateUser(ctx, input.OrganizationId, newUser)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -95,7 +102,17 @@ func (u *UserController) InitializeRoutes() {
 		Middlewares:   huma.Middlewares{permissions.Apply("user", "update")},
 	}), func(ctx context.Context, input *dto.UpdateUserInput) (*struct{}, error) {
 
-		err := u.userService.UpdateUser(ctx, input.OrganizationId, input.IamUserId, input.Body)
+		user := models.UpdateUser{
+			Username:        input.Body.Username,
+			FirstName:       input.Body.FirstName,
+			LastName:        input.Body.LastName,
+			Email:           input.Body.Email,
+			Totp:            input.Body.Totp,
+			Enabled:         input.Body.Enabled,
+			EmailVerified:   input.Body.EmailVerified,
+			RequiredActions: input.Body.RequiredActions,
+		}
+		err := u.userService.UpdateUser(ctx, input.OrganizationId, input.IamUserId, user)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
@@ -133,7 +150,14 @@ func (u *UserController) InitializeRoutes() {
 		Middlewares:   huma.Middlewares{permissions.Apply("user", "update")},
 	}), func(ctx context.Context, input *dto.PutUserRolesInput) (*struct{}, error) {
 
-		err := u.userService.AssignRoles(ctx, input.OrganizationId, input.IamUserId, input.Body)
+		roles := []models.Role{}
+		for _, role := range input.Body {
+			roles = append(roles, models.Role{
+				Id:   role.Id,
+				Name: role.Name,
+			})
+		}
+		err := u.userService.AssignRoles(ctx, input.OrganizationId, input.IamUserId, roles)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)

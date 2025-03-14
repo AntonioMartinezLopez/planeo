@@ -41,3 +41,21 @@ type User struct {
 	RequiredActions []RequiredAction `json:"requiredActions" validate:"required" doc:"Array of actions that will be conducted after login"`
 	Roles           []Role           `json:"roles,omitempty" doc:"Array of roles assigned to the user"`
 }
+
+type NewUser struct {
+	FirstName string
+	LastName  string
+	Email     string
+	Password  string
+}
+
+type UpdateUser struct {
+	Username        string
+	FirstName       string
+	LastName        string
+	Email           string
+	Totp            bool
+	Enabled         bool
+	EmailVerified   bool
+	RequiredActions []RequiredAction
+}

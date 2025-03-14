@@ -1,7 +1,6 @@
 package policies
 
 import (
-	"planeo/libs/logger"
 	"planeo/services/core/internal/clients/keycloak"
 )
 
@@ -14,7 +13,7 @@ func UserInOrganization(kc KeycloakAdminClientInterface, organizationKeycloakId 
 	groups, err := kc.GetKeycloakUserGroups(userKeycloakId)
 
 	if err != nil {
-		logger.Error("Error getting user groups %s", err.Error())
+		return false
 	}
 
 	for _, group := range groups {

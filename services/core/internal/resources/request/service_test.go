@@ -2,7 +2,6 @@ package request
 
 import (
 	"context"
-	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/resources/request/mocks"
 	"planeo/services/core/internal/resources/request/models"
 	"testing"
@@ -18,22 +17,26 @@ func TestRequestService(t *testing.T) {
 	}
 
 	testOrganizationId := 1
-	requestCreateInput := dto.CreateRequestInputBody{
-		Text:      "Some request text",
-		Name:      "John Doe",
-		Email:     "john.doe@test.com",
-		Address:   "123 Main St",
-		Telephone: "123-456-7890",
-		Closed:    false,
+	requestCreateInput := models.NewRequest{
+		Text:           "Some request text",
+		Name:           "John Doe",
+		Email:          "john.doe@test.com",
+		Address:        "123 Main St",
+		Telephone:      "123-456-7890",
+		Closed:         false,
+		CategoryId:     1,
+		OrganizationId: testOrganizationId,
 	}
-	requestUpdateInput := dto.UpdateRequestInputBody{
-		Text:       "Some updated request text",
-		Name:       "Jane Doe",
-		Email:      "john.doe@test.com",
-		Address:    "123 Main St",
-		Telephone:  "123-456-7890",
-		Closed:     false,
-		CategoryId: 1,
+	requestUpdateInput := models.UpdateRequest{
+		Text:           "Some updated request text",
+		Name:           "Jane Doe",
+		Email:          "john.doe@test.com",
+		Address:        "123 Main St",
+		Telephone:      "123-456-7890",
+		Closed:         false,
+		CategoryId:     1,
+		OrganizationId: testOrganizationId,
+		Id:             1,
 	}
 	request := models.Request{
 		Text:           requestCreateInput.Text,
@@ -53,19 +56,19 @@ func TestRequestService(t *testing.T) {
 
 		t.Run("returns nil when request is created successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().CreateRequest(context.Background(), testOrganizationId, requestCreateInput).Return(nil)
+			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(nil)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.CreateRequest(context.Background(), testOrganizationId, requestCreateInput)
+			err := requestService.CreateRequest(context.Background(), requestCreateInput)
 			assert.Nil(t, err)
 		})
 
 		t.Run("returns error when request creation fails", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().CreateRequest(context.Background(), testOrganizationId, requestCreateInput).Return(assert.AnError)
+			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(assert.AnError)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.CreateRequest(context.Background(), testOrganizationId, requestCreateInput)
+			err := requestService.CreateRequest(context.Background(), requestCreateInput)
 			assert.Error(t, err)
 		})
 	})
@@ -74,19 +77,19 @@ func TestRequestService(t *testing.T) {
 
 		t.Run("returns nil when request is updated successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().UpdateRequest(context.Background(), testOrganizationId, request.Id, requestUpdateInput).Return(nil)
+			mockRequestRepository.EXPECT().UpdateRequest(context.Background(), requestUpdateInput).Return(nil)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.UpdateRequest(context.Background(), testOrganizationId, request.Id, requestUpdateInput)
+			err := requestService.UpdateRequest(context.Background(), requestUpdateInput)
 			assert.Nil(t, err)
 		})
 
 		t.Run("returns error when request update fails", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().UpdateRequest(context.Background(), testOrganizationId, request.Id, requestUpdateInput).Return(assert.AnError)
+			mockRequestRepository.EXPECT().UpdateRequest(context.Background(), requestUpdateInput).Return(assert.AnError)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.UpdateRequest(context.Background(), testOrganizationId, request.Id, requestUpdateInput)
+			err := requestService.UpdateRequest(context.Background(), requestUpdateInput)
 			assert.Error(t, err)
 		})
 	})

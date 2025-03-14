@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"net/http"
-	"planeo/libs/logger"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -13,7 +12,6 @@ func OrganizationCheckMiddleware(api huma.API, resolveOrganization func(organiza
 		accessClaims, assertionCorrect := ctx.Context().Value(AccessClaimsContextKey{}).(*OauthAccessClaims)
 
 		if !assertionCorrect {
-			logger.Error("Assertion not correct")
 			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
 			return
 		}
@@ -22,7 +20,6 @@ func OrganizationCheckMiddleware(api huma.API, resolveOrganization func(organiza
 		organization, err := resolveOrganization(organizationId)
 
 		if err != nil {
-			logger.Error("Organization not found")
 			huma.WriteErr(api, ctx, http.StatusForbidden, "Forbidden")
 			return
 		}

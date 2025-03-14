@@ -3,7 +3,7 @@ package request
 import (
 	"context"
 	appError "planeo/libs/errors"
-	"planeo/services/core/internal/resources/request/dto"
+	"planeo/libs/logger"
 	"planeo/services/core/internal/resources/request/models"
 
 	"github.com/jackc/pgx/v5"
@@ -33,13 +33,15 @@ func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId i
 	rows, err := repo.db.Query(ctx, query, args)
 
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetRequests").Msg("Error querying database")
+		return nil, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Request])
 }
 
-func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId int, request dto.CreateRequestInputBody) error {
+func (repo *RequestRepository) CreateRequest(ctx context.Context, request models.NewRequest) error {
 
 	query := `
 		INSERT INTO requests (text, name, email, address, telephone, closed, organization_id, category_id)
@@ -52,7 +54,7 @@ func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId
 		"address":        request.Address,
 		"telephone":      request.Telephone,
 		"closed":         request.Closed,
-		"organizationId": organizationId,
+		"organizationId": request.OrganizationId,
 		"categoryId":     nil,
 	}
 
@@ -63,13 +65,15 @@ func (repo *RequestRepository) CreateRequest(ctx context.Context, organizationId
 	_, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "CreateRequest").Msg("Error inserting into database")
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
 	return nil
 }
 
-func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId int, requestId int, request dto.UpdateRequestInputBody) error {
+func (repo *RequestRepository) UpdateRequest(ctx context.Context, request models.UpdateRequest) error {
 
 	query := `
 		UPDATE requests
@@ -84,13 +88,15 @@ func (repo *RequestRepository) UpdateRequest(ctx context.Context, organizationId
 		"telephone":      request.Telephone,
 		"closed":         request.Closed,
 		"categoryId":     request.CategoryId,
-		"organizationId": organizationId,
-		"requestId":      requestId,
+		"organizationId": request.OrganizationId,
+		"requestId":      request.Id,
 	}
 
 	result, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "UpdateRequest").Msg("Error updating request")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
@@ -112,6 +118,8 @@ func (repo *RequestRepository) DeleteRequest(ctx context.Context, organizationId
 	result, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "DeleteRequest").Msg("Error deleting request")
 		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 

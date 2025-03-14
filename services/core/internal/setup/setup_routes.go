@@ -9,7 +9,6 @@ import (
 	"planeo/services/core/config"
 	"planeo/services/core/internal/clients/keycloak"
 	"planeo/services/core/internal/resources/category"
-	"planeo/services/core/internal/resources/group"
 	"planeo/services/core/internal/resources/organization"
 	"planeo/services/core/internal/resources/request"
 	"planeo/services/core/internal/resources/user"
@@ -38,9 +37,6 @@ func InitializeControllers(humaApi huma.API, config *config.ApplicationConfigura
 	// Prepare dependencies
 	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*config)
 
-	// Group controller
-	groupController := group.NewGroupController(humaApi, config)
-
 	// Request controller
 	requestRepository := request.NewRequestRepository(db.DB)
 	requestService := request.NewRequestService(requestRepository)
@@ -57,5 +53,5 @@ func InitializeControllers(humaApi huma.API, config *config.ApplicationConfigura
 	categoryService := category.NewCategoryService(categoryRepository)
 	categoryController := category.NewCategoryController(humaApi, config, categoryService)
 
-	return []api.Controller{groupController, requestController, userController, categoryController}
+	return []api.Controller{requestController, userController, categoryController}
 }

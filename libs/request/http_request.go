@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"planeo/libs/logger"
 	"time"
 )
 
@@ -28,7 +27,6 @@ func sendRequestWithRetry(request *http.Request) (*http.Response, error) {
 			break
 		}
 
-		logger.Error("Request error: %v, Retrying in %v", error, backoff)
 		time.Sleep(backoff)
 	}
 
@@ -113,7 +111,6 @@ func HttpRequestWithRetry(params HttpRequestParams) (*http.Response, error) {
 	request, err := http.NewRequest(string(params.Method), reqURL.String(), bytes.NewBuffer(requestBody))
 
 	if err != nil {
-		logger.Error("Error creating request: %v", err)
 		return nil, err
 	}
 

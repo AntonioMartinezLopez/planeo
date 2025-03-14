@@ -2,14 +2,13 @@ package category
 
 import (
 	"context"
-	"planeo/services/core/internal/resources/category/dto"
 	"planeo/services/core/internal/resources/category/models"
 )
 
 type CategoryRepositoryInterface interface {
 	GetCategories(ctx context.Context, organizationId int) ([]models.Category, error)
-	CreateCategory(ctx context.Context, organizationId int, category dto.CreateCategoryInputBody) error
-	UpdateCategory(ctx context.Context, organizationId int, categoryId int, category dto.UpdateCategoryInputBody) error
+	CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error
+	UpdateCategory(ctx context.Context, organizationId int, categoryId int, category models.UpdateCategory) error
 	DeleteCategory(ctx context.Context, organizationId int, categoryId int) error
 }
 
@@ -27,11 +26,11 @@ func (s *CategoryService) GetCategories(ctx context.Context, organizationId int)
 	return s.categoryRepository.GetCategories(ctx, organizationId)
 }
 
-func (s *CategoryService) CreateCategory(ctx context.Context, organizationId int, category dto.CreateCategoryInputBody) error {
+func (s *CategoryService) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error {
 	return s.categoryRepository.CreateCategory(ctx, organizationId, category)
 }
 
-func (s *CategoryService) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category dto.UpdateCategoryInputBody) error {
+func (s *CategoryService) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category models.UpdateCategory) error {
 	return s.categoryRepository.UpdateCategory(ctx, organizationId, categoryId, category)
 }
 
