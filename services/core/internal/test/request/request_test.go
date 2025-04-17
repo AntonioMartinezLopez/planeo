@@ -51,164 +51,205 @@ func TestRequestIntegration(t *testing.T) {
 		{
 			"missing Text field",
 			`{
+				"Subject": "Test request",
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
-
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"missing Name field",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"missing Email field",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"missing Address field",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"missing Telephone field",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"missing Closed field",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Text field type",
 			`{
+				"Subject": "Test request",
 				"Text": 123,
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Name field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": 123,
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Email field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": 123,
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Address field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Address": 123,
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Telephone field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "test.test@test.com",
 				"Address": "123 Main St",
 				"Telephone": 123,
 				"Closed": false,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid Closed field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": 123,
-				"CategoryId": 1
+				"CategoryId": 1,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid CategoryId field type",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": "invalid"
+				"CategoryId": "invalid",
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 		{
 			"invalid CategoryId field value",
 			`{
+				"Subject": "Test request",
 				"Text": "Test request",
 				"Name": "Test request",
 				"Email": "",
 				"Address": "123 Main St",
 				"Telephone": "123-456-7890",
 				"Closed": false,
-				"CategoryId": 0
+				"CategoryId": 0,
+				"Raw": "Additional raw data",
+				"ReferenceId": "REF12345"
 			}`,
 		},
 	}
@@ -361,6 +402,7 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			body := dto.CreateRequestInputBody{
+				Subject:    "Test request",
 				Text:       "Test request",
 				Name:       "Test request",
 				Email:      "test.test@test.com",
@@ -438,6 +480,7 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			body := dto.UpdateRequestInputBody{
+				Subject:    "Updated request",
 				Text:       "Updated request",
 				Name:       "Updated name",
 				Email:      "updated.email@test.com",

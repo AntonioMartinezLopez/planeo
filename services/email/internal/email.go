@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"planeo/libs/events"
 	"planeo/libs/logger"
 	"planeo/services/email/internal/resources/settings/models"
 	"strconv"
@@ -18,19 +19,27 @@ type CronServiceInterface interface {
 type IMAPServiceInterface interface {
 	FetchAllUnseenMails(context context.Context, settings IMAPSettings) ([]Email, error)
 	TestConnection(ctx context.Context, settings IMAPSettings) error
+	MarkMailsAsUnseen(ctx context.Context, settings IMAPSettings, emails []Email) error
+}
+
+type EventServiceInterface interface {
+	PublishEmailReceived(ctx context.Context, payload events.EmailCreatedPayload) error
+	IsConnected() bool
 }
 
 type EmailService struct {
-	cronService CronServiceInterface
-	imapService IMAPServiceInterface
-	logger      zerolog.Logger
+	cronService  CronServiceInterface
+	imapService  IMAPServiceInterface
+	eventService EventServiceInterface
+	logger       zerolog.Logger
 }
 
-func NewEmailService(cronService CronServiceInterface, imapService IMAPServiceInterface) *EmailService {
+func NewEmailService(cronService CronServiceInterface, imapService IMAPServiceInterface, eventService EventServiceInterface) *EmailService {
 	return &EmailService{
-		cronService: cronService,
-		imapService: imapService,
-		logger:      logger.New("email-service"),
+		cronService:  cronService,
+		imapService:  imapService,
+		eventService: eventService,
+		logger:       logger.New("email-service"),
 	}
 }
 
@@ -64,12 +73,14 @@ func (s *EmailService) createTask(settings models.Setting) func() {
 		emailLogger := s.logger.With().Int("setting_id", settings.ID).Logger()
 		ctx := logger.WithContext(context.Background(), emailLogger)
 
-		mails, err := s.imapService.FetchAllUnseenMails(ctx, IMAPSettings{
+		imapSettings := IMAPSettings{
 			Host:     settings.Host,
 			Port:     settings.Port,
 			Username: settings.Username,
 			Password: settings.Password,
-		})
+		}
+
+		mails, err := s.imapService.FetchAllUnseenMails(ctx, imapSettings)
 
 		duration := time.Since(start)
 
@@ -84,5 +95,31 @@ func (s *EmailService) createTask(settings models.Setting) func() {
 			Int("email_count", len(mails)).
 			Dur("duration_ms", duration).
 			Msg("Email fetch completed")
+
+		for _, mail := range mails {
+
+			emailLogger.Info().
+				Str("message_id", mail.MessageID).
+				Int("organization_id", settings.OrganizationID).
+				Msg("Processing email")
+
+			err = s.eventService.PublishEmailReceived(ctx, events.EmailCreatedPayload{
+				Subject:        mail.Subject,
+				Body:           mail.Body,
+				From:           mail.From,
+				Date:           mail.Date,
+				MessageID:      mail.MessageID,
+				OrganizationId: settings.OrganizationID,
+			})
+
+			if err != nil {
+				emailLogger.Error().
+					Err(err).
+					Int("organization_id", settings.OrganizationID).
+					Str("message_id", mail.MessageID).
+					Msg("Error publishing email received event")
+			}
+		}
+
 	}
 }

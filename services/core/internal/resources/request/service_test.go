@@ -18,6 +18,7 @@ func TestRequestService(t *testing.T) {
 
 	testOrganizationId := 1
 	requestCreateInput := models.NewRequest{
+		Subject:        "Some request subject",
 		Text:           "Some request text",
 		Name:           "John Doe",
 		Email:          "john.doe@test.com",
@@ -28,6 +29,7 @@ func TestRequestService(t *testing.T) {
 		OrganizationId: testOrganizationId,
 	}
 	requestUpdateInput := models.UpdateRequest{
+		Subject:        "Some request subject",
 		Text:           "Some updated request text",
 		Name:           "Jane Doe",
 		Email:          "john.doe@test.com",
@@ -39,6 +41,7 @@ func TestRequestService(t *testing.T) {
 		Id:             1,
 	}
 	request := models.Request{
+		Subject:        requestCreateInput.Subject,
 		Text:           requestCreateInput.Text,
 		Name:           requestCreateInput.Name,
 		Email:          requestCreateInput.Email,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"planeo/libs/api"
 	"planeo/libs/db"
+	"planeo/libs/events"
 	"planeo/libs/middlewares"
 	"planeo/services/email/config"
 	"planeo/services/email/internal"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/nats-io/nats.go"
+	"github.com/rs/zerolog/log"
 )
 
 func SetupRouter(config *config.ApplicationConfiguration, db *db.DBConnection) *chi.Mux {
@@ -31,8 +34,14 @@ func InitializeApplication(humaAPi huma.API, config *config.ApplicationConfigura
 	cronService := internal.NewCronService()
 	cronService.Start()
 	imapService := internal.NewIMAPService()
-	emailService := internal.NewEmailService(cronService, imapService)
 
+	eventService, err := events.NewNatsConnector(config.NatsUrl, []nats.Option{})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to connect to NATS")
+		panic(err)
+	}
+
+	emailService := internal.NewEmailService(cronService, imapService, eventService)
 	settingsRepository := settings.NewSettingsRepository(db.DB)
 	settingsService := settings.NewSettingsService(settingsRepository, emailService)
 	settingsController := settings.NewSettingsController(humaAPi, config, settingsService)

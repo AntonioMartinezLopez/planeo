@@ -38,11 +38,14 @@ CREATE TABLE categories (
 CREATE TABLE requests (
     id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     text TEXT,
+    subject TEXT,
     name TEXT,
     email TEXT,
     address TEXT,
     telephone TEXT,
+    raw TEXT,
     closed BOOLEAN DEFAULT FALSE,
+    reference_id TEXT,
     category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL DEFAULT NULL,
     organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -90,12 +93,12 @@ INSERT INTO categories (label, color, label_description, organization_id) VALUES
 ('Support', '#3357FF', 'Customer support inquiries', 1),
 ('Other', '#FF33C7', 'Other requests', 1);
 
-INSERT INTO requests (text, name, email, address, telephone, category_id, organization_id) VALUES
-('Install new electrical outlets in the conference room', 'Emily Clark', 'emily.clark@example.com', '123 Main St, Springfield', '555-1234', 1, 1),
-('Routine maintenance of the electrical wiring in the main office', 'Michael Scott', 'michael.scott@example.com', '456 Elm St, Scranton', '555-5678', 2, 1),
-('Repair the broken light fixtures in the hallway', 'Sarah Lee', 'sarah.lee@example.com', '789 Oak St, Metropolis', '555-8765', 3, 1),
-('Order new circuit breakers for the electrical panel', 'David Wilson', 'david.wilson@example.com', '101 Pine St, Gotham', '555-4321', 4, 1),
-('Customer support for troubleshooting a power outage issue', 'Laura Martinez', 'laura.martinez@example.com', '202 Maple St, Star City', '555-6789', 5, 1);
+INSERT INTO requests (text, subject, name, email, address, telephone, category_id, organization_id, reference_id, raw) VALUES
+('Install new electrical outlets in the conference room', 'Installation electrics in conference room', 'Emily Clark', 'emily.clark@example.com', '123 Main St, Springfield', '555-1234', 1, 1, '1234', ''),
+('Routine maintenance of the electrical wiring in the main office', 'Request: Maintenance electrical wiring' ,'Michael Scott', 'michael.scott@example.com', '456 Elm St, Scranton', '555-5678', 2, 1, '1234', ''),
+('Repair the broken light fixtures in the hallway', 'Request for fixing broken light fixtures in hallway' ,'Sarah Lee', 'sarah.lee@example.com', '789 Oak St, Metropolis', '555-8765', 3, 1, '1234', ''),
+('Order new circuit breakers for the electrical panel', 'Order: Circuit breakers No.PW-44021' ,'David Wilson', 'david.wilson@example.com', '101 Pine St, Gotham', '555-4321', 4, 1, '1234', ''),
+('Customer support for troubleshooting a power outage issue', 'Customer support needed for outage problem' ,'Laura Martinez', 'laura.martinez@example.com', '202 Maple St, Star City', '555-6789', 5, 1, '1234', '');
 
 INSERT INTO "users" ("username", "first_name", "last_name", "email", "iam_user_id", "organization_id") VALUES 
 ('admin', 'admin', 'admin', 'admin@local.de', '7c806e52-e7cc-484b-843b-1242046590dc', 1),

@@ -35,6 +35,7 @@ type Email struct {
 	From      string
 	Date      time.Time
 	MessageID string
+	SeqNum    uint32
 }
 
 func (s *IMAPService) TestConnection(ctx context.Context, settings IMAPSettings) error {
@@ -42,6 +43,29 @@ func (s *IMAPService) TestConnection(ctx context.Context, settings IMAPSettings)
 	defer c.Logout()
 
 	return err
+}
+
+func (s *IMAPService) MarkMailsAsUnseen(ctx context.Context, settings IMAPSettings, emails []Email) error {
+	logger := logger.FromContext(ctx)
+	c, err := s.login(ctx, settings)
+
+	if err != nil {
+		return err
+	}
+	defer c.Logout()
+
+	seqSet := imap.SeqSet{}
+	for _, email := range emails {
+		seqSet.AddNum(email.SeqNum)
+	}
+
+	storeFlags := imap.StoreFlags{Op: imap.StoreFlagsDel, Flags: []imap.Flag{imap.FlagSeen}, Silent: true}
+	if err := c.Store(seqSet, &storeFlags, nil).Close(); err != nil {
+		logger.Error().Err(err).Msgf("failed to mark mails as unseen")
+		return err
+	}
+
+	return nil
 }
 
 func (s *IMAPService) FetchAllUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error) {
@@ -187,6 +211,9 @@ func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.Fetch
 		logger.Error().Err(err).Msgf("failed to extract email body")
 		return Email{}, err
 	}
+
+	// Set the sequence number
+	email.SeqNum = msg.SeqNum
 
 	return email, nil
 }

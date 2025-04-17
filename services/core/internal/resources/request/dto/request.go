@@ -20,6 +20,7 @@ type GetRequestsOutput struct {
 
 // POST Request
 type CreateRequestInputBody struct {
+	Subject    string `json:"subject" doc:"Subject of the request" example:"Some request subject"`
 	Text       string `json:"text" doc:"Description of the request" example:"Some request text"`
 	Name       string `json:"name" doc:"Name of the requester" example:"John Doe"`
 	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com"`
@@ -36,6 +37,7 @@ type CreateRequestInput struct {
 
 // UPDATE Request
 type UpdateRequestInputBody struct {
+	Subject    string `json:"subject" doc:"Subject of the request" example:"Some request subject"`
 	Text       string `json:"text" doc:"Description of the request" example:"Some request text"`
 	Name       string `json:"name" doc:"Name of the requester" example:"John Doe"`
 	Email      string `json:"email" doc:"Email of the requester" example:"John.Doe@example.com"`

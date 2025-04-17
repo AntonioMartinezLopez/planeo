@@ -44,15 +44,18 @@ func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId i
 func (repo *RequestRepository) CreateRequest(ctx context.Context, request models.NewRequest) error {
 
 	query := `
-		INSERT INTO requests (text, name, email, address, telephone, closed, organization_id, category_id)
-		VALUES (@text, @name, @email, @address, @telephone, @closed, @organizationId, @categoryId)`
+		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
+		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)`
 
 	args := pgx.NamedArgs{
 		"text":           request.Text,
 		"name":           request.Name,
+		"subject":        request.Subject,
 		"email":          request.Email,
 		"address":        request.Address,
 		"telephone":      request.Telephone,
+		"raw":            request.Raw,
+		"referenceId":    request.ReferenceId,
 		"closed":         request.Closed,
 		"organizationId": request.OrganizationId,
 		"categoryId":     nil,
