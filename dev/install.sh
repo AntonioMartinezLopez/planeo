@@ -95,13 +95,11 @@ else
     fi
 fi
 
-BACKEND_DIR="backend"
-echo "Installing Go modules from $BACKEND_DIR/go.mod..."
-cd "../$BACKEND_DIR"
+echo "Installing Go modules..."
 go mod tidy
 if [ $? -eq 0 ]; then
-    echo "Successfully installed all Go modules from $BACKEND_DIR/go.mod."
+    echo "Successfully installed all Go modules from go.mod."
 else
-    echo "Failed to install Go modules from $BACKEND_DIR/go.mod. Please check your Go setup and try again."
+    echo "Failed to install Go modules from go.mod. Please check your Go setup and try again."
     exit 1
 fi

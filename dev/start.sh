@@ -38,12 +38,5 @@ done
 echo "Preparing Keycloak..."
 ./check_and_install_realm.sh
 
-# start backend
-BACKEND_DIR="backend"
-echo "Starting backend application"
-cd "../$BACKEND_DIR"
-air . &
-cd ..
-
 # Wait for all background processes to finish
 wait

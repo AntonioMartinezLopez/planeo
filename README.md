@@ -14,13 +14,14 @@ AI-driven process management platform tailored for various service providers, su
 
 ### Preparing the development environment
 
-- `dev/install.sh`: This script checks and installs all dependencies needed for running the development environment
-- `dev/start.sh`: This scripts starts the development environment.
-- run migrations: see [Database migrations](#database-migrations)
+- `make install`: This command checks and installs all dependencies needed for running the development environment
+- `make up`: This scripts starts the development environment and runs migrations.
+- `make run <service>`: This command starts given service (currently: `core` and `email`)
+- run additional migrations: see [Database migrations](#database-migrations)
 
 ### Generating Access Tokens (For backend testing)
 
-- `backend/get_test_token.sh`: This script is used to login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
+- `make login`: This command is used to login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
 
 <br>
 <center>
@@ -35,7 +36,7 @@ AI-driven process management platform tailored for various service providers, su
 
 ### Database migrations
 
-Migrations files can be found under `db/migrations`. For actually conducting migrations and initialize all tables and fixtures, goose is used (https://github.com/pressly/goose). By default, the project provides a `.envrc.template` file with environmental variables that goose uses to connect to the database.
+Migrations files can be found under `<service>/db/migrations`. For actually conducting migrations and initialize all tables and fixtures, goose is used (https://github.com/pressly/goose). By default, the project provides a `.envrc.template` file with environmental variables that goose uses to connect to the database.
 
 #### commands
 
@@ -47,17 +48,23 @@ for more commands see: https://github.com/pressly/goose?tab=readme-ov-file#usage
 
 #### Run migrations in the dev environment
 
-1. start all containers and processes using `dev/start.sh`
-2. `source` the `.envrc` file in order to create environmental variables (or use something like `direnv` to automatically load those when enetering the `db/migrations` directory)
+1. start all containers and processes using `make up` and `make run <services>`
+2. `source` the `.envrc` file in order to create environmental variables (or use something like `direnv` to automatically load those when entering the `db/migrations` directory)
 3. Run `goose up`
 
 ## Testing
 
-### Run backend unit tests
+### Run service unit tests
 
 ```bash
-cd backend
+# for running all unit tests
 go test ./... -v -short
+
+# or for a particular test suite
+go test ./... -run TestUser
+
+# or for a particular sub test
+go test ./... -run TestUser/GetUser
 ```
 
 #### Generate mocks for larger interfaces

@@ -1,6 +1,5 @@
 services:
-
-##### application related services #####
+  ##### application related services #####
   postgres:
     image: postgres:alpine3.20
     container_name: postgres
@@ -10,6 +9,8 @@ services:
       POSTGRES_DB: planeo
     ports:
       - "5432:5432"
+    volumes:
+      - ./mail_service_init.sh:/docker-entrypoint-initdb.d/mail_service_init.sh
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4_container
@@ -22,7 +23,7 @@ services:
     volumes:
       - pg-data:/var/lib/pgadmin
 
-##### Keycloak services #####
+  ##### Keycloak services #####
   keycloak_postgres:
     image: postgres:16.2
     environment:
@@ -55,6 +56,57 @@ services:
       - postgres
     networks:
       - keycloak_network
+
+  # email services
+  greenmail:
+    image: greenmail/standalone:latest
+    environment:
+      - JAVA_OPTS=-Dgreenmail.verbose
+    ports:
+      - 3025:3025 # SMTP
+      - 3110:3110 # POP3
+      - 3143:3143 # IMAP
+      - 3465:3465 # SMTPS
+      - 3993:3993 # IMAPS
+      - 3995:3995 # POP3S
+      - 8088:8088 # API
+  roundcube:
+    image: roundcube/roundcubemail:latest
+    depends_on:
+      - greenmail
+    ports:
+      - 8089:80
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=greenmail # IMAP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_DEFAULT_PORT=3143 # IMAP port
+      - ROUNDCUBEMAIL_SMTP_SERVER=greenmail # SMTP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
+      - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
+
+# nats messaging cluster
+  nats1:
+    container_name: nats1
+    image: nats
+    entrypoint: /nats-server
+    command: --server_name N1 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats2:4245,nats://nats3:4245 -p 4222
+    ports:
+      - 4222:4222
+      - 8222:8222
+
+  nats2:
+    container_name: nats2
+    image: nats
+    entrypoint: /nats-server
+    command: --server_name N2 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats1:4245,nats://nats3:4245 -p 4222
+    ports:
+      - 4223:4222
+
+  nats3:
+    container_name: nats3
+    image: nats
+    entrypoint: /nats-server
+    command: --server_name N3 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats1:4245,nats://nats2:4245 -p 4222
+    ports:
+      - 4224:4222
 
 networks:
   keycloak_network:

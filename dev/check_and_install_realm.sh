@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load environment variables from the .env file
-source ../backend/.env
+source ../services/core/.env
 
 # Function to authenticate against keycloak as admin, returns access token or throws error
 get_access_token() {

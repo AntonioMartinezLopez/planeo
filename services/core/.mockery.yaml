@@ -1,0 +1,29 @@
+quiet: False
+disable-version-string: True
+with-expecter: True
+filename: "mock_{{.InterfaceName | snakecase}}.go"
+dir: "{{.InterfaceDir}}/mocks"
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "mocks"
+all: true
+packages:
+  planeo/services/core/internal/resources/user:
+    # place your package-specific config here
+    config:
+    interfaces:
+      # select the interfaces you want mocked
+      UserRepositoryInterface:
+        # Modify package-level config for this specific interface (if applicable)
+        config:
+      IAMRepositoryInterface:
+        config:
+  planeo/services/core/internal/resources/request:
+    config:
+    interfaces:
+      RequestRepositoryInterface:
+        config:
+  planeo/services/core/internal/resources/category:
+    config:
+    interfaces:
+      CategoryRepositoryInterface:
+        config:
