@@ -13,48 +13,52 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type RouterConfig interface {
-	ServerConfig() string
-	OauthIssuerUrl() string
+type API struct {
+	Name    string
+	Version string
+	Router  *chi.Mux
+	Api     huma.API
 }
 
 type Controller interface {
 	InitializeRoutes()
 }
 
-// SetupRouter creates and configures a chi Router with common middleware
-func SetupRouter(config RouterConfig, basePath string, setupFunc func(r chi.Router, api huma.API)) *chi.Mux {
+type ApiConfiguation interface {
+	ServerConfig() string
+	OauthIssuerUrl() string
+}
+
+func NewHumaAPI(config ApiConfiguation, name string, version string, basePath string) *API {
+
 	router := chi.NewRouter()
-	// router.Use(middleware.Logger)
 	router.Use(middlewares.LoggerMiddleware)
 	router.Use(middleware.Recoverer)
 	router.Use(middlewares.Cors())
 
-	router.Route(basePath, func(r chi.Router) {
-		humaConfig := huma.DefaultConfig("Planeo API", "0.0.1")
-		humaConfig.Components.SecuritySchemes = getSecuritySchemes(config)
-		humaConfig.Servers = []*huma.Server{
-			{URL: getApiUrl(config)},
-		}
-
-		api := humachi.New(r, humaConfig)
-		setupFunc(r, api)
-	})
-
-	return router
-}
-
-// RegisterControllers registers common controllers and endpoints
-func RegisterControllers(config RouterConfig, api huma.API, controllers []Controller, middlewareSetupFunc func(api huma.API)) {
-	// Register common status endpoint
-	registerStatusEndpoint(api)
-
-	// Initialize middleware
-	if middlewareSetupFunc != nil {
-		middlewareSetupFunc(api)
+	humaConfig := huma.DefaultConfig(name, version)
+	humaConfig.Components.SecuritySchemes = getSecuritySchemes(config)
+	humaConfig.Servers = []*huma.Server{
+		{URL: getApiUrl(config)},
 	}
 
-	// Initialize controllers
+	apiRouter := chi.NewRouter()
+	router.Mount(basePath, apiRouter)
+	api := humachi.New(apiRouter, humaConfig)
+
+	return &API{
+		Name:    name,
+		Version: version,
+		Router:  router,
+		Api:     api,
+	}
+}
+
+type Middleware = func(ctx huma.Context, next func(huma.Context))
+
+func InitializeControllers(api huma.API, middlewares []Middleware, controllers []Controller) {
+	registerStatusEndpoint(api)
+	api.UseMiddleware(middlewares...)
 	for _, controller := range controllers {
 		controller.InitializeRoutes()
 	}
@@ -83,7 +87,7 @@ func registerStatusEndpoint(api huma.API) {
 	})
 }
 
-func getApiUrl(config RouterConfig) string {
+func getApiUrl(config ApiConfiguation) string {
 	server := config.ServerConfig()
 	containsLocalhost := strings.Contains(server, "localhost")
 	if containsLocalhost {
@@ -92,7 +96,7 @@ func getApiUrl(config RouterConfig) string {
 	return strings.Join([]string{"https://", server, "/api"}, "")
 }
 
-func getSecuritySchemes(config RouterConfig) map[string]*huma.SecurityScheme {
+func getSecuritySchemes(config ApiConfiguation) map[string]*huma.SecurityScheme {
 	return map[string]*huma.SecurityScheme{
 		"bearer": {
 			Type: "oauth2",

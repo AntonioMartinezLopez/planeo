@@ -8,7 +8,6 @@ import (
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/user/dto"
 	"planeo/services/core/internal/resources/user/models"
-	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -29,7 +28,7 @@ func NewUserController(api huma.API, config *config.ApplicationConfiguration, us
 
 func (u *UserController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(u.api, u.config.OauthIssuerUrl(), u.config.KcOauthClientID)
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-users",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/iam/users",
@@ -48,7 +47,7 @@ func (u *UserController) InitializeRoutes() {
 		return response, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-user",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/iam/users/{iamUserId}",
@@ -67,7 +66,7 @@ func (u *UserController) InitializeRoutes() {
 		return response, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "create-user",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusCreated,
@@ -92,7 +91,7 @@ func (u *UserController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "update-user",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
@@ -121,7 +120,7 @@ func (u *UserController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "delete-user",
 		Method:        http.MethodDelete,
 		DefaultStatus: http.StatusNoContent,
@@ -140,7 +139,7 @@ func (u *UserController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "Assign-user-roles",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
@@ -166,7 +165,7 @@ func (u *UserController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-roles",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/iam/roles",
@@ -186,7 +185,7 @@ func (u *UserController) InitializeRoutes() {
 		return response, nil
 	})
 
-	huma.Register(u.api, operations.WithAuth(huma.Operation{
+	huma.Register(u.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-basic-user-information",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/users",

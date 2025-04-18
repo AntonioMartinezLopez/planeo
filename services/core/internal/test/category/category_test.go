@@ -12,7 +12,6 @@ import (
 	"planeo/services/core/internal/test/utils"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,13 +32,17 @@ func TestCategoryIntegration(t *testing.T) {
 	categoryController := category.NewCategoryController(testApi, env.Configuration, categoryService)
 
 	// Register controllers
-	api.RegisterControllers(env.Configuration, testApi, []api.Controller{categoryController}, func(a huma.API) {
-		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
-		a.UseMiddleware(middlewares.AuthMiddleware(a, jwksURL, env.Configuration.OauthIssuerUrl()))
-		a.UseMiddleware(middlewares.OrganizationCheckMiddleware(a, func(organizationId string) (string, error) {
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
+	middlewares := []api.Middleware{
+		middlewares.AuthMiddleware(testApi, jwksURL, env.Configuration.OauthIssuerUrl()),
+		middlewares.OrganizationCheckMiddleware(testApi, func(organizationId string) (string, error) {
 			return organization.GetOrganizationIamById(db.DB, organizationId)
-		}))
-	})
+		}),
+	}
+	controllers := []api.Controller{
+		categoryController,
+	}
+	api.InitializeControllers(testApi, middlewares, controllers)
 
 	t.Run("GET /categories", func(t *testing.T) {
 		t.Run("Test authorization for category access", func(t *testing.T) {

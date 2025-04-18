@@ -14,7 +14,6 @@ import (
 	"planeo/services/core/internal/test/utils"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,13 +34,18 @@ func TestRequestIntegration(t *testing.T) {
 	requestController := request.NewRequestController(testApi, env.Configuration, requestService)
 
 	// Register controllers
-	api.RegisterControllers(env.Configuration, testApi, []api.Controller{requestController}, func(a huma.API) {
-		jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
-		a.UseMiddleware(middlewares.AuthMiddleware(a, jwksURL, env.Configuration.OauthIssuerUrl()))
-		a.UseMiddleware(middlewares.OrganizationCheckMiddleware(a, func(organizationId string) (string, error) {
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
+	middlewares := []api.Middleware{
+		middlewares.AuthMiddleware(testApi, jwksURL, env.Configuration.OauthIssuerUrl()),
+		middlewares.OrganizationCheckMiddleware(testApi, func(organizationId string) (string, error) {
 			return organization.GetOrganizationIamById(db.DB, organizationId)
-		}))
-	})
+		}),
+	}
+	controllers := []api.Controller{
+		requestController,
+	}
+
+	api.InitializeControllers(testApi, middlewares, controllers)
 
 	// table tests for creating and updating requests
 	testCases := []struct {

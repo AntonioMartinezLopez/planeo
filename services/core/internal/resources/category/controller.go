@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 	"planeo/libs/huma_utils"
+	humaUtils "planeo/libs/huma_utils"
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/category/dto"
 	"planeo/services/core/internal/resources/category/models"
-	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -29,7 +29,7 @@ func NewCategoryController(api huma.API, config *config.ApplicationConfiguration
 
 func (c *CategoryController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(c.api, c.config.OauthIssuerUrl(), c.config.KcOauthClientID)
-	huma.Register(c.api, operations.WithAuth(huma.Operation{
+	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-categories",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/categories",
@@ -46,7 +46,7 @@ func (c *CategoryController) InitializeRoutes() {
 		return resp, nil
 	})
 
-	huma.Register(c.api, operations.WithAuth(huma.Operation{
+	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "create-category",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusCreated,
@@ -68,7 +68,7 @@ func (c *CategoryController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(c.api, operations.WithAuth(huma.Operation{
+	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "update-category",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
@@ -91,7 +91,7 @@ func (c *CategoryController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(c.api, operations.WithAuth(huma.Operation{
+	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "delete-category",
 		Method:        http.MethodDelete,
 		DefaultStatus: http.StatusNoContent,

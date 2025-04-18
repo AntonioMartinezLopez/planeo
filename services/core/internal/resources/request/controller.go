@@ -4,11 +4,11 @@ import (
 	"context"
 	"net/http"
 	"planeo/libs/huma_utils"
+	humaUtils "planeo/libs/huma_utils"
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/resources/request/dto"
 	"planeo/services/core/internal/resources/request/models"
-	"planeo/services/core/internal/setup/operations"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -29,7 +29,7 @@ func NewRequestController(api huma.API, config *config.ApplicationConfiguration,
 
 func (r *RequestController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(r.api, r.config.OauthIssuerUrl(), r.config.KcOauthClientID)
-	huma.Register(r.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-requests",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/requests",
@@ -55,7 +55,7 @@ func (r *RequestController) InitializeRoutes() {
 		return resp, nil
 	})
 
-	huma.Register(r.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "create-request",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusCreated,
@@ -82,7 +82,7 @@ func (r *RequestController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(r.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "update-request",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
@@ -112,7 +112,7 @@ func (r *RequestController) InitializeRoutes() {
 		return nil, nil
 	})
 
-	huma.Register(r.api, operations.WithAuth(huma.Operation{
+	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "delete-request",
 		Method:        http.MethodDelete,
 		DefaultStatus: http.StatusNoContent,
