@@ -88,6 +88,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 
 	api.InitializeControllers(huma.Api, middlewares, controllers)
 
+	// Start listening to events set in service
 	err := eventService.InitializeEvents(context.Background(), coreEvents.Services{
 		RequestService: requestService})
 	if err != nil {
