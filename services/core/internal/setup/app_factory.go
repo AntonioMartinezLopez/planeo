@@ -90,7 +90,8 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 
 	// Start listening to events set in service
 	err := eventService.InitializeEvents(context.Background(), coreEvents.Services{
-		RequestService: requestService})
+		RequestService:  requestService,
+		CategoryService: categoryService})
 	if err != nil {
 		panic(fmt.Sprintf("Failed to initialize events: %v", err))
 	}

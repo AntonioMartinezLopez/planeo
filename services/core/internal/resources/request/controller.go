@@ -3,7 +3,6 @@ package request
 import (
 	"context"
 	"net/http"
-	"planeo/libs/huma_utils"
 	humaUtils "planeo/libs/huma_utils"
 	"planeo/libs/middlewares"
 	"planeo/services/core/config"
@@ -41,7 +40,7 @@ func (r *RequestController) InitializeRoutes() {
 		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
 
 		if err != nil {
-			return nil, huma_utils.NewHumaError(err)
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		resp := &dto.GetRequestsOutput{}
@@ -63,7 +62,7 @@ func (r *RequestController) InitializeRoutes() {
 		Summary:       "Create Request",
 		Tags:          []string{"Requests"},
 		Middlewares:   huma.Middlewares{permissions.Apply("request", "create")},
-	}), func(ctx context.Context, input *dto.CreateRequestInput) (*struct{}, error) {
+	}), func(ctx context.Context, input *dto.CreateRequestInput) (*dto.CreateRequestOutput, error) {
 		request := models.NewRequest{
 			Text:           input.Body.Text,
 			Name:           input.Body.Name,
@@ -74,12 +73,14 @@ func (r *RequestController) InitializeRoutes() {
 			OrganizationId: input.OrganizationId,
 			CategoryId:     input.Body.CategoryId,
 		}
-		result := r.requestService.CreateRequest(ctx, request)
+		result, err := r.requestService.CreateRequest(ctx, request)
 
-		if result != nil {
-			return nil, huma_utils.NewHumaError(result)
+		if err != nil {
+			return nil, humaUtils.NewHumaError(err)
 		}
-		return nil, nil
+		resp := &dto.CreateRequestOutput{}
+		resp.Body.Id = result
+		return resp, nil
 	})
 
 	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
@@ -106,7 +107,7 @@ func (r *RequestController) InitializeRoutes() {
 		err := r.requestService.UpdateRequest(ctx, request)
 
 		if err != nil {
-			return nil, huma_utils.NewHumaError(err)
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		return nil, nil
@@ -125,7 +126,7 @@ func (r *RequestController) InitializeRoutes() {
 		err := r.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
 
 		if err != nil {
-			return nil, huma_utils.NewHumaError(err)
+			return nil, humaUtils.NewHumaError(err)
 		}
 
 		return nil, nil

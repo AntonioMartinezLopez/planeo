@@ -23,21 +23,31 @@ func (_m *MockCategoryRepositoryInterface) EXPECT() *MockCategoryRepositoryInter
 }
 
 // CreateCategory provides a mock function with given fields: ctx, organizationId, _a2
-func (_m *MockCategoryRepositoryInterface) CreateCategory(ctx context.Context, organizationId int, _a2 models.NewCategory) error {
+func (_m *MockCategoryRepositoryInterface) CreateCategory(ctx context.Context, organizationId int, _a2 models.NewCategory) (int, error) {
 	ret := _m.Called(ctx, organizationId, _a2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateCategory")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, models.NewCategory) error); ok {
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, models.NewCategory) (int, error)); ok {
+		return rf(ctx, organizationId, _a2)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int, models.NewCategory) int); ok {
 		r0 = rf(ctx, organizationId, _a2)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(int)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, int, models.NewCategory) error); ok {
+		r1 = rf(ctx, organizationId, _a2)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockCategoryRepositoryInterface_CreateCategory_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateCategory'
@@ -60,12 +70,12 @@ func (_c *MockCategoryRepositoryInterface_CreateCategory_Call) Run(run func(ctx 
 	return _c
 }
 
-func (_c *MockCategoryRepositoryInterface_CreateCategory_Call) Return(_a0 error) *MockCategoryRepositoryInterface_CreateCategory_Call {
-	_c.Call.Return(_a0)
+func (_c *MockCategoryRepositoryInterface_CreateCategory_Call) Return(_a0 int, _a1 error) *MockCategoryRepositoryInterface_CreateCategory_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockCategoryRepositoryInterface_CreateCategory_Call) RunAndReturn(run func(context.Context, int, models.NewCategory) error) *MockCategoryRepositoryInterface_CreateCategory_Call {
+func (_c *MockCategoryRepositoryInterface_CreateCategory_Call) RunAndReturn(run func(context.Context, int, models.NewCategory) (int, error)) *MockCategoryRepositoryInterface_CreateCategory_Call {
 	_c.Call.Return(run)
 	return _c
 }

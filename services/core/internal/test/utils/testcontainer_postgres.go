@@ -18,6 +18,6 @@ func StartPostgresContainer(ctx context.Context) (*postgres.PostgresContainer, e
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(5*time.Second)),
+				WithStartupTimeout(5*time.Minute)),
 	)
 }

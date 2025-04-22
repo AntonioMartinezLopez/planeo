@@ -416,8 +416,14 @@ func TestRequestIntegration(t *testing.T) {
 				CategoryId: 1,
 			}
 
+			var responseBody struct {
+				Id int `json:"id"`
+			}
 			response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
+
 			assert.Equal(t, 201, response.Code)
+			assert.Greater(t, responseBody.Id, 0)
 		})
 
 		t.Run("should return 400 when required fields are missing or have invalid types", func(t *testing.T) {

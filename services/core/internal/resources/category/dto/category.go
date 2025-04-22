@@ -17,6 +17,12 @@ type CreateCategoryInput struct {
 	Body           CreateCategoryInputBody
 }
 
+type CreateCategoryOutput struct {
+	Body struct {
+		Id int `json:"id" doc:"ID of the created category"`
+	}
+}
+
 type CreateCategoryInputBody struct {
 	Label            string `json:"label"`
 	Color            string `json:"color"`
