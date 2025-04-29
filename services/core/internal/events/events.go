@@ -5,15 +5,23 @@ import (
 	"errors"
 	"planeo/libs/events"
 	"planeo/libs/logger"
-	"planeo/services/core/internal/resources/request/models"
+	categories "planeo/services/core/internal/resources/category/models"
+	requests "planeo/services/core/internal/resources/request/models"
 )
 
 type RequestServiceInterface interface {
-	CreateRequest(ctx context.Context, request models.NewRequest) error
+	GetRequest(ctx context.Context, organizationId int, requestId int) (requests.Request, error)
+	CreateRequest(ctx context.Context, request requests.NewRequest) (int, error)
+	UpdateRequest(ctx context.Context, request requests.UpdateRequest) error
+}
+
+type CategoryServiceInterface interface {
+	GetCategories(ctx context.Context, organizationId int) ([]categories.Category, error)
 }
 
 type Services struct {
-	RequestService RequestServiceInterface
+	RequestService  RequestServiceInterface
+	CategoryService CategoryServiceInterface
 }
 
 type EventService struct {

@@ -23,21 +23,31 @@ func (_m *MockRequestRepositoryInterface) EXPECT() *MockRequestRepositoryInterfa
 }
 
 // CreateRequest provides a mock function with given fields: ctx, _a1
-func (_m *MockRequestRepositoryInterface) CreateRequest(ctx context.Context, _a1 models.NewRequest) error {
+func (_m *MockRequestRepositoryInterface) CreateRequest(ctx context.Context, _a1 models.NewRequest) (int, error) {
 	ret := _m.Called(ctx, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateRequest")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, models.NewRequest) error); ok {
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, models.NewRequest) (int, error)); ok {
+		return rf(ctx, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, models.NewRequest) int); ok {
 		r0 = rf(ctx, _a1)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(int)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, models.NewRequest) error); ok {
+		r1 = rf(ctx, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // MockRequestRepositoryInterface_CreateRequest_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateRequest'
@@ -59,12 +69,12 @@ func (_c *MockRequestRepositoryInterface_CreateRequest_Call) Run(run func(ctx co
 	return _c
 }
 
-func (_c *MockRequestRepositoryInterface_CreateRequest_Call) Return(_a0 error) *MockRequestRepositoryInterface_CreateRequest_Call {
-	_c.Call.Return(_a0)
+func (_c *MockRequestRepositoryInterface_CreateRequest_Call) Return(_a0 int, _a1 error) *MockRequestRepositoryInterface_CreateRequest_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockRequestRepositoryInterface_CreateRequest_Call) RunAndReturn(run func(context.Context, models.NewRequest) error) *MockRequestRepositoryInterface_CreateRequest_Call {
+func (_c *MockRequestRepositoryInterface_CreateRequest_Call) RunAndReturn(run func(context.Context, models.NewRequest) (int, error)) *MockRequestRepositoryInterface_CreateRequest_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -113,6 +123,64 @@ func (_c *MockRequestRepositoryInterface_DeleteRequest_Call) Return(_a0 error) *
 }
 
 func (_c *MockRequestRepositoryInterface_DeleteRequest_Call) RunAndReturn(run func(context.Context, int, int) error) *MockRequestRepositoryInterface_DeleteRequest_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetRequest provides a mock function with given fields: ctx, organizationId, requestId
+func (_m *MockRequestRepositoryInterface) GetRequest(ctx context.Context, organizationId int, requestId int) (models.Request, error) {
+	ret := _m.Called(ctx, organizationId, requestId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRequest")
+	}
+
+	var r0 models.Request
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, int) (models.Request, error)); ok {
+		return rf(ctx, organizationId, requestId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int, int) models.Request); ok {
+		r0 = rf(ctx, organizationId, requestId)
+	} else {
+		r0 = ret.Get(0).(models.Request)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int, int) error); ok {
+		r1 = rf(ctx, organizationId, requestId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRequestRepositoryInterface_GetRequest_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRequest'
+type MockRequestRepositoryInterface_GetRequest_Call struct {
+	*mock.Call
+}
+
+// GetRequest is a helper method to define mock.On call
+//   - ctx context.Context
+//   - organizationId int
+//   - requestId int
+func (_e *MockRequestRepositoryInterface_Expecter) GetRequest(ctx interface{}, organizationId interface{}, requestId interface{}) *MockRequestRepositoryInterface_GetRequest_Call {
+	return &MockRequestRepositoryInterface_GetRequest_Call{Call: _e.mock.On("GetRequest", ctx, organizationId, requestId)}
+}
+
+func (_c *MockRequestRepositoryInterface_GetRequest_Call) Run(run func(ctx context.Context, organizationId int, requestId int)) *MockRequestRepositoryInterface_GetRequest_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(int), args[2].(int))
+	})
+	return _c
+}
+
+func (_c *MockRequestRepositoryInterface_GetRequest_Call) Return(_a0 models.Request, _a1 error) *MockRequestRepositoryInterface_GetRequest_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRequestRepositoryInterface_GetRequest_Call) RunAndReturn(run func(context.Context, int, int) (models.Request, error)) *MockRequestRepositoryInterface_GetRequest_Call {
 	_c.Call.Return(run)
 	return _c
 }

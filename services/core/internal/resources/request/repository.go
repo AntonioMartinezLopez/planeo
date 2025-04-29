@@ -41,11 +41,29 @@ func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId i
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Request])
 }
 
-func (repo *RequestRepository) CreateRequest(ctx context.Context, request models.NewRequest) error {
+func (repo *RequestRepository) GetRequest(ctx context.Context, organizationId int, requestId int) (models.Request, error) {
+	query := `
+		SELECT * FROM requests
+		WHERE organization_id = @organizationId AND id = @requestId`
+	args := pgx.NamedArgs{"organizationId": organizationId, "requestId": requestId}
+
+	rows, err := repo.db.Query(ctx, query, args)
+
+	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetRequest").Msg("Error querying database")
+		return models.Request{}, appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	return pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Request])
+}
+
+func (repo *RequestRepository) CreateRequest(ctx context.Context, request models.NewRequest) (int, error) {
 
 	query := `
 		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
-		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)`
+		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)
+		RETURNING id`
 
 	args := pgx.NamedArgs{
 		"text":           request.Text,
@@ -65,15 +83,16 @@ func (repo *RequestRepository) CreateRequest(ctx context.Context, request models
 		args["categoryId"] = request.CategoryId
 	}
 
-	_, err := repo.db.Exec(ctx, query, args)
+	var id int
+	err := repo.db.QueryRow(ctx, query, args).Scan(&id)
 
 	if err != nil {
 		logger := logger.FromContext(ctx)
 		logger.Error().Err(err).Str("operation", "CreateRequest").Msg("Error inserting into database")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return 0, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (repo *RequestRepository) UpdateRequest(ctx context.Context, request models.UpdateRequest) error {
@@ -93,6 +112,10 @@ func (repo *RequestRepository) UpdateRequest(ctx context.Context, request models
 		"categoryId":     request.CategoryId,
 		"organizationId": request.OrganizationId,
 		"requestId":      request.Id,
+	}
+
+	if request.CategoryId == 0 {
+		args["categoryId"] = nil
 	}
 
 	result, err := repo.db.Exec(ctx, query, args)

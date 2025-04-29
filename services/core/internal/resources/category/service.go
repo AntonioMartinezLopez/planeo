@@ -7,7 +7,7 @@ import (
 
 type CategoryRepositoryInterface interface {
 	GetCategories(ctx context.Context, organizationId int) ([]models.Category, error)
-	CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error
+	CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) (int, error)
 	UpdateCategory(ctx context.Context, organizationId int, categoryId int, category models.UpdateCategory) error
 	DeleteCategory(ctx context.Context, organizationId int, categoryId int) error
 }
@@ -26,7 +26,7 @@ func (s *CategoryService) GetCategories(ctx context.Context, organizationId int)
 	return s.categoryRepository.GetCategories(ctx, organizationId)
 }
 
-func (s *CategoryService) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error {
+func (s *CategoryService) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) (int, error) {
 	return s.categoryRepository.CreateCategory(ctx, organizationId, category)
 }
 

@@ -35,10 +35,11 @@ func (repo *CategoryRepository) GetCategories(ctx context.Context, organizationI
 	return pgx.CollectRows(rows, pgx.RowToStructByName[models.Category])
 }
 
-func (repo *CategoryRepository) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) error {
+func (repo *CategoryRepository) CreateCategory(ctx context.Context, organizationId int, category models.NewCategory) (int, error) {
 	query := `
         INSERT INTO categories (label, color, label_description, organization_id)
-        VALUES (@label, @color, @labelDescription, @organizationId)`
+        VALUES (@label, @color, @labelDescription, @organizationId)
+		RETURNING id`
 
 	args := pgx.NamedArgs{
 		"label":            category.Label,
@@ -47,14 +48,16 @@ func (repo *CategoryRepository) CreateCategory(ctx context.Context, organization
 		"organizationId":   organizationId,
 	}
 
-	_, err := repo.db.Exec(ctx, query, args)
+	var id int
+
+	err := repo.db.QueryRow(ctx, query, args).Scan(&id)
 	if err != nil {
 		logger := logger.FromContext(ctx)
 		logger.Error().Err(err).Str("operation", "CreateCategory").Msg("Error querying database")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return 0, appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
-	return nil
+	return id, nil
 }
 
 func (repo *CategoryRepository) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category models.UpdateCategory) error {

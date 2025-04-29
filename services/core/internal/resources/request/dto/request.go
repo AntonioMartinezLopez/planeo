@@ -35,6 +35,12 @@ type CreateRequestInput struct {
 	Body           CreateRequestInputBody
 }
 
+type CreateRequestOutput struct {
+	Body struct {
+		Id int `json:"id" doc:"ID of the created category"`
+	}
+}
+
 // UPDATE Request
 type UpdateRequestInputBody struct {
 	Subject    string `json:"subject" doc:"Subject of the request" example:"Some request subject"`

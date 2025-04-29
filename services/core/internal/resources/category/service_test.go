@@ -44,20 +44,22 @@ func TestCategoryService(t *testing.T) {
 
 		t.Run("returns nil when category is created successfully", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepositoryInterface(t)
-			mockCategoryRepository.EXPECT().CreateCategory(context.Background(), testOrganizationId, categoryCreateInput).Return(nil)
+			mockCategoryRepository.EXPECT().CreateCategory(context.Background(), testOrganizationId, categoryCreateInput).Return(1, nil)
 			categoryService := NewCategoryService(mockCategoryRepository)
 
-			err := categoryService.CreateCategory(context.Background(), testOrganizationId, categoryCreateInput)
+			id, err := categoryService.CreateCategory(context.Background(), testOrganizationId, categoryCreateInput)
 			assert.Nil(t, err)
+			assert.Equal(t, 1, id)
 		})
 
 		t.Run("returns error when category creation fails", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepositoryInterface(t)
-			mockCategoryRepository.EXPECT().CreateCategory(context.Background(), testOrganizationId, categoryCreateInput).Return(assert.AnError)
+			mockCategoryRepository.EXPECT().CreateCategory(context.Background(), testOrganizationId, categoryCreateInput).Return(0, assert.AnError)
 			categoryService := NewCategoryService(mockCategoryRepository)
 
-			err := categoryService.CreateCategory(context.Background(), testOrganizationId, categoryCreateInput)
+			id, err := categoryService.CreateCategory(context.Background(), testOrganizationId, categoryCreateInput)
 			assert.Error(t, err)
+			assert.Equal(t, 0, id)
 		})
 	})
 

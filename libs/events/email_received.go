@@ -43,13 +43,12 @@ func (nc *NatsConnector) SubscribeEmailReceived(ctx context.Context, handler fun
 		if err := json.Unmarshal(msg.Data(), &payload); err != nil {
 			return
 		}
+		defer msg.Ack()
 
 		err := handler(payload)
 		if err != nil {
-			msg.Nak()
 			return
 		}
-		msg.Ack()
 	})
 
 	if err != nil {

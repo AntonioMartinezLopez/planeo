@@ -54,18 +54,20 @@ func (c *CategoryController) InitializeRoutes() {
 		Summary:       "Create Category",
 		Tags:          []string{"Categories"},
 		Middlewares:   huma.Middlewares{permissions.Apply("category", "create")},
-	}), func(ctx context.Context, input *dto.CreateCategoryInput) (*struct{}, error) {
+	}), func(ctx context.Context, input *dto.CreateCategoryInput) (*dto.CreateCategoryOutput, error) {
 		category := models.NewCategory{
 			Label:            input.Body.Label,
 			Color:            input.Body.Color,
 			LabelDescription: input.Body.LabelDescription,
 			OrganizationId:   input.OrganizationId,
 		}
-		err := c.categoryService.CreateCategory(ctx, input.OrganizationId, category)
+		id, err := c.categoryService.CreateCategory(ctx, input.OrganizationId, category)
 		if err != nil {
 			return nil, huma_utils.NewHumaError(err)
 		}
-		return nil, nil
+		resp := &dto.CreateCategoryOutput{}
+		resp.Body.Id = id
+		return resp, nil
 	})
 
 	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{

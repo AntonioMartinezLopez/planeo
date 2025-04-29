@@ -59,20 +59,22 @@ func TestRequestService(t *testing.T) {
 
 		t.Run("returns nil when request is created successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(nil)
+			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(1, nil)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.CreateRequest(context.Background(), requestCreateInput)
+			id, err := requestService.CreateRequest(context.Background(), requestCreateInput)
 			assert.Nil(t, err)
+			assert.Equal(t, 1, id)
 		})
 
 		t.Run("returns error when request creation fails", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepositoryInterface(t)
-			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(assert.AnError)
+			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(0, assert.AnError)
 			requestService := NewRequestService(mockRequestRepository)
 
-			err := requestService.CreateRequest(context.Background(), requestCreateInput)
+			id, err := requestService.CreateRequest(context.Background(), requestCreateInput)
 			assert.Error(t, err)
+			assert.Equal(t, 0, id)
 		})
 	})
 
