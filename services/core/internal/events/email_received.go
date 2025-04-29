@@ -45,6 +45,12 @@ func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
 			return err
 		}
 
+		// Extract fields from the request
+		extractedFields, err := llm.ExtractRequestFields(ctx, raw)
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to extract fields from request")
+		}
+
 		// Classify the request
 		requestData := llm.RequestData{
 			Subject: payload.Subject,
@@ -57,36 +63,23 @@ func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
 			return err
 		}
 
-		logger.Info().
-			Str("message_id", payload.MessageID).
-			Int("organization_id", payload.OrganizationId).
-			Int("category_id", categoryId).
-			Msg("Classified request")
-
-		//load requests in case there was a change
-		request, err := e.services.RequestService.GetRequest(ctx, payload.OrganizationId, requestId)
-		if err != nil {
-			logger.Error().Err(err).Msg("Failed to get request")
-			return err
+		updatedRequest := models.UpdateRequest{
+			Id:             requestId,
+			Text:           payload.Body,
+			Subject:        payload.Subject,
+			Email:          payload.From,
+			Name:           extractedFields.Name,
+			Address:        extractedFields.Address,
+			Telephone:      extractedFields.Phone,
+			CategoryId:     categoryId,
+			OrganizationId: payload.OrganizationId,
 		}
 
-		if categoryId != 0 {
-			err = e.services.RequestService.UpdateRequest(ctx, models.UpdateRequest{
-				Id:             requestId,
-				Text:           request.Text,
-				Subject:        request.Subject,
-				Email:          request.Email,
-				Name:           request.Name,
-				Address:        request.Address,
-				Telephone:      request.Telephone,
-				Closed:         request.Closed,
-				CategoryId:     categoryId,
-				OrganizationId: payload.OrganizationId})
+		err = e.services.RequestService.UpdateRequest(ctx, updatedRequest)
 
-			if err != nil {
-				logger.Error().Err(err).Msg("Failed to update request")
-				return err
-			}
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to update request")
+			return err
 		}
 
 		return nil

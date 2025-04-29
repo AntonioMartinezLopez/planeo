@@ -114,6 +114,10 @@ func (repo *RequestRepository) UpdateRequest(ctx context.Context, request models
 		"requestId":      request.Id,
 	}
 
+	if request.CategoryId == 0 {
+		args["categoryId"] = nil
+	}
+
 	result, err := repo.db.Exec(ctx, query, args)
 
 	if err != nil {

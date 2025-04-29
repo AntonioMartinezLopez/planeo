@@ -55,7 +55,7 @@ func ClassifyRequest(ctx context.Context, request RequestData, categories []cate
 	}
 
 	// Call the LLM
-	response, err := llm.GenerateContent(ctx, messageHistory, llms.WithTools(tools))
+	response, err := llm.GenerateContent(ctx, messageHistory, llms.WithTools(classifier_tools))
 	if err != nil {
 		return 0, err
 	}
@@ -87,7 +87,7 @@ func ClassifyRequest(ctx context.Context, request RequestData, categories []cate
 	return 0, nil
 }
 
-var tools = []llms.Tool{
+var classifier_tools = []llms.Tool{
 	{
 		Type: "function",
 		Function: &llms.FunctionDefinition{
