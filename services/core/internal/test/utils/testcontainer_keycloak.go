@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	jsonHelper "planeo/libs/json"
 	"planeo/libs/request"
+	"time"
 
 	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/testcontainers/testcontainers-go"
@@ -24,7 +25,7 @@ func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, err
 		"quay.io/keycloak/keycloak:25.0.2",
 		testcontainers.WithHostPortAccess(8080),
 		testcontainers.WithWaitStrategy(wait.ForAll(
-			wait.ForHTTP("/realms/local/protocol/openid-connect/certs").WithPort("8080"),
+			wait.ForHTTP("/realms/local/protocol/openid-connect/certs").WithPort("8080").WithStartupTimeout(5*time.Minute),
 		)),
 		keycloak.WithContextPath("/"),
 		keycloak.WithRealmImportFile(realmPath),
