@@ -28,7 +28,6 @@ type Services struct {
 	UserService     *user.UserService
 	CategoryService *category.CategoryService
 	KeyCloakService *user.KeycloakService
-	EventService    *coreEvents.EventService
 }
 
 type Controllers struct {
@@ -51,7 +50,7 @@ func NewApplicationFactory() *ApplicationFactory {
 	return &ApplicationFactory{}
 }
 
-func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, natsClient *events.NatsConnector) *Application {
+func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService *events.EventService) *Application {
 	// Initialize repositories
 	requestRepository := request.NewRequestRepository(db.DB)
 	userRepository := user.NewUserRepository(db.DB)
@@ -63,7 +62,6 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 	requestService := request.NewRequestService(requestRepository)
 	userService := user.NewUserService(userRepository, keycloakService)
 	categoryService := category.NewCategoryService(categoryRepository)
-	eventService := coreEvents.NewEventService(natsClient)
 
 	// Initialize API
 	huma := api.NewHumaAPI(config, "Planeo Core", "0.0.1", "/api")
@@ -89,7 +87,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 	api.InitializeControllers(huma.Api, middlewares, controllers)
 
 	// Start listening to events set in service
-	err := eventService.InitializeEvents(context.Background(), coreEvents.Services{
+	err := coreEvents.InitializeEvents(context.Background(), eventService, coreEvents.Services{
 		RequestService:  requestService,
 		CategoryService: categoryService})
 	if err != nil {
@@ -107,7 +105,6 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 			UserService:     userService,
 			CategoryService: categoryService,
 			KeyCloakService: keycloakService,
-			EventService:    eventService,
 		},
 		Controllers: Controllers{
 			RequestController:  requestController,

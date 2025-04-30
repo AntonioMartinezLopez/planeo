@@ -10,8 +10,6 @@ import (
 	"planeo/libs/events"
 	"planeo/libs/logger"
 	"time"
-
-	"github.com/nats-io/nats.go"
 )
 
 func main() {
@@ -30,15 +28,15 @@ func main() {
 	// initialize database connection
 	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
 
-	// initialize nats connection
-	natsClient, err := events.NewNatsConnector(config.NatsUrl, []nats.Option{})
+	// initialize event service
+	eventService, err := events.NewEventService(config.NatsUrl)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
 
 	// initialize application
 	appFactory := setup.NewApplicationFactory()
-	application := appFactory.CreateApplication(config, db, natsClient)
+	application := appFactory.CreateApplication(config, db, eventService)
 
 	server := http.Server{
 		Addr:              serverConfig,
