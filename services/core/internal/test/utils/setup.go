@@ -27,11 +27,13 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 	keycloakContainer, err := NewKeycloakContainer(context.Background())
 	if err != nil {
+		fmt.Println("failed to start keycloak container")
 		panic(err)
 	}
 
 	postgresContainer, err = StartPostgresContainer(context.Background())
 	if err != nil {
+		fmt.Println("failed to start postgres container")
 		panic(err)
 	}
 

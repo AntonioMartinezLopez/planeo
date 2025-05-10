@@ -40,7 +40,7 @@ func NewApplicationFactory() *ApplicationFactory {
 	return &ApplicationFactory{}
 }
 
-func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, natsClient *events.NatsConnector) *Application {
+func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService *events.EventService) *Application {
 	// Initialize repositories
 	settingsRepository := settings.NewSettingsRepository(db.DB)
 
@@ -48,7 +48,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 	cronService := internal.NewCronService()
 	cronService.Start()
 	imapService := internal.NewIMAPService()
-	emailService := internal.NewEmailService(cronService, imapService, natsClient)
+	emailService := internal.NewEmailService(cronService, imapService, eventService)
 	settingsService := settings.NewSettingsService(settingsRepository, emailService)
 
 	// Initialize API

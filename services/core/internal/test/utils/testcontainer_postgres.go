@@ -15,9 +15,9 @@ func StartPostgresContainer(ctx context.Context) (*postgres.PostgresContainer, e
 		postgres.WithDatabase("planeo"),
 		postgres.WithUsername("planeo"),
 		postgres.WithPassword("planeo"),
-		testcontainers.WithWaitStrategy(
+		testcontainers.WithWaitStrategyAndDeadline(5*time.Minute,
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(5*time.Minute)),
+				WithStartupTimeout(5*time.Second)),
 	)
 }

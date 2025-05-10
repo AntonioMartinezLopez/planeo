@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"planeo/libs/events"
 	"planeo/libs/logger"
@@ -11,21 +10,16 @@ import (
 	"time"
 )
 
-func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
+func CreateEmailReceivedCallback(ctx context.Context, services Services) func(payload events.EmailCreatedPayload) error {
 	logger := logger.FromContext(ctx)
 
-	if e.NatsConnector == nil {
-		logger.Error().Msg("NATS connector is not initialized")
-		return errors.New("NATS connector is not initialized")
-	}
-
-	err := e.NatsConnector.SubscribeEmailReceived(ctx, func(payload events.EmailCreatedPayload) error {
+	return func(payload events.EmailCreatedPayload) error {
 		logger.Info().Str("message_id", payload.MessageID).Int("organization_id", payload.OrganizationId).Msg("Received email")
 
 		raw := fmt.Sprintf("Subject: %s\nFrom: %s\nDate: %s\nMessage-ID: %s\nBody: %s",
 			payload.Subject, payload.From, payload.Date.Format(time.RFC1123), payload.MessageID, payload.Body)
 
-		requestId, err := e.services.RequestService.CreateRequest(ctx, models.NewRequest{
+		requestId, err := services.RequestService.CreateRequest(ctx, models.NewRequest{
 			Subject:        payload.Subject,
 			Raw:            raw,
 			Text:           payload.Body,
@@ -39,7 +33,7 @@ func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
 			return err
 		}
 
-		categories, err := e.services.CategoryService.GetCategories(ctx, payload.OrganizationId)
+		categories, err := services.CategoryService.GetCategories(ctx, payload.OrganizationId)
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to get categories")
 			return err
@@ -75,7 +69,7 @@ func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
 			OrganizationId: payload.OrganizationId,
 		}
 
-		err = e.services.RequestService.UpdateRequest(ctx, updatedRequest)
+		err = services.RequestService.UpdateRequest(ctx, updatedRequest)
 
 		if err != nil {
 			logger.Error().Err(err).Msg("Failed to update request")
@@ -83,12 +77,6 @@ func (e *EventService) SubscribeEmailReceived(ctx context.Context) error {
 		}
 
 		return nil
-	})
-
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to subscribe to email.received subject")
-		return err
 	}
 
-	return nil
 }

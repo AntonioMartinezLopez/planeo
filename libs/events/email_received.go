@@ -20,7 +20,7 @@ type EmailCreatedPayload struct {
 var subject = "events.email.received"
 var subscriptionName = "email-receiver"
 
-func (nc *NatsConnector) PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error {
+func (nc *EventService) PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error {
 	json, err := json.Marshal(payload)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func (nc *NatsConnector) PublishEmailReceived(ctx context.Context, payload Email
 	return nil
 }
 
-func (nc *NatsConnector) SubscribeEmailReceived(ctx context.Context, handler func(EmailCreatedPayload) error) error {
+func (nc *EventService) SubscribeEmailReceived(ctx context.Context, handler func(EmailCreatedPayload) error) error {
 
 	err := nc.Subscribe(ctx, subscriptionName, subject, func(msg jetstream.Msg) {
 		var payload EmailCreatedPayload
