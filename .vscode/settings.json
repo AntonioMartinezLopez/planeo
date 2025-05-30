@@ -1,16 +1,25 @@
 {
+  "eslint.useFlatConfig": true,
   "[typescript]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
   },
   "window.zoomLevel": -1,
   "[go]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"
-    },
+    }
+  },
+  "[vue]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
   },
   "go.formatTool": "gofmt",
   "go.buildFlags": [
@@ -18,9 +27,6 @@
   ],
   "go.testTags": "integration",
   "go.toolsManagement.autoUpdate": true,
-  "[javascript]": {
-    "editor.defaultFormatter": "vscode.typescript-language-features"
-  },
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
