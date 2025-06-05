@@ -1,11 +1,8 @@
 <template>
-  <div>
-    <nav>
-      <ul>
-        <li><NuxtLink to="/">Home</NuxtLink></li>
-        <li><NuxtLink to="/protected">Protected</NuxtLink></li>
-      </ul>
-    </nav>
-    <slot />
-  </div>
+  <SidebarProvider>
+    <AppSidebar />
+    <main class="w-screen h-screen overflow-hidden flex flex-col p-6">
+      <slot />
+    </main>
+  </SidebarProvider>
 </template>

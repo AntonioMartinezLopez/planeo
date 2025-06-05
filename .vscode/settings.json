@@ -4,7 +4,7 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
     }
   },
   "window.zoomLevel": -1,
@@ -18,7 +18,7 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      // "source.organizeImports": "explicit"
     }
   },
   "go.formatTool": "gofmt",
