@@ -4,3 +4,9 @@
     <p>This is the home page of our application.</p>
   </div>
 </template>
+
+<script setup lang="ts">
+definePageMeta({
+  middleware: ['auth'],
+})
+</script>

@@ -85,7 +85,7 @@ const items = [
     </SidebarContent>
 
     <SidebarFooter>
-      <AppNavUser :user="{ avatar: '', email: 'test@test.de', name: 'Cristiano Ronaldo' }" />
+      <AppNavUser />
     </SidebarFooter>
   </Sidebar>
 </template>

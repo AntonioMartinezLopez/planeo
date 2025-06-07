@@ -8,13 +8,18 @@ import {
 } from 'lucide-vue-next'
 import { useSidebar } from './ui/sidebar'
 
-defineProps<{
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}>()
+const { user, clear } = useUserSession()
+
+const shortName = computed(() => {
+  if (!user.value?.name) return 'NN'
+  const nameParts = user.value?.name.split(' ')
+  return nameParts.length > 1 ? `${nameParts[0]?.charAt(0)}${nameParts[1]?.charAt(0)}`.toUpperCase() : 'NN'
+})
+
+const logout = async () => {
+  await clear()
+  await navigateTo('/login')
+}
 
 const { isMobile } = useSidebar()
 </script>
@@ -29,17 +34,17 @@ const { isMobile } = useSidebar()
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 rounded-lg">
-              <AvatarImage
+              <!-- <AvatarImage
                 :src="user.avatar"
                 :alt="user.name"
-              />
+              /> -->
               <AvatarFallback class="rounded-lg">
-                CR
+                {{ shortName }}
               </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ user.name }}</span>
-              <span class="truncate text-xs">{{ user.email }}</span>
+              <span class="truncate font-medium">{{ user?.name }}</span>
+              <span class="truncate text-xs">{{ user?.email }}</span>
             </div>
           </SidebarMenuButton>
         </DropdownMenuTrigger>
@@ -52,17 +57,17 @@ const { isMobile } = useSidebar()
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarImage
+                <!-- <AvatarImage
                   :src="user.avatar"
                   :alt="user.name"
-                />
+                /> -->
                 <AvatarFallback class="rounded-lg">
-                  CN
+                  {{ shortName }}
                 </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">{{ user.name }}</span>
-                <span class="truncate text-xs">{{ user.email }}</span>
+                <span class="truncate font-semibold">{{ user?.name }}</span>
+                <span class="truncate text-xs">{{ user?.email }}</span>
               </div>
             </div>
           </DropdownMenuLabel>
@@ -89,7 +94,7 @@ const { isMobile } = useSidebar()
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem @click="logout">
             <LogOut />
             Log out
           </DropdownMenuItem>

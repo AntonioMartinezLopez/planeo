@@ -10,12 +10,27 @@ export default defineNuxtConfig({
     '@nuxt/image',
     'shadcn-nuxt',
     '@nuxtjs/color-mode',
+    'nuxt-auth-utils',
   ],
   ssr: false,
   devtools: { enabled: true },
   css: ['~/assets/css/tailwind.css'],
   colorMode: {
     classSuffix: '',
+  },
+  runtimeConfig: {
+    oauth: {
+      keycloak: {
+        clientId: process.env.KEYCLOAK_CLIENT_ID || 'local',
+        clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 't4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu',
+        serverUrl: process.env.KEYCLOAK_SERVER_URL || 'http://localhost:8080',
+        realm: process.env.KEYCLOAK_REALM || 'local',
+        redirectURL: process.env.KEYCLOAK_REDIRECT_URL || 'http://localhost:3000/auth/keycloak',
+      },
+    },
+    session: {
+      password: process.env.NUXT_SESSION_PASSWORD || '',
+    },
   },
   future: {
     compatibilityVersion: 4,

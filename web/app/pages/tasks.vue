@@ -4,3 +4,10 @@
     <p>This is a protected page of our application.</p>
   </div>
 </template>
+
+<script setup lang="ts">
+definePageMeta({
+  middleware: ['auth'],
+  // or middleware: 'auth'
+})
+</script>
