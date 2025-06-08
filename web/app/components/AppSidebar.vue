@@ -4,6 +4,12 @@ import { useSidebar } from './ui/sidebar'
 
 const { toggleSidebar } = useSidebar()
 
+const router = useRouter()
+
+const activePath = computed(() => {
+  return router.currentRoute.value.path
+})
+
 // Menu items.
 const items = [
   {
@@ -72,6 +78,7 @@ const items = [
             >
               <SidebarMenuButton
                 as-child
+                :is-active="activePath === item.url"
               >
                 <NuxtLink :href="item.url">
                   <component :is="item.icon" />
@@ -83,7 +90,6 @@ const items = [
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
-
     <SidebarFooter>
       <AppNavUser />
     </SidebarFooter>

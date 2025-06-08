@@ -21,11 +21,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     oauth: {
       keycloak: {
-        clientId: process.env.KEYCLOAK_CLIENT_ID || 'local',
-        clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 't4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu',
-        serverUrl: process.env.KEYCLOAK_SERVER_URL || 'http://localhost:8080',
-        realm: process.env.KEYCLOAK_REALM || 'local',
-        redirectURL: process.env.KEYCLOAK_REDIRECT_URL || 'http://localhost:3000/auth/keycloak',
+        clientId: process.env.NUXT_OAUTH_KEYCLOAK_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_KEYCLOAK_CLIENT_SECRET,
+        serverUrl: process.env.NUXT_OAUTH_KEYCLOAK_SERVER_URL,
+        realm: process.env.NUXT_OAUTH_KEYCLOAK_REALM,
+        redirectURL: process.env.NUXT_OAUTH_KEYCLOAK_REDIRECT_URL,
       },
     },
     session: {
