@@ -1,13 +1,5 @@
-import { jwtDecode } from 'jwt-decode'
 import type { UserSession } from '#auth-utils'
-
-function isTokenExpired(token: string): boolean {
-  const decoded = jwtDecode(token)
-  const ONE_HOUR = 60 * 60 * 1000
-  const expiresAt = (decoded?.exp ?? 0) * 1000
-
-  return Date.now() + ONE_HOUR >= expiresAt
-}
+import { isTokenExpired } from '~~/server/util/token-expired'
 
 type RefreshTokensResponse = {
   access_token: string
