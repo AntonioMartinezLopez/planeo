@@ -1,14 +1,41 @@
-// @ts-check
-import withNuxt from './.nuxt/eslint.config.mjs'
+import antfu from "@antfu/eslint-config";
 
-export default withNuxt(
-  // Your custom configs here
-  [
-    {
-      files: ['pages/**/*.{vue,js,ts}', 'layouts/**/*.{vue,js,ts}'],
-      rules: {
-        'vue/multi-word-component-names': 'off', // Disable the rule for multi-word component names in pages and layouts
-      },
+export default antfu(
+  {
+    vue: true,
+    stylistic: {
+      indent: 2, // 4, or 'tab'
+      quotes: "double", // or 'double'
+      semi: true,
+      printWidth: 80,
     },
-  ],
-)
+  },
+  {
+    files: ["**/*.vue"],
+    rules: { "vue/max-attributes-per-line":
+      [
+        "warn",
+        {
+          multiline: 1,
+          singleline: 1,
+        },
+      ] },
+  },
+  // {
+  //   files: ["**/*.ts"],
+  //   rules: { "style/max-len":
+  //     [
+  //       "warn",
+  //       {
+  //         code: 120,
+  //       },
+  //     ] },
+  // },
+  {
+    files: ["**/*.ts", "**/*.vue"],
+    rules: {
+      "vue/block-order": "off",
+      "node/prefer-global/process": "off",
+    },
+  },
+);

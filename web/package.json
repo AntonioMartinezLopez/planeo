@@ -1,7 +1,7 @@
 {
   "name": "nuxt-app",
-  "private": true,
   "type": "module",
+  "private": true,
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -21,7 +21,6 @@
     "@vueuse/core": "^13.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "eslint": "^9.27.0",
     "lucide-vue-next": "^0.511.0",
     "nuxt": "^3.17.4",
     "nuxt-auth-utils": "^0.5.20",
@@ -34,7 +33,9 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^4.14.1",
     "@nuxtjs/color-mode": "^3.5.2",
+    "eslint": "^9.28.0",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.10"
   }

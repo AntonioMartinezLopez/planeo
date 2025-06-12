@@ -10,6 +10,6 @@
 <script setup lang="ts">
 definePageMeta({
   layout: false,
-})
-const { loggedIn } = useUserSession()
+});
+const { loggedIn } = useUserSession();
 </script>

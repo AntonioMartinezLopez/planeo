@@ -1,3 +1,7 @@
+<script setup lang="ts">
+const colorMode = useColorMode();
+</script>
+
 <template>
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
@@ -26,7 +30,3 @@
     </DropdownMenuContent>
   </DropdownMenu>
 </template>
-
-<script setup lang="ts">
-const colorMode = useColorMode()
-</script>

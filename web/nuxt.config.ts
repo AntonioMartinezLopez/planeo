@@ -1,22 +1,22 @@
-import tailwindcss from '@tailwindcss/vite'
+import tailwindcss from "@tailwindcss/vite";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
-    '@nuxt/eslint',
-    '@nuxt/fonts',
-    '@nuxt/icon',
-    '@nuxt/test-utils',
-    '@nuxt/image',
-    'shadcn-nuxt',
-    '@nuxtjs/color-mode',
-    'nuxt-auth-utils',
+
+    "@nuxt/fonts",
+    "@nuxt/icon",
+    "@nuxt/test-utils",
+    "@nuxt/image",
+    "shadcn-nuxt",
+    "@nuxtjs/color-mode",
+    "nuxt-auth-utils",
   ],
   ssr: false,
   devtools: { enabled: true },
-  css: ['~/assets/css/tailwind.css'],
+  css: ["~/assets/css/tailwind.css"],
   colorMode: {
-    classSuffix: '',
+    classSuffix: "",
   },
   runtimeConfig: {
     oauth: {
@@ -29,13 +29,16 @@ export default defineNuxtConfig({
       },
     },
     session: {
-      password: process.env.NUXT_SESSION_PASSWORD || '',
+      password: process.env.NUXT_SESSION_PASSWORD || "",
+    },
+    proxy: {
+      apiGatewayUrl: "http://localhost:8000",
     },
   },
   future: {
     compatibilityVersion: 4,
   },
-  compatibilityDate: '2025-05-15',
+  compatibilityDate: "2025-05-15",
   vite: {
     plugins: [
       tailwindcss(),
@@ -44,14 +47,9 @@ export default defineNuxtConfig({
   typescript: {
     typeCheck: true,
   },
-  eslint: {
-    config: {
-      stylistic: true,
-    },
-  },
   icon: {},
   shadcn: {
-    prefix: '',
-    componentDir: './app/components/ui',
+    prefix: "",
+    componentDir: "./app/components/ui",
   },
-})
+});

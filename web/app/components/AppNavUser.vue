@@ -5,23 +5,26 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
-} from 'lucide-vue-next'
-import { useSidebar } from './ui/sidebar'
+} from "lucide-vue-next";
+import { useSidebar } from "./ui/sidebar";
 
-const { user, clear } = useUserSession()
+const { user, clear } = useUserSession();
 
 const shortName = computed(() => {
-  if (!user.value?.name) return 'NN'
-  const nameParts = user.value?.name.split(' ')
-  return nameParts.length > 1 ? `${nameParts[0]?.charAt(0)}${nameParts[1]?.charAt(0)}`.toUpperCase() : 'NN'
-})
+  if (!user.value?.name) {
+    return "NN";
+  }
 
-const logout = async () => {
-  await clear()
-  await navigateTo('/login')
+  const nameParts = user.value?.name.split(" ");
+  return nameParts.length > 1 ? `${nameParts[0]?.charAt(0)}${nameParts[1]?.charAt(0)}`.toUpperCase() : "NN";
+});
+
+async function logout() {
+  await clear();
+  await navigateTo("/login");
 }
 
-const { isMobile } = useSidebar()
+const { isMobile } = useSidebar();
 </script>
 
 <template>

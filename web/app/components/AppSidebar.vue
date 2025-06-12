@@ -1,43 +1,43 @@
 <script setup lang="ts">
-import { Calendar, GalleryVerticalEnd, Inbox, ListTodo, Settings, Users } from 'lucide-vue-next'
-import { useSidebar } from './ui/sidebar'
+import { Calendar, GalleryVerticalEnd, Inbox, ListTodo, Settings, Users } from "lucide-vue-next";
+import { useSidebar } from "./ui/sidebar";
 
-const { toggleSidebar } = useSidebar()
+const { toggleSidebar } = useSidebar();
 
-const router = useRouter()
+const router = useRouter();
 
 const activePath = computed(() => {
-  return router.currentRoute.value.path
-})
+  return router.currentRoute.value.path;
+});
 
 // Menu items.
 const items = [
   {
-    title: 'Requests',
-    url: '/',
+    title: "Requests",
+    url: "/",
     icon: Inbox,
   },
   {
-    title: 'Tasks',
-    url: '/tasks',
+    title: "Tasks",
+    url: "/tasks",
     icon: ListTodo,
   },
   {
-    title: 'Planning',
-    url: '/planning',
+    title: "Planning",
+    url: "/planning",
     icon: Calendar,
   },
   {
-    title: 'Group Management',
-    url: '/group',
+    title: "Group Management",
+    url: "/group",
     icon: Users,
   },
   {
-    title: 'Settings',
-    url: '/settings',
+    title: "Settings",
+    url: "/settings",
     icon: Settings,
   },
-]
+];
 </script>
 
 <template>
