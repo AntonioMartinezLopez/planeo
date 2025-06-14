@@ -1,0 +1,1331 @@
+components:
+  schemas:
+    BasicUserInformation:
+      additionalProperties: false
+      properties:
+        createdAt:
+          description: Timestamp when the user was created
+          format: date-time
+          type: string
+        email:
+          description: Email of the user
+          examples:
+            - John.Doe@planeo.de
+          type: string
+        firstName:
+          description: First name of the user
+          examples:
+            - John
+          type: string
+        iamUserId:
+          type: string
+        id:
+          format: int64
+          type: integer
+        lastName:
+          description: Last name of the user
+          examples:
+            - Doe
+          type: string
+        organization:
+          format: int64
+          type: integer
+        updatedAt:
+          description: Timestamp when the user was last updated
+          format: date-time
+          type: string
+        username:
+          description: User name
+          examples:
+            - user123
+          type: string
+      required:
+        - id
+        - username
+        - firstName
+        - lastName
+        - email
+        - iamUserId
+        - organization
+        - createdAt
+        - updatedAt
+      type: object
+    Category:
+      additionalProperties: false
+      properties:
+        Color:
+          type: string
+        CreatedAt:
+          format: date-time
+          type: string
+        Id:
+          format: int64
+          type: integer
+        Label:
+          type: string
+        LabelDescription:
+          type: string
+        OrganizationId:
+          format: int64
+          type: integer
+        UpdatedAt:
+          format: date-time
+          type: string
+      required:
+        - Id
+        - Label
+        - Color
+        - LabelDescription
+        - OrganizationId
+        - CreatedAt
+        - UpdatedAt
+      type: object
+    CreateCategoryInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/CreateCategoryInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        color:
+          type: string
+        label:
+          type: string
+        labelDescription:
+          type: string
+      required:
+        - label
+        - color
+        - labelDescription
+      type: object
+    CreateCategoryOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/CreateCategoryOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        id:
+          description: ID of the created category
+          format: int64
+          type: integer
+      required:
+        - id
+      type: object
+    CreateRequestInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/CreateRequestInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        address:
+          description: Address of the requester
+          examples:
+            - 789 Oak St, Metropolis
+          type: string
+        categoryId:
+          description: Identifier of the category
+          examples:
+            - 1
+          format: int64
+          minimum: 1
+          type: integer
+        closed:
+          description: Indicates if the request is closed
+          examples:
+            - false
+          type: boolean
+        email:
+          description: Email of the requester
+          examples:
+            - John.Doe@example.com
+          type: string
+        name:
+          description: Name of the requester
+          examples:
+            - John Doe
+          type: string
+        subject:
+          description: Subject of the request
+          examples:
+            - Some request subject
+          type: string
+        telephone:
+          description: Telephone number of the requester
+          examples:
+            - "1234567"
+          type: string
+        text:
+          description: Description of the request
+          examples:
+            - Some request text
+          type: string
+      required:
+        - subject
+        - text
+        - name
+        - email
+        - address
+        - telephone
+        - closed
+      type: object
+    CreateRequestOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/CreateRequestOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        id:
+          description: ID of the created category
+          format: int64
+          type: integer
+      required:
+        - id
+      type: object
+    CreateUserInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/CreateUserInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        email:
+          description: Email of the user to be created
+          examples:
+            - John.Doe@planeo.de
+          type: string
+        firstName:
+          description: First name of the user to be created
+          examples:
+            - John
+          type: string
+        lastName:
+          description: Last name of the user to be created
+          examples:
+            - Doe
+          type: string
+        password:
+          description: Initial password for the user to be set
+          examples:
+            - password123
+          type: string
+      required:
+        - firstName
+        - lastName
+        - email
+        - password
+      type: object
+    ErrorDetail:
+      additionalProperties: false
+      properties:
+        location:
+          description: Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id'
+          type: string
+        message:
+          description: Error message text
+          type: string
+        value:
+          description: The value at the given location
+      type: object
+    ErrorModel:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/ErrorModel.json
+          format: uri
+          readOnly: true
+          type: string
+        detail:
+          description: A human-readable explanation specific to this occurrence of the problem.
+          examples:
+            - Property foo is required but is missing.
+          type: string
+        errors:
+          description: Optional list of individual error details
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+          type: array
+        instance:
+          description: A URI reference that identifies the specific occurrence of the problem.
+          examples:
+            - https://example.com/error-log/abc123
+          format: uri
+          type: string
+        status:
+          description: HTTP status code
+          examples:
+            - 400
+          format: int64
+          type: integer
+        title:
+          description: A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+          examples:
+            - Bad Request
+          type: string
+        type:
+          default: about:blank
+          description: A URI reference to human-readable documentation for the error.
+          examples:
+            - https://example.com/errors/example
+          format: uri
+          type: string
+      type: object
+    GetCategoriesOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetCategoriesOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        categories:
+          description: Array of categories
+          items:
+            $ref: "#/components/schemas/Category"
+          type: array
+      required:
+        - categories
+      type: object
+    GetRequestsOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetRequestsOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        limit:
+          description: Number of requests to be returned
+          format: int64
+          type: integer
+        nextCursor:
+          description: Cursor for pagination
+          format: int64
+          type: integer
+        requests:
+          description: Array of requests
+          items:
+            $ref: "#/components/schemas/Request"
+          type: array
+      required:
+        - requests
+        - limit
+        - nextCursor
+      type: object
+    GetRolesOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetRolesOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        roles:
+          description: Array of roles that can be assigned to users
+          items:
+            $ref: "#/components/schemas/Role"
+          type: array
+      required:
+        - roles
+      type: object
+    GetUserInfoOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetUserInfoOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        users:
+          description: Array of users with basic informations
+          items:
+            $ref: "#/components/schemas/BasicUserInformation"
+          type: array
+      required:
+        - users
+      type: object
+    GetUserOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetUserOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+          description: Information about a user managed in given auth system
+      required:
+        - user
+      type: object
+    GetUsersOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/GetUsersOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        users:
+          description: Array of users managed in organization
+          items:
+            $ref: "#/components/schemas/User"
+          type: array
+      required:
+        - users
+      type: object
+    PutUserRoleInputBody:
+      additionalProperties: false
+      properties:
+        id:
+          description: ID of the role to be assigned to the user
+          type: string
+        name:
+          description: Name of the role to be assigned to the user
+          examples:
+            - User
+          type: string
+      required:
+        - id
+        - name
+      type: object
+    Request:
+      additionalProperties: false
+      properties:
+        Address:
+          type: string
+        CategoryId:
+          format: int64
+          type:
+            - integer
+            - "null"
+        Closed:
+          type: boolean
+        CreatedAt:
+          format: date-time
+          type: string
+        Email:
+          type: string
+        Id:
+          format: int64
+          type: integer
+        Name:
+          type: string
+        OrganizationId:
+          format: int64
+          type: integer
+        Raw:
+          type: string
+        ReferenceId:
+          type: string
+        Subject:
+          type: string
+        Telephone:
+          type: string
+        Text:
+          type: string
+        UpdatedAt:
+          format: date-time
+          type: string
+      required:
+        - Id
+        - Text
+        - Subject
+        - Name
+        - Email
+        - Address
+        - Telephone
+        - Raw
+        - Closed
+        - ReferenceId
+        - CategoryId
+        - OrganizationId
+        - CreatedAt
+        - UpdatedAt
+      type: object
+    Role:
+      additionalProperties: false
+      properties:
+        id:
+          description: ID of the role to be assigned to the user
+          type: string
+        name:
+          description: Name of the role to be assigned to the user
+          examples:
+            - User
+          type: string
+      required:
+        - id
+        - name
+      type: object
+    StatusOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/StatusOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        alive:
+          description: Status of the API server
+          type: boolean
+      required:
+        - alive
+      type: object
+    UpdateCategoryInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/UpdateCategoryInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        color:
+          type: string
+        label:
+          type: string
+        labelDescription:
+          type: string
+      required:
+        - label
+        - color
+        - labelDescription
+      type: object
+    UpdateRequestInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/UpdateRequestInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        address:
+          description: Address of the requester
+          examples:
+            - 789 Oak St, Metropolis
+          type: string
+        categoryId:
+          description: Identifier of the category
+          examples:
+            - 1
+          format: int64
+          minimum: 1
+          type: integer
+        closed:
+          description: Indicates if the request is closed
+          examples:
+            - false
+          type: boolean
+        email:
+          description: Email of the requester
+          examples:
+            - John.Doe@example.com
+          type: string
+        name:
+          description: Name of the requester
+          examples:
+            - John Doe
+          type: string
+        subject:
+          description: Subject of the request
+          examples:
+            - Some request subject
+          type: string
+        telephone:
+          description: Telephone number of the requester
+          examples:
+            - "1234567"
+          type: string
+        text:
+          description: Description of the request
+          examples:
+            - Some request text
+          type: string
+      required:
+        - subject
+        - text
+        - name
+        - email
+        - address
+        - telephone
+        - closed
+        - categoryId
+      type: object
+    UpdateUserInputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost:8000/api/schemas/UpdateUserInputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        email:
+          description: Email of the user
+          examples:
+            - John.Doe@planeo.de
+          type: string
+        emailVerified:
+          description: Flag describing whether user email is verified or not
+          type: boolean
+        enabled:
+          description: Flag describing whether user is active or not
+          type: boolean
+        firstName:
+          description: First name of the user
+          examples:
+            - John
+          type: string
+        lastName:
+          description: Last name of the user
+          examples:
+            - Doe
+          type: string
+        requiredActions:
+          description: Array of actions that will be conducted after login
+          items:
+            default: CONFIGURE_TOTP
+            enum:
+              - CONFIGURE_TOTP
+              - UPDATE_PASSWORD
+              - UPDATE_PROFILE
+              - VERIFY_EMAIL
+            type: string
+          type: array
+        totp:
+          description: Flag describing whether TOTP was set or not
+          type: boolean
+        username:
+          description: User name
+          examples:
+            - user123
+          type: string
+      required:
+        - username
+        - firstName
+        - lastName
+        - email
+        - totp
+        - enabled
+        - emailVerified
+        - requiredActions
+      type: object
+    User:
+      additionalProperties: false
+      properties:
+        email:
+          description: Email of the user
+          examples:
+            - John.Doe@planeo.de
+          type: string
+        emailVerified:
+          description: Flag describing whether user email is verified or not
+          type: boolean
+        enabled:
+          description: Flag describing whether user is active or not
+          type: boolean
+        firstName:
+          description: First name of the user
+          examples:
+            - John
+          type: string
+        id:
+          description: User identifier within the authentication system
+          examples:
+            - "123456"
+          type: string
+        lastName:
+          description: Last name of the user
+          examples:
+            - Doe
+          type: string
+        requiredActions:
+          description: Array of actions that will be conducted after login
+          items:
+            default: CONFIGURE_TOTP
+            enum:
+              - CONFIGURE_TOTP
+              - UPDATE_PASSWORD
+              - UPDATE_PROFILE
+              - VERIFY_EMAIL
+            type: string
+          type: array
+        roles:
+          description: Array of roles assigned to the user
+          items:
+            $ref: "#/components/schemas/Role"
+          type: array
+        totp:
+          description: Flag describing whether TOTP was set or not
+          type: boolean
+        username:
+          description: User name
+          examples:
+            - user123
+          type: string
+      required:
+        - id
+        - username
+        - firstName
+        - lastName
+        - email
+        - totp
+        - enabled
+        - emailVerified
+        - requiredActions
+      type: object
+  securitySchemes:
+    bearer:
+      flows:
+        authorizationCode:
+          authorizationUrl: http://localhost:8080/realms/local/protocol/openid-connect/authorize
+          scopes:
+            email: Scope for providing email information
+            openid: Scope for requesting OpenID token
+            profile: Scope for including user profile
+          tokenUrl: http://localhost:8080/realms/local/protocol/openid-connect/token
+      type: oauth2
+info:
+  title: Planeo Core
+  version: 0.0.1
+openapi: 3.1.0
+paths:
+  /organizations/{organizationId}/categories:
+    get:
+      operationId: get-categories
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCategoriesOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Get Categories
+      tags:
+        - Categories
+    post:
+      operationId: create-category
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryInputBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCategoryOutputBody"
+          description: Created
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Create Category
+      tags:
+        - Categories
+  /organizations/{organizationId}/categories/{categoryId}:
+    delete:
+      operationId: delete-category
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: ID of the category
+          in: path
+          name: categoryId
+          required: true
+          schema:
+            description: ID of the category
+            format: int64
+            type: integer
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Delete Category
+      tags:
+        - Categories
+    put:
+      operationId: update-category
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: ID of the category
+          in: path
+          name: categoryId
+          required: true
+          schema:
+            description: ID of the category
+            format: int64
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryInputBody"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Update Category
+      tags:
+        - Categories
+  /organizations/{organizationId}/iam/roles:
+    get:
+      operationId: get-roles
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRolesOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Get roles"
+      tags:
+        - Roles
+  /organizations/{organizationId}/iam/users:
+    get:
+      operationId: get-users
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: Flag describing whether to sync users from auth system or not
+          explode: false
+          in: query
+          name: sync
+          schema:
+            description: Flag describing whether to sync users from auth system or not
+            type: boolean
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUsersOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Get all users from organization"
+      tags:
+        - User
+    post:
+      operationId: create-user
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserInputBody"
+          application/octet-stream:
+            schema:
+              contentMediaType: application/octet-stream
+              format: binary
+              type: string
+        required: true
+      responses:
+        "201":
+          description: Created
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Create user"
+      tags:
+        - User
+  /organizations/{organizationId}/iam/users/{iamUserId}:
+    delete:
+      operationId: delete-user
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: IAM id of the user to be deleted
+          in: path
+          name: iamUserId
+          required: true
+          schema:
+            description: IAM id of the user to be deleted
+            type: string
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Delete user"
+      tags:
+        - User
+    get:
+      operationId: get-user
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: IAM id of a user
+          in: path
+          name: iamUserId
+          required: true
+          schema:
+            description: IAM id of a user
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Get single user"
+      tags:
+        - User
+    put:
+      operationId: update-user
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: IAM id of the user to be deleted
+          in: path
+          name: iamUserId
+          required: true
+          schema:
+            description: IAM id of the user to be deleted
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserInputBody"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Update user"
+      tags:
+        - User
+  /organizations/{organizationId}/iam/users/{iamUserId}/roles:
+    put:
+      operationId: Assign-user-roles
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: ID of the user to be deleted
+          in: path
+          name: iamUserId
+          required: true
+          schema:
+            description: ID of the user to be deleted
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: Array of role representations
+              items:
+                $ref: "#/components/schemas/PutUserRoleInputBody"
+              type: array
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: "[Admin] Assign roles to a user"
+      tags:
+        - User
+  /organizations/{organizationId}/requests:
+    get:
+      operationId: get-requests
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: Flag describing whether to get also closed requests or not
+          explode: false
+          in: query
+          name: getClosed
+          schema:
+            description: Flag describing whether to get also closed requests or not
+            type: boolean
+        - description: Number of requests to be returned
+          explode: false
+          in: query
+          name: pageSize
+          required: true
+          schema:
+            description: Number of requests to be returned
+            format: int64
+            type: integer
+        - description: Cursor for pagination
+          explode: false
+          in: query
+          name: cursor
+          schema:
+            description: Cursor for pagination
+            format: int64
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetRequestsOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Get Requests
+      tags:
+        - Requests
+    post:
+      operationId: create-request
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRequestInputBody"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRequestOutputBody"
+          description: Created
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Create Request
+      tags:
+        - Requests
+  /organizations/{organizationId}/requests/{requestId}:
+    delete:
+      operationId: delete-request
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: ID of the request
+          in: path
+          name: requestId
+          required: true
+          schema:
+            description: ID of the request
+            format: int64
+            type: integer
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Delete Request
+      tags:
+        - Requests
+    put:
+      operationId: update-request
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+        - description: ID of the request
+          in: path
+          name: requestId
+          required: true
+          schema:
+            description: ID of the request
+            format: int64
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRequestInputBody"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Update Request
+      tags:
+        - Requests
+  /organizations/{organizationId}/users:
+    get:
+      operationId: get-basic-user-information
+      parameters:
+        - description: ID of the organization
+          in: path
+          name: organizationId
+          required: true
+          schema:
+            description: ID of the organization
+            format: int64
+            type: integer
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetUserInfoOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Get basic information of users
+      tags:
+        - User
+  /status:
+    get:
+      operationId: server-status
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: Get the server status
+servers:
+  - url: http://localhost:8000/api

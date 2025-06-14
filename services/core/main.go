@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/setup"
 
@@ -10,7 +11,20 @@ import (
 	"planeo/libs/events"
 	"planeo/libs/logger"
 	"time"
+
+	"github.com/danielgtaylor/huma/v2"
 )
+
+func generateOpenApiSpecs(api huma.API, filename string) {
+	spec, err := api.OpenAPI().YAML()
+	if err != nil {
+		panic(err)
+	}
+
+	if err := os.WriteFile(filename, spec, 0644); err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 
@@ -46,6 +60,8 @@ func main() {
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
+
+	generateOpenApiSpecs(application.API.Api, "./docs/open-api-specs.yaml")
 
 	log.Info().Msgf("Server Running at %s", serverConfig)
 	log.Fatal().Msgf("%v", server.ListenAndServe())

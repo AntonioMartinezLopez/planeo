@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { getRequests } from "~/clients/core/sdk.gen";
+
 definePageMeta({
   middleware: ["auth"],
 });
@@ -7,13 +9,15 @@ definePageMeta({
 // TODO: provide client library for accessing apis
 async function fetchFromApi() {
   const { session } = useUserSession();
-  const { error: fetchError }
-  = useFetch(`/api/organizations/1/requests?pageSize=10`, { method: "get", headers:
-  { authorization: `Bearer ${session.value?.tokens.access_token}`,
-  } });
+  const { error } = await getRequests({
+    composable: "useFetch",
+    path: { organizationId: 1 },
+    query: { pageSize: 10 },
+    headers: { authorization: `Bearer ${session.value?.tokens.access_token}` },
+  });
 
-  if (fetchError.value) {
-    console.error("Error fetching sample data", fetchError);
+  if (error.value) {
+    console.error("Error fetching sample data", error);
   }
 }
 </script>
