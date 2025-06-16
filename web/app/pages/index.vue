@@ -8,12 +8,10 @@ definePageMeta({
 // Note: this is just an example
 // TODO: provide client library for accessing apis
 async function fetchFromApi() {
-  const { session } = useUserSession();
   const { error } = await getRequests({
     composable: "useFetch",
     path: { organizationId: 1 },
     query: { pageSize: 10 },
-    headers: { authorization: `Bearer ${session.value?.tokens.access_token}` },
   });
 
   if (error.value) {

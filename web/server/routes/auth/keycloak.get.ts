@@ -9,11 +9,9 @@ export default defineOAuthKeycloakEventHandler({
   async onSuccess(event, { user, tokens }) {
     const session: Omit<UserSession, "id"> = {
       user,
-      tokens: {
-        access_token: tokens.access_token,
-      },
       secure: {
         refresh_token: tokens.refresh_token,
+        access_token: tokens.access_token,
       },
     };
     await setUserSession(event, session);

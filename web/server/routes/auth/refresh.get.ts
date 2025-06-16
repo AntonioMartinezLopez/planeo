@@ -34,21 +34,19 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
-  const { tokens } = session;
+  const { access_token, refresh_token } = session.secure;
 
-  const isAccessTokenExpired = isTokenExpired(tokens.access_token);
+  const isAccessTokenExpired = isTokenExpired(access_token);
   if (!isAccessTokenExpired) {
     return;
   }
 
   try {
-    const newTokens = await refreshTokens(session.secure!.refresh_token);
+    const newTokens = await refreshTokens(refresh_token);
     await setUserSession(event, {
-      tokens: {
-        access_token: newTokens.access_token,
-      },
       secure: {
         refresh_token: newTokens.refresh_token,
+        access_token: newTokens.access_token,
       },
     });
   }

@@ -1,7 +1,6 @@
 // auth.d.ts
 declare module "#auth-utils" {
   interface User {
-    // Add your own fields
     email_verified: boolean;
     name: string;
     groups: string[];
@@ -12,16 +11,12 @@ declare module "#auth-utils" {
   }
 
   interface UserSession {
-    // Add your own fields
     user: User;
-    tokens: {
-      access_token: string;
-    };
   }
 
   interface SecureSessionData {
-    // Add your own fields
     refresh_token: string;
+    access_token: string;
   }
 }
 

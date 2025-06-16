@@ -30,11 +30,13 @@ export default defineEventHandler(async (event) => {
   if (!session) {
     return;
   }
-  if (!session.tokens?.access_token && isTokenExpired(session.tokens.access_token)) {
+
+  const access_token = session.secure?.access_token
+  if (!access_token || isTokenExpired(access_token)) {
     return;
   }
 
-  const permissions = await getPermission(session.tokens.access_token);
+  const permissions = await getPermission(access_token);
 
   return permissions;
 });
