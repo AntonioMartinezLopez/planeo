@@ -7,7 +7,7 @@ interface Permission {
   ResourceName: string;
 }
 
-async function getPermission(accessToken: string): Promise<Permission> {
+async function getPermissions(accessToken: string): Promise<Permission> {
   const config = useRuntimeConfig();
   const keycloakUrl = config.oauth.keycloak.serverUrl;
   const realm = config.oauth.keycloak.realm;
@@ -31,12 +31,12 @@ export default defineEventHandler(async (event) => {
     return;
   }
 
-  const access_token = session.secure?.access_token
+  const access_token = session.secure?.access_token;
   if (!access_token || isTokenExpired(access_token)) {
     return;
   }
 
-  const permissions = await getPermission(access_token);
+  const permissions = await getPermissions(access_token);
 
   return permissions;
 });

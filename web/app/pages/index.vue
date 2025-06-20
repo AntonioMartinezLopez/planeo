@@ -5,8 +5,6 @@ definePageMeta({
   middleware: ["auth"],
 });
 
-// Note: this is just an example
-// TODO: provide client library for accessing apis
 async function fetchFromApi() {
   const { error } = await getRequests({
     composable: "useFetch",
