@@ -2,14 +2,13 @@ package events
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )
 
-type NatsConnector struct {
+type EventService struct {
 	Connection *nats.Conn
 	Stream     jetstream.Stream
 }
@@ -20,8 +19,8 @@ type EventMessage interface {
 	Ack() error
 }
 
-func NewNatsConnector(url string, options []nats.Option) (*NatsConnector, error) {
-	nc, err := nats.Connect(url, options...)
+func NewEventService(url string) (*EventService, error) {
+	nc, err := nats.Connect(url)
 	if err != nil {
 		return nil, err
 	}
@@ -48,18 +47,14 @@ func NewNatsConnector(url string, options []nats.Option) (*NatsConnector, error)
 		return nil, err
 	}
 
-	return &NatsConnector{Connection: nc, Stream: stream}, nil
+	return &EventService{Connection: nc, Stream: stream}, nil
 }
 
-func (nc *NatsConnector) IsConnected() bool {
-
-	fmt.Println(nc.Connection.IsReconnecting())
-	fmt.Println(nc.Connection.Status().String())
-	fmt.Println((nc.Connection.IsConnected()))
+func (nc *EventService) IsConnected() bool {
 	return nc.Connection.Status() == nats.CONNECTED
 }
 
-func (nc *NatsConnector) Publish(ctx context.Context, subject string, data []byte) error {
+func (nc *EventService) Publish(ctx context.Context, subject string, data []byte) error {
 
 	js, err := jetstream.New(nc.Connection)
 	if err != nil {
@@ -81,7 +76,7 @@ func (nc *NatsConnector) Publish(ctx context.Context, subject string, data []byt
 	return nil
 }
 
-func (nc *NatsConnector) Subscribe(ctx context.Context, subscriptionName string, subject string, handler jetstream.MessageHandler) error {
+func (nc *EventService) Subscribe(ctx context.Context, subscriptionName string, subject string, handler jetstream.MessageHandler) error {
 	consumer, err := nc.Stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 		FilterSubject: subject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
@@ -100,6 +95,6 @@ func (nc *NatsConnector) Subscribe(ctx context.Context, subscriptionName string,
 	return nil
 }
 
-func (nc *NatsConnector) Close() {
+func (nc *EventService) Close() {
 	nc.Connection.Close()
 }

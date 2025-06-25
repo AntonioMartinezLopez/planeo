@@ -19,32 +19,25 @@ type CategoryServiceInterface interface {
 	GetCategories(ctx context.Context, organizationId int) ([]categories.Category, error)
 }
 
+type EventServiceInterface interface {
+	SubscribeEmailReceived(ctx context.Context, callback func(payload events.EmailCreatedPayload) error) error
+	IsConnected() bool
+}
+
 type Services struct {
 	RequestService  RequestServiceInterface
 	CategoryService CategoryServiceInterface
 }
 
-type EventService struct {
-	NatsConnector *events.NatsConnector
-	services      Services
-}
-
-func NewEventService(natsConnector *events.NatsConnector) *EventService {
-	return &EventService{
-		NatsConnector: natsConnector,
-	}
-}
-
-func (e *EventService) InitializeEvents(ctx context.Context, services Services) error {
+func InitializeEvents(ctx context.Context, eventService EventServiceInterface, services Services) error {
 	logger := logger.FromContext(ctx)
-	e.services = services
 
-	if e.NatsConnector == nil {
-		logger.Error().Msg("NATS connector is not initialized")
-		return errors.New("NATS connector is not initialized")
+	if !eventService.IsConnected() {
+		logger.Error().Msg("events are not initialized")
+		return errors.New("events are not initialized")
 	}
 
-	err := e.SubscribeEmailReceived(ctx)
+	err := eventService.SubscribeEmailReceived(ctx, CreateEmailReceivedCallback(ctx, services))
 
 	if err != nil {
 		logger.Error().Err(err).Msg("Failed to subscribe to email.received subject")

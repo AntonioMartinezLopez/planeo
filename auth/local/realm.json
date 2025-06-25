@@ -5,24 +5,24 @@
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
   "refreshTokenMaxReuse": 0,
-  "accessTokenLifespan": 432000,
+  "accessTokenLifespan": 36000,
   "accessTokenLifespanForImplicitFlow": 900,
   "ssoSessionIdleTimeout": 2592000,
-  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionMaxLifespan": 864000,
   "ssoSessionIdleTimeoutRememberMe": 0,
   "ssoSessionMaxLifespanRememberMe": 0,
   "offlineSessionIdleTimeout": 2592000,
   "offlineSessionMaxLifespanEnabled": false,
   "offlineSessionMaxLifespan": 5184000,
-  "clientSessionIdleTimeout": 0,
-  "clientSessionMaxLifespan": 0,
+  "clientSessionIdleTimeout": 432000,
+  "clientSessionMaxLifespan": 864000,
   "clientOfflineSessionIdleTimeout": 0,
   "clientOfflineSessionMaxLifespan": 0,
   "accessCodeLifespan": 60,
-  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanUserAction": 432000,
   "accessCodeLifespanLogin": 2592000,
-  "actionTokenGeneratedByAdminLifespan": 43200,
-  "actionTokenGeneratedByUserLifespan": 300,
+  "actionTokenGeneratedByAdminLifespan": 7200,
+  "actionTokenGeneratedByUserLifespan": 3600,
   "oauth2DeviceCodeLifespan": 864000,
   "oauth2DevicePollingInterval": 5,
   "enabled": true,
@@ -112,12 +112,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["Admin"]
+        "local": [
+          "Admin"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     },
     {
       "id": "146b3857-090e-453d-b1e6-8cdfbb1a6dcb",
@@ -141,12 +147,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["Planner"]
+        "local": [
+          "Planner"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     },
     {
       "id": "74e68681-2970-4d61-8394-7de2e7124685",
@@ -159,9 +171,13 @@
       "credentials": [],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["uma_protection"]
+        "local": [
+          "uma_protection"
+        ]
       },
       "notBefore": 0,
       "groups": []
@@ -188,12 +204,18 @@
       ],
       "disableableCredentialTypes": [],
       "requiredActions": [],
-      "realmRoles": ["default-roles-local"],
+      "realmRoles": [
+        "default-roles-local"
+      ],
       "clientRoles": {
-        "local": ["User"]
+        "local": [
+          "User"
+        ]
       },
       "notBefore": 0,
-      "groups": ["/local"]
+      "groups": [
+        "/local"
+      ]
     }
   ],
   "clients": [
@@ -209,8 +231,13 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "t4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu",
-      "redirectUris": ["/*"],
-      "webOrigins": ["/*"],
+      "redirectUris": [
+        "http://localhost:3000/auth/keycloak",
+        "/*"
+      ],
+      "webOrigins": [
+        "/*"
+      ],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -307,14 +334,18 @@
             "type": "urn:local:resources:default",
             "ownerManagedAccess": false,
             "attributes": {},
-            "uris": ["/*"]
+            "uris": [
+              "/*"
+            ]
           },
           {
             "name": "Task",
             "ownerManagedAccess": false,
             "displayName": "task",
             "attributes": {},
-            "uris": ["*/tasks"],
+            "uris": [
+              "*/tasks"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -336,7 +367,9 @@
             "ownerManagedAccess": false,
             "displayName": "announcement",
             "attributes": {},
-            "uris": ["*/announcement"],
+            "uris": [
+              "*/announcement"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -358,7 +391,9 @@
             "ownerManagedAccess": false,
             "displayName": "group",
             "attributes": {},
-            "uris": ["*/groups"],
+            "uris": [
+              "*/groups"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -380,7 +415,9 @@
             "ownerManagedAccess": false,
             "displayName": "conversation",
             "attributes": {},
-            "uris": ["*/conversations"],
+            "uris": [
+              "*/conversations"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -402,7 +439,9 @@
             "ownerManagedAccess": false,
             "displayName": "reminder",
             "attributes": {},
-            "uris": ["*/reminder"],
+            "uris": [
+              "*/reminder"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -424,7 +463,9 @@
             "ownerManagedAccess": false,
             "displayName": "organization",
             "attributes": {},
-            "uris": ["*/management"],
+            "uris": [
+              "*/management"
+            ],
             "scopes": [
               {
                 "name": "manage"
@@ -437,7 +478,9 @@
             "ownerManagedAccess": false,
             "displayName": "user",
             "attributes": {},
-            "uris": ["*/users"],
+            "uris": [
+              "*/users"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -459,7 +502,9 @@
             "ownerManagedAccess": false,
             "displayName": "role",
             "attributes": {},
-            "uris": ["*/roles"],
+            "uris": [
+              "*/roles"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -481,7 +526,9 @@
             "ownerManagedAccess": false,
             "displayName": "userinfo",
             "attributes": {},
-            "uris": ["*/user_information"],
+            "uris": [
+              "*/user_information"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -494,7 +541,9 @@
             "ownerManagedAccess": false,
             "displayName": "request",
             "attributes": {},
-            "uris": ["*/requests"],
+            "uris": [
+              "*/requests"
+            ],
             "scopes": [
               {
                 "name": "read"
@@ -516,7 +565,9 @@
             "ownerManagedAccess": false,
             "displayName": "category",
             "attributes": {},
-            "uris": ["*/categories"],
+            "uris": [
+              "*/categories"
+            ],
             "scopes": [
               {
                 "name": "read"

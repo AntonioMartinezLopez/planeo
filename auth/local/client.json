@@ -11,6 +11,7 @@
   "clientAuthenticatorType": "client-secret",
   "secret": "t4VlYX9CJIN3VTrlb5nRMXT8Qjr9SBdu",
   "redirectUris": [
+    "http://localhost:3000/auth/keycloak",
     "/*"
   ],
   "webOrigins": [

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
 	"planeo/services/core/config"
 	"planeo/services/core/internal/setup"
 
@@ -11,8 +12,19 @@ import (
 	"planeo/libs/logger"
 	"time"
 
-	"github.com/nats-io/nats.go"
+	"github.com/danielgtaylor/huma/v2"
 )
+
+func generateOpenApiSpecs(api huma.API, filename string) {
+	spec, err := api.OpenAPI().YAML()
+	if err != nil {
+		panic(err)
+	}
+
+	if err := os.WriteFile(filename, spec, 0644); err != nil {
+		panic(err)
+	}
+}
 
 func main() {
 
@@ -30,15 +42,15 @@ func main() {
 	// initialize database connection
 	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
 
-	// initialize nats connection
-	natsClient, err := events.NewNatsConnector(config.NatsUrl, []nats.Option{})
+	// initialize event service
+	eventService, err := events.NewEventService(config.NatsUrl)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to NATS")
 	}
 
 	// initialize application
 	appFactory := setup.NewApplicationFactory()
-	application := appFactory.CreateApplication(config, db, natsClient)
+	application := appFactory.CreateApplication(config, db, eventService)
 
 	server := http.Server{
 		Addr:              serverConfig,
@@ -48,6 +60,8 @@ func main() {
 		IdleTimeout:       30 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 	}
+
+	generateOpenApiSpecs(application.API.Api, "./docs/open-api-specs.yaml")
 
 	log.Info().Msgf("Server Running at %s", serverConfig)
 	log.Fatal().Msgf("%v", server.ListenAndServe())
