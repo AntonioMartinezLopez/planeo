@@ -28,15 +28,19 @@ async function getPermissions(accessToken: string): Promise<Permission> {
 export default defineEventHandler(async (event) => {
   const session: UserSession = await getUserSession(event);
   if (!session) {
-    return;
+    throw createError({
+      status: 401,
+      message: "No active session",
+    });
   }
 
   const access_token = session.secure?.access_token;
   if (!access_token || isTokenExpired(access_token)) {
-    return;
+    throw createError({
+      status: 401,
+      message: "invalid or expired access token",
+    });
   }
 
-  const permissions = await getPermissions(access_token);
-
-  return permissions;
+  return getPermissions(access_token);
 });

@@ -1,4 +1,5 @@
 import type { UserSession } from "#auth-utils";
+import { navigateTo } from "nuxt/app";
 import { isTokenExpired } from "~~/server/util/token-expired";
 
 interface RefreshTokensResponse {
@@ -27,22 +28,29 @@ async function refreshTokens(refreshToken: string): Promise<RefreshTokensRespons
 
 export default defineEventHandler(async (event) => {
   const session: UserSession = await getUserSession(event);
-  if (!session) {
-    return;
-  }
-  if (!session.secure?.refresh_token) {
-    return;
+  if (!session || !Object.keys(session).length || !session.secure?.refresh_token) {
+    await clearUserSession(event);
+    throw createError({
+      status: 401,
+      message: "No active session",
+    });
   }
 
-  const { access_token, refresh_token } = session.secure;
-
-  const isAccessTokenExpired = isTokenExpired(access_token);
-  if (!isAccessTokenExpired) {
-    return;
-  }
+  const { refresh_token } = session.secure;
 
   try {
     const newTokens = await refreshTokens(refresh_token);
+
+    // Stranger errors during development that received tokens are expired
+    // mainly happens during development for example when computer s on standby
+    // TODO: verfiy whether this is still needed on production
+    if (!newTokens || !newTokens.access_token || !newTokens.refresh_token || isTokenExpired(newTokens.access_token)) {
+      await clearUserSession(event);
+      throw createError({
+        message: "Something went wrong while refreshing tokens",
+      });
+    }
+
     await setUserSession(event, {
       secure: {
         refresh_token: newTokens.refresh_token,
@@ -53,5 +61,9 @@ export default defineEventHandler(async (event) => {
   catch (error) {
     console.error("Failed to refresh tokens:", error);
     await clearUserSession(event);
+    throw createError({
+      status: 500,
+      message: "Failed to refresh tokens",
+    });
   }
 });

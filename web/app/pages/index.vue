@@ -1,29 +1,31 @@
 <script setup lang="ts">
+import { useQuery } from "@tanstack/vue-query";
 import { getRequests } from "~/clients/core/sdk.gen";
 
 definePageMeta({
   middleware: ["auth"],
 });
 
-async function fetchFromApi() {
-  const { error } = await getRequests({
-    composable: "useFetch",
-    path: { organizationId: 1 },
-    query: { pageSize: 10 },
-  });
+const permissions = await usePermissions();
 
-  if (error.value) {
-    console.error("Error fetching sample data", error);
-  }
-}
+const { data, isLoading } = useQuery({ queryKey: ["get-requests"], queryFn: () => getRequests({
+  composable: "$fetch",
+  path: { organizationId: 1 },
+  query: { pageSize: 10 },
+}) });
 </script>
 
 <template>
   <div class="container">
     <h1>Welcome to our Application</h1>
     <p>This is the home page of our application.</p>
-    <Button @click="fetchFromApi">
-      Fetch from API
-    </Button>
+    <section>
+      <h2>Permissions</h2>
+      {{ permissions }}
+    </section>
+    <section>
+      <h2>Data</h2>
+      {{ isLoading ? 'is loading...' : data }}
+    </section>
   </div>
 </template>

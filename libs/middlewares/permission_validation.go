@@ -94,7 +94,7 @@ func (p *PermissionMiddlewareConfig) Apply(resourceName string, permission strin
 		permissions, err := fetchUserPermissions(p.IssuerUrl, p.ClientId, accessToken)
 
 		if err != nil {
-			huma.WriteErr(p.api, ctx, http.StatusInternalServerError, err.Error())
+			huma.WriteErr(p.api, ctx, http.StatusUnauthorized, err.Error())
 			return
 		}
 
