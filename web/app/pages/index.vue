@@ -18,7 +18,7 @@ const { data, isLoading } = useQuery({ queryKey: ["get-requests"], queryFn: () =
 <template>
   <div class="container">
     <h1>Welcome to our Application</h1>
-    <p>This is the request page of our application.</p>
+    <p>This is the starting page of our application.</p>
     <section>
       <h2>Permissions</h2>
       {{ permissions }}
