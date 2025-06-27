@@ -39,8 +39,6 @@ jobs:
         cache-dependency-path: './web/package-lock.json'
         node-version-file: './web/.nvmrc'
         cache: 'npm'
-    - name: Install deps
-      run: npm ci
     - name: Lint code
       run: npm run lint
 
@@ -59,7 +57,5 @@ jobs:
         cache-dependency-path: './web/package-lock.json'
         node-version-file: './web/.nvmrc'
         cache: 'npm'
-    - name: Install deps
-      run: npm ci
     - name: Type check code
       run: npm run typecheck
