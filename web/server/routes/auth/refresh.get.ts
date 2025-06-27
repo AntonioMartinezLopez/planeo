@@ -1,5 +1,4 @@
 import type { UserSession } from "#auth-utils";
-import { navigateTo } from "nuxt/app";
 import { isTokenExpired } from "~~/server/util/token-expired";
 
 interface RefreshTokensResponse {
