@@ -3,7 +3,7 @@ run-name: Build web client on ${{ github.ref }}
 on:
   push:
     paths:
-      - /web/**
+      - web/**
   workflow_call:
 
 jobs:
