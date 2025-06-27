@@ -18,6 +18,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
+        cache-dependency-path: '.web/package-lock.json'
         node-version-file: './web/.nvmrc'
         cache: 'npm'
     - name: Install dependencies
