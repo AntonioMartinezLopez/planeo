@@ -1,7 +1,7 @@
 <template>
   <SidebarProvider>
     <AppSidebar />
-    <main class="w-screen h-screen overflow-hidden flex flex-col p-6">
+    <main class="w-screen h-screen overflow-hidden flex flex-col p-8 scroll-m-10 overflow-y-auto">
       <slot />
     </main>
   </SidebarProvider>

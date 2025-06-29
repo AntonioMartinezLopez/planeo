@@ -7,5 +7,10 @@ createClient({
     lint: "eslint",
     indexFile: false,
   },
-  plugins: [{ name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" }],
+  plugins: [{ name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" }, {
+    name: "@hey-api/typescript",
+    readableNameBuilder: "{{name}}",
+    writableNameBuilder: "{{name}}",
+    // ...custom options
+  }],
 });

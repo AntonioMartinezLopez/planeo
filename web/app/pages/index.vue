@@ -17,8 +17,10 @@ const { data, isLoading } = useQuery({ queryKey: ["get-requests"], queryFn: () =
 
 <template>
   <div class="container">
-    <h1>Welcome to our Application</h1>
-    <p>This is the starting page of our application.</p>
+    <h1 class="text-3xl font-semibold tracking-tight transition-colors first:mt-0">
+      Requests
+    </h1>
+    <RequestsDataTable />
     <section>
       <h2>Permissions</h2>
       {{ permissions }}
