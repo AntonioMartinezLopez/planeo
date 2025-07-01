@@ -27,7 +27,10 @@ function copy(id: number) {
 
 <template>
   <DropdownMenu>
-    <DropdownMenuTrigger @click.stop as-child>
+    <DropdownMenuTrigger
+      as-child
+      @click.stop
+    >
       <Button
         variant="ghost"
         class="w-8 h-8 p-0"
