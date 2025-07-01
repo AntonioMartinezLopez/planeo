@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 defineProps<{
-  payment: {
-    id: string;
+  request: {
+    Id: number;
   };
 }>();
 
@@ -20,14 +20,14 @@ defineEmits<{
   (e: "expand"): void;
 }>();
 
-function copy(id: string) {
-  navigator.clipboard.writeText(id);
+function copy(id: number) {
+  navigator.clipboard.writeText(id.toString());
 }
 </script>
 
 <template>
   <DropdownMenu>
-    <DropdownMenuTrigger as-child>
+    <DropdownMenuTrigger @click.stop as-child>
       <Button
         variant="ghost"
         class="w-8 h-8 p-0"
@@ -38,7 +38,7 @@ function copy(id: string) {
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-      <DropdownMenuItem @click="copy(payment.id)">
+      <DropdownMenuItem @click="copy(request.Id)">
         Copy payment ID
       </DropdownMenuItem>
       <DropdownMenuItem @click="$emit('expand')">

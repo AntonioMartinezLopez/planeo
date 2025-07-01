@@ -5,6 +5,7 @@ import type {
   SortingState,
   VisibilityState,
 } from "@tanstack/vue-table";
+import type { Category, Request } from "~/clients/core/types.gen";
 import {
   FlexRender,
   getCoreRowModel,
@@ -17,17 +18,22 @@ import {
 import { ChevronDown } from "lucide-vue-next";
 import { ref } from "vue";
 import { valueUpdater } from "../ui/table/utils";
-import { columns, type Payment } from "./columns";
-import { data } from "./example-data";
+import { getRequestColumnDefinition } from "./columns";
+
+const props = defineProps<{
+  requests: Request[];
+  categories: Category[];
+}>();
 
 const sorting = ref<SortingState>([]);
 const columnFilters = ref<ColumnFiltersState>([]);
 const columnVisibility = ref<VisibilityState>({});
 const rowSelection = ref({});
 const expanded = ref<ExpandedState>({});
+const columns = getRequestColumnDefinition(props.categories);
 
 const table = useVueTable({
-  data,
+  data: props.requests,
   columns,
   getCoreRowModel: getCoreRowModel(),
   getPaginationRowModel: getPaginationRowModel(),
@@ -47,28 +53,17 @@ const table = useVueTable({
     get expanded() { return expanded.value; },
   },
 });
-
-const statuses: Payment["status"][] = ["pending", "processing", "success", "failed"];
-function randomize() {
-  data.value = data.value.map(item => ({
-    ...item,
-    status: statuses[Math.floor(Math.random() * statuses.length)] as Payment["status"],
-  }));
-}
 </script>
 
 <template>
-  <div class="w-full">
+  <div class="w-full h-full grid grid-rows-[auto_1fr_auto] items-stretch">
     <div class="flex gap-2 items-center py-4">
       <Input
         class="max-w-52"
         placeholder="Filter emails..."
-        :model-value="table.getColumn('email')?.getFilterValue() as string"
-        @update:model-value=" table.getColumn('email')?.setFilterValue($event)"
+        :model-value="table.getColumn('Email')?.getFilterValue() as string"
+        @update:model-value=" table.getColumn('Email')?.setFilterValue($event)"
       />
-      <Button @click="randomize">
-        Randomize
-      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button
@@ -93,8 +88,8 @@ function randomize() {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-    <div class="rounded-md border">
-      <Table>
+    <div class="rounded-md border h-0 min-h-full overflow-auto">
+      <Table class="">
         <TableHeader>
           <TableRow
             v-for="headerGroup in table.getHeaderGroups()"
@@ -118,7 +113,9 @@ function randomize() {
               v-for="row in table.getRowModel().rows"
               :key="row.id"
             >
-              <TableRow :data-state="row.getIsSelected() && 'selected'">
+              <TableRow
+                :data-state="row.getIsSelected() && 'selected'"
+              >
                 <TableCell
                   v-for="cell in row.getVisibleCells()"
                   :key="cell.id"
@@ -129,14 +126,8 @@ function randomize() {
                   />
                 </TableCell>
               </TableRow>
-              <TableRow v-if="row.getIsExpanded()">
-                <TableCell :colspan="row.getAllCells().length">
-                  {{ JSON.stringify(row.original) }}
-                </TableCell>
-              </TableRow>
             </template>
           </template>
-
           <TableRow v-else>
             <TableCell
               :colspan="columns.length"

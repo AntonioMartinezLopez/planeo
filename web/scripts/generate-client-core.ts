@@ -1,4 +1,4 @@
-import { createClient } from "@hey-api/openapi-ts";
+import { createClient, defaultPlugins } from "@hey-api/openapi-ts";
 
 createClient({
   input: "./../services/core/docs/open-api-specs.yaml",
@@ -7,10 +7,14 @@ createClient({
     lint: "eslint",
     indexFile: false,
   },
-  plugins: [{ name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" }, {
-    name: "@hey-api/typescript",
-    readableNameBuilder: "{{name}}",
-    writableNameBuilder: "{{name}}",
+  plugins: [
+    ...defaultPlugins,
+    {
+      name: "@hey-api/typescript",
+      readableNameBuilder: "{{name}}",
+      writableNameBuilder: "{{name}}",
     // ...custom options
-  }],
+    },
+    { name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" },
+  ],
 });

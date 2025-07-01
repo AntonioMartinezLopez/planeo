@@ -40,7 +40,7 @@ export interface Category {
   UpdatedAt: string;
 }
 
-export interface CreateCategoryInputBodyReadable {
+export interface CreateCategoryInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -50,13 +50,13 @@ export interface CreateCategoryInputBodyReadable {
   labelDescription: string;
 }
 
-export interface CreateCategoryInputBodyWritable {
+export interface CreateCategoryInputBody {
   color: string;
   label: string;
   labelDescription: string;
 }
 
-export interface CreateCategoryOutputBodyReadable {
+export interface CreateCategoryOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -67,14 +67,14 @@ export interface CreateCategoryOutputBodyReadable {
   id: number;
 }
 
-export interface CreateCategoryOutputBodyWritable {
+export interface CreateCategoryOutputBody {
   /**
    * ID of the created category
    */
   id: number;
 }
 
-export interface CreateRequestInputBodyReadable {
+export interface CreateRequestInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -113,7 +113,7 @@ export interface CreateRequestInputBodyReadable {
   text: string;
 }
 
-export interface CreateRequestInputBodyWritable {
+export interface CreateRequestInputBody {
   /**
    * Address of the requester
    */
@@ -148,7 +148,7 @@ export interface CreateRequestInputBodyWritable {
   text: string;
 }
 
-export interface CreateRequestOutputBodyReadable {
+export interface CreateRequestOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -159,14 +159,14 @@ export interface CreateRequestOutputBodyReadable {
   id: number;
 }
 
-export interface CreateRequestOutputBodyWritable {
+export interface CreateRequestOutputBody {
   /**
    * ID of the created category
    */
   id: number;
 }
 
-export interface CreateUserInputBodyReadable {
+export interface CreateUserInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -189,7 +189,7 @@ export interface CreateUserInputBodyReadable {
   password: string;
 }
 
-export interface CreateUserInputBodyWritable {
+export interface CreateUserInputBody {
   /**
    * Email of the user to be created
    */
@@ -223,7 +223,7 @@ export interface ErrorDetail {
   value?: unknown;
 }
 
-export interface ErrorModelReadable {
+export interface ErrorModel {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -254,7 +254,7 @@ export interface ErrorModelReadable {
   type?: string;
 }
 
-export interface ErrorModelWritable {
+export interface ErrorModel {
   /**
    * A human-readable explanation specific to this occurrence of the problem.
    */
@@ -281,7 +281,7 @@ export interface ErrorModelWritable {
   type?: string;
 }
 
-export interface GetCategoriesOutputBodyReadable {
+export interface GetCategoriesOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -292,14 +292,14 @@ export interface GetCategoriesOutputBodyReadable {
   categories: Array<Category>;
 }
 
-export interface GetCategoriesOutputBodyWritable {
+export interface GetCategoriesOutputBody {
   /**
    * Array of categories
    */
   categories: Array<Category>;
 }
 
-export interface GetRequestsOutputBodyReadable {
+export interface GetRequestsOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -318,7 +318,7 @@ export interface GetRequestsOutputBodyReadable {
   requests: Array<Request>;
 }
 
-export interface GetRequestsOutputBodyWritable {
+export interface GetRequestsOutputBody {
   /**
    * Number of requests to be returned
    */
@@ -333,7 +333,7 @@ export interface GetRequestsOutputBodyWritable {
   requests: Array<Request>;
 }
 
-export interface GetRolesOutputBodyReadable {
+export interface GetRolesOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -344,14 +344,14 @@ export interface GetRolesOutputBodyReadable {
   roles: Array<Role>;
 }
 
-export interface GetRolesOutputBodyWritable {
+export interface GetRolesOutputBody {
   /**
    * Array of roles that can be assigned to users
    */
   roles: Array<Role>;
 }
 
-export interface GetUserInfoOutputBodyReadable {
+export interface GetUserInfoOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -362,14 +362,14 @@ export interface GetUserInfoOutputBodyReadable {
   users: Array<BasicUserInformation>;
 }
 
-export interface GetUserInfoOutputBodyWritable {
+export interface GetUserInfoOutputBody {
   /**
    * Array of users with basic informations
    */
   users: Array<BasicUserInformation>;
 }
 
-export interface GetUserOutputBodyReadable {
+export interface GetUserOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -380,14 +380,14 @@ export interface GetUserOutputBodyReadable {
   user: User;
 }
 
-export interface GetUserOutputBodyWritable {
+export interface GetUserOutputBody {
   /**
    * Information about a user managed in given auth system
    */
   user: User;
 }
 
-export interface GetUsersOutputBodyReadable {
+export interface GetUsersOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -398,7 +398,7 @@ export interface GetUsersOutputBodyReadable {
   users: Array<User>;
 }
 
-export interface GetUsersOutputBodyWritable {
+export interface GetUsersOutputBody {
   /**
    * Array of users managed in organization
    */
@@ -444,7 +444,7 @@ export interface Role {
   name: string;
 }
 
-export interface StatusOutputBodyReadable {
+export interface StatusOutputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -455,14 +455,14 @@ export interface StatusOutputBodyReadable {
   alive: boolean;
 }
 
-export interface StatusOutputBodyWritable {
+export interface StatusOutputBody {
   /**
    * Status of the API server
    */
   alive: boolean;
 }
 
-export interface UpdateCategoryInputBodyReadable {
+export interface UpdateCategoryInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -472,13 +472,13 @@ export interface UpdateCategoryInputBodyReadable {
   labelDescription: string;
 }
 
-export interface UpdateCategoryInputBodyWritable {
+export interface UpdateCategoryInputBody {
   color: string;
   label: string;
   labelDescription: string;
 }
 
-export interface UpdateRequestInputBodyReadable {
+export interface UpdateRequestInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -517,7 +517,7 @@ export interface UpdateRequestInputBodyReadable {
   text: string;
 }
 
-export interface UpdateRequestInputBodyWritable {
+export interface UpdateRequestInputBody {
   /**
    * Address of the requester
    */
@@ -552,7 +552,7 @@ export interface UpdateRequestInputBodyWritable {
   text: string;
 }
 
-export interface UpdateUserInputBodyReadable {
+export interface UpdateUserInputBody {
   /**
    * A URL to the JSON Schema for this object.
    */
@@ -591,7 +591,7 @@ export interface UpdateUserInputBodyReadable {
   username: string;
 }
 
-export interface UpdateUserInputBodyWritable {
+export interface UpdateUserInputBody {
   /**
    * Email of the user
    */
@@ -685,7 +685,7 @@ export interface GetCategoriesErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetCategoriesError = GetCategoriesErrors[keyof GetCategoriesErrors];
@@ -694,13 +694,13 @@ export interface GetCategoriesResponses {
   /**
    * OK
    */
-  200: GetCategoriesOutputBodyReadable;
+  200: GetCategoriesOutputBody;
 }
 
 export type GetCategoriesResponse = GetCategoriesResponses[keyof GetCategoriesResponses];
 
 export interface CreateCategoryData {
-  body: CreateCategoryInputBodyWritable;
+  body: CreateCategoryInputBody;
   path: {
     /**
      * ID of the organization
@@ -715,7 +715,7 @@ export interface CreateCategoryErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type CreateCategoryError = CreateCategoryErrors[keyof CreateCategoryErrors];
@@ -724,7 +724,7 @@ export interface CreateCategoryResponses {
   /**
    * Created
    */
-  201: CreateCategoryOutputBodyReadable;
+  201: CreateCategoryOutputBody;
 }
 
 export type CreateCategoryResponse = CreateCategoryResponses[keyof CreateCategoryResponses];
@@ -749,7 +749,7 @@ export interface DeleteCategoryErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type DeleteCategoryError = DeleteCategoryErrors[keyof DeleteCategoryErrors];
@@ -764,7 +764,7 @@ export interface DeleteCategoryResponses {
 export type DeleteCategoryResponse = DeleteCategoryResponses[keyof DeleteCategoryResponses];
 
 export interface UpdateCategoryData {
-  body: UpdateCategoryInputBodyWritable;
+  body: UpdateCategoryInputBody;
   path: {
     /**
      * ID of the organization
@@ -783,7 +783,7 @@ export interface UpdateCategoryErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type UpdateCategoryError = UpdateCategoryErrors[keyof UpdateCategoryErrors];
@@ -813,7 +813,7 @@ export interface GetRolesErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetRolesError = GetRolesErrors[keyof GetRolesErrors];
@@ -822,7 +822,7 @@ export interface GetRolesResponses {
   /**
    * OK
    */
-  200: GetRolesOutputBodyReadable;
+  200: GetRolesOutputBody;
 }
 
 export type GetRolesResponse = GetRolesResponses[keyof GetRolesResponses];
@@ -848,7 +848,7 @@ export interface GetUsersErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetUsersError = GetUsersErrors[keyof GetUsersErrors];
@@ -857,13 +857,13 @@ export interface GetUsersResponses {
   /**
    * OK
    */
-  200: GetUsersOutputBodyReadable;
+  200: GetUsersOutputBody;
 }
 
 export type GetUsersResponse = GetUsersResponses[keyof GetUsersResponses];
 
 export interface CreateUserData {
-  body: CreateUserInputBodyWritable;
+  body: CreateUserInputBody;
   path: {
     /**
      * ID of the organization
@@ -878,7 +878,7 @@ export interface CreateUserErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type CreateUserError = CreateUserErrors[keyof CreateUserErrors];
@@ -910,7 +910,7 @@ export interface DeleteUserErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type DeleteUserError = DeleteUserErrors[keyof DeleteUserErrors];
@@ -944,7 +944,7 @@ export interface GetUserErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetUserError = GetUserErrors[keyof GetUserErrors];
@@ -953,13 +953,13 @@ export interface GetUserResponses {
   /**
    * OK
    */
-  200: GetUserOutputBodyReadable;
+  200: GetUserOutputBody;
 }
 
 export type GetUserResponse = GetUserResponses[keyof GetUserResponses];
 
 export interface UpdateUserData {
-  body: UpdateUserInputBodyWritable;
+  body: UpdateUserInputBody;
   path: {
     /**
      * ID of the organization
@@ -978,7 +978,7 @@ export interface UpdateUserErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type UpdateUserError = UpdateUserErrors[keyof UpdateUserErrors];
@@ -1015,7 +1015,7 @@ export interface AssignUserRolesErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type AssignUserRolesError = AssignUserRolesErrors[keyof AssignUserRolesErrors];
@@ -1058,7 +1058,7 @@ export interface GetRequestsErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetRequestsError = GetRequestsErrors[keyof GetRequestsErrors];
@@ -1067,13 +1067,13 @@ export interface GetRequestsResponses {
   /**
    * OK
    */
-  200: GetRequestsOutputBodyReadable;
+  200: GetRequestsOutputBody;
 }
 
 export type GetRequestsResponse = GetRequestsResponses[keyof GetRequestsResponses];
 
 export interface CreateRequestData {
-  body: CreateRequestInputBodyWritable;
+  body: CreateRequestInputBody;
   path: {
     /**
      * ID of the organization
@@ -1088,7 +1088,7 @@ export interface CreateRequestErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type CreateRequestError = CreateRequestErrors[keyof CreateRequestErrors];
@@ -1097,7 +1097,7 @@ export interface CreateRequestResponses {
   /**
    * Created
    */
-  201: CreateRequestOutputBodyReadable;
+  201: CreateRequestOutputBody;
 }
 
 export type CreateRequestResponse = CreateRequestResponses[keyof CreateRequestResponses];
@@ -1122,7 +1122,7 @@ export interface DeleteRequestErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type DeleteRequestError = DeleteRequestErrors[keyof DeleteRequestErrors];
@@ -1137,7 +1137,7 @@ export interface DeleteRequestResponses {
 export type DeleteRequestResponse = DeleteRequestResponses[keyof DeleteRequestResponses];
 
 export interface UpdateRequestData {
-  body: UpdateRequestInputBodyWritable;
+  body: UpdateRequestInputBody;
   path: {
     /**
      * ID of the organization
@@ -1156,7 +1156,7 @@ export interface UpdateRequestErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type UpdateRequestError = UpdateRequestErrors[keyof UpdateRequestErrors];
@@ -1186,7 +1186,7 @@ export interface GetBasicUserInformationErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type GetBasicUserInformationError = GetBasicUserInformationErrors[keyof GetBasicUserInformationErrors];
@@ -1195,7 +1195,7 @@ export interface GetBasicUserInformationResponses {
   /**
    * OK
    */
-  200: GetUserInfoOutputBodyReadable;
+  200: GetUserInfoOutputBody;
 }
 
 export type GetBasicUserInformationResponse = GetBasicUserInformationResponses[keyof GetBasicUserInformationResponses];
@@ -1211,7 +1211,7 @@ export interface ServerStatusErrors {
   /**
    * Error
    */
-  default: ErrorModelReadable;
+  default: ErrorModel;
 }
 
 export type ServerStatusError = ServerStatusErrors[keyof ServerStatusErrors];
@@ -1220,7 +1220,7 @@ export interface ServerStatusResponses {
   /**
    * OK
    */
-  200: StatusOutputBodyReadable;
+  200: StatusOutputBody;
 }
 
 export type ServerStatusResponse = ServerStatusResponses[keyof ServerStatusResponses];
