@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { useQuery } from "@tanstack/vue-query";
-import { getCategories, getRequests } from "~/clients/core/sdk.gen";
+import { getCategories } from "~/clients/core/sdk.gen";
 
 definePageMeta({
   middleware: ["auth"],
 });
 
-const { data: requests, isLoading: requestLoading } = useQuery({
-  queryKey: ["get-requests"],
-  queryFn: () => getRequests({
-    composable: "$fetch",
-    path: { organizationId: 1 },
-    query: { pageSize: 10 },
-  }),
-});
+const {
+  requests,
+  isLoading: requestLoading,
+  pageSize,
+  isFirstPage,
+  isLastPage,
+  goToNextPage,
+  goToPrevPage,
+} = usePaginatedRequests(1, 10);
 
 const { data: categories, isLoading: categoriesLoading } = useQuery({
   queryKey: ["get-categories"],
@@ -34,8 +35,13 @@ const dataLoading = computed(() => categoriesLoading.value || requestLoading.val
     <section class="w-full flex-1">
       <RequestsDataTable
         v-if="!dataLoading && requests && categories"
-        :requests="requests?.requests"
+        v-model="pageSize"
+        :requests="requests || []"
         :categories="categories?.categories"
+        :is-first-page="isFirstPage"
+        :is-last-page="isLastPage"
+        @go-to-next-page="goToNextPage"
+        @go-to-prev-page="goToPrevPage"
       />
     </section>
   </div>

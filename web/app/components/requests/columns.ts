@@ -28,6 +28,9 @@ export function getRequestColumnDefinition(categories: Category[]) {
     {
       accessorKey: "CategoryId",
       header: "Category",
+      filterFn: (row, columnId, value: string[]) => {
+        return value.includes(row.getValue<string>(columnId));
+      },
       cell: ({ row }) => {
         const categoryId = row.getValue<number>("CategoryId");
         const category = getCategoryById(categoryId);
@@ -50,10 +53,9 @@ export function getRequestColumnDefinition(categories: Category[]) {
       header: "Date",
       cell: ({ row }) => {
         const date = row.getValue("CreatedAt" satisfies keyof Request);
-
-        // console.log("row value", row);
         let formattedDate = "";
         let formattedTime = "";
+
         if (typeof date === "string") {
           const d = new Date(date);
           formattedDate = d.toLocaleDateString("de-DE");
@@ -77,14 +79,6 @@ export function getRequestColumnDefinition(categories: Category[]) {
       accessorKey: "Subject",
       header: () => h("div", { class: "" }, "Subject"),
       cell: ({ row }) => {
-      // const amount = Number.parseFloat(row.getValue("Subject" satisfies keyof Request));
-
-        // // Format the amount as a dollar amount
-        // const formatted = new Intl.NumberFormat("en-US", {
-        //   style: "currency",
-        //   currency: "USD",
-        // }).format(amount);
-
         return h("div", { class: "font-medium" }, row.getValue("Subject" satisfies keyof Request));
       },
     },
