@@ -1,30 +1,19 @@
 <script setup lang="ts">
-import { useQuery } from "@tanstack/vue-query";
-import { getCategories } from "~/clients/core/sdk.gen";
-
 definePageMeta({
   middleware: ["auth"],
 });
 
 const {
   requests,
-  isLoading: requestLoading,
+  categories,
+  selectedCategories,
+  isLoading,
   pageSize,
   isFirstPage,
   isLastPage,
-  goToNextPage,
-  goToPrevPage,
+  nextPage,
+  prevPage,
 } = usePaginatedRequests(1, 10);
-
-const { data: categories, isLoading: categoriesLoading } = useQuery({
-  queryKey: ["get-categories"],
-  queryFn: () => getCategories({
-    composable: "$fetch",
-    path: { organizationId: 1 },
-  }),
-});
-
-const dataLoading = computed(() => categoriesLoading.value || requestLoading.value);
 </script>
 
 <template>
@@ -34,14 +23,15 @@ const dataLoading = computed(() => categoriesLoading.value || requestLoading.val
     </h1>
     <section class="w-full flex-1">
       <RequestsDataTable
-        v-if="!dataLoading && requests && categories"
-        v-model="pageSize"
+        v-if="!isLoading && requests && categories"
+        v-model:page-size="pageSize"
+        v-model:selected-categories="selectedCategories"
         :requests="requests || []"
-        :categories="categories?.categories"
+        :categories="categories"
         :is-first-page="isFirstPage"
         :is-last-page="isLastPage"
-        @go-to-next-page="goToNextPage"
-        @go-to-prev-page="goToPrevPage"
+        @next-page="nextPage"
+        @prev-page="prevPage"
       />
     </section>
   </div>

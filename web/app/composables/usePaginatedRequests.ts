@@ -1,13 +1,38 @@
+import type { Category } from "~/clients/core/types.gen";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/vue-query";
-import { getRequests } from "~/clients/core/sdk.gen";
+import { getCategories, getRequests } from "~/clients/core/sdk.gen";
 
 export default function (organizationId: number, initialPageSize: number = 10) {
   const pageSize = ref(initialPageSize);
   const cursor = ref(0);
   const nextCursor = ref<number | undefined>(0);
   const prevCursors = ref<number[]>([]);
+  const selectedCategories = ref<number[]>([]);
 
-  const queryKey = computed(() => ["get-requests", cursor.value]);
+  // Categories query
+  const { data: categories } = useQuery({
+    queryKey: ["get-requests", "get-categories"],
+    queryFn: () => getCategories({
+      composable: "$fetch",
+      path: { organizationId: 1 },
+
+    }),
+  });
+
+  // Watch for categories data changes with deep watching
+  watch(
+    () => categories.value?.categories,
+    (newCategories) => {
+      if (newCategories) {
+        selectedCategories.value = newCategories.map((category: Category) => category.Id);
+      }
+    },
+    { immediate: true, deep: true },
+  );
+
+  // Requests query
+  const queryKey = computed(() => ["get-requests", cursor.value, pageSize.value, selectedCategories.value]);
+  const queryEnabled = computed(() => selectedCategories.value.length > 0);
 
   const { data, isLoading } = useQuery({
     queryKey,
@@ -17,14 +42,18 @@ export default function (organizationId: number, initialPageSize: number = 10) {
       query: { pageSize: pageSize.value, cursor: cursor.value === 0 ? undefined : cursor.value },
     }),
     placeholderData: keepPreviousData,
-    // refetchOnWindowFocus: false,
-    // refetchOnMount: true,
+    enabled: queryEnabled,
   });
 
   nextCursor.value = data.value?.nextCursor;
 
   watch(data, () => {
     nextCursor.value = data.value?.nextCursor;
+  });
+
+  watch(pageSize, () => {
+    cursor.value = 0;
+    prevCursors.value = [];
   });
 
   onBeforeUnmount(async () => {
@@ -37,14 +66,14 @@ export default function (organizationId: number, initialPageSize: number = 10) {
   const isFirstPage = computed(() => prevCursors.value.length === 0);
   const isLastPage = computed(() => nextCursor.value! <= 1);
 
-  function goToNextPage() {
+  function nextPage() {
     if (!isLastPage.value) {
       prevCursors.value.push(cursor.value);
       cursor.value = nextCursor.value!;
     }
   }
 
-  function goToPrevPage() {
+  function prevPage() {
     if (!isFirstPage.value) {
       cursor.value = prevCursors.value.pop()!;
     }
@@ -52,14 +81,15 @@ export default function (organizationId: number, initialPageSize: number = 10) {
 
   return {
     requests: computed(() => data.value?.requests ?? []),
-    isLoading,
+    categories: computed(() => categories.value?.categories ?? []),
+    selectedCategories,
+    isLoading: computed(() => isLoading.value || !data.value),
     pageSize,
     cursor,
     nextCursor,
-    goToNextPage,
-    goToPrevPage,
+    nextPage,
+    prevPage,
     isFirstPage,
     isLastPage,
-
   };
 }

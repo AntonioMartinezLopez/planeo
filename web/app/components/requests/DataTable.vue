@@ -22,15 +22,14 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "update:pageSize", value: number): void;
-  (e: "update:selectedCategories", value: string[]): void;
-  (e: "goToNextPage"): void;
-  (e: "goToPrevPage"): void;
+  (e: "update:selectedCategories", value: number[]): void;
+  (e: "nextPage"): void;
+  (e: "prevPage"): void;
 }>();
 
-const pageSize = defineModel("pageSize", { type: Number, default: 0 });
+const pageSize = defineModel("pageSize", { type: Number });
+const selectedCategories = defineModel("selectedCategories", { type: Array<number>, default: () => [] });
 
-const selectedCategories = ref<string[]>(props.categories.map(cat => cat.Label));
 const { getCategoryIdByName } = useCategories(props.categories);
 const rowSelection = ref({});
 const expanded = ref<ExpandedState>({});
@@ -54,18 +53,31 @@ const tableOptions = reactive<TableOptions<Request>>({
 
 const table = useVueTable(tableOptions);
 
-watch(selectedCategories, () => {
-  const mappedCategories = selectedCategories.value.map(cat => getCategoryIdByName(cat));
-  table.setColumnFilters([{ id: "CategoryId", value: mappedCategories }]);
-});
+function setSelectedCategories(value: Record<number, string>) {
+  const categoryIds = Object.values(value).reduce((acc, categoryName) => {
+    const categoryId = getCategoryIdByName(categoryName);
+    if (categoryId !== undefined) {
+      acc.push(categoryId);
+    }
+    return acc;
+  }, [] as number[]);
+
+  emit("update:selectedCategories", categoryIds);
+}
+
+// watch(selectedCategories, () => {
+//   const mappedCategories = selectedCategories.value.map(cat => getCategoryIdByName(cat));
+//   table.setColumnFilters([{ id: "CategoryId", value: mappedCategories }]);
+// });
 </script>
 
 <template>
   <div class="w-full h-full grid grid-rows-[auto_1fr_auto] items-stretch">
     <div class="flex gap-2 items-center py-4">
       <Select
-        v-model="selectedCategories"
         multiple
+
+        @update:model-value="(value) => setSelectedCategories"
       >
         <SelectTrigger class="w-[200px]">
           <span v-if="selectedCategories.length">Select categories</span>
@@ -145,8 +157,8 @@ watch(selectedCategories, () => {
           Rows per page
         </p>
         <Select
-
           v-model="pageSize"
+          class="w-[70px]"
         >
           <SelectTrigger class="h-8 w-[70px]">
             <SelectValue :placeholder="`${pageSize}`" />
@@ -155,7 +167,7 @@ watch(selectedCategories, () => {
             <SelectItem
               v-for="size in [10, 20, 30, 40, 50]"
               :key="size"
-              :value="`${size}`"
+              :value="size"
             >
               {{ size }}
             </SelectItem>
@@ -167,7 +179,7 @@ watch(selectedCategories, () => {
           variant="outline"
           size="sm"
           :disabled="props.isFirstPage"
-          @click="emit('goToPrevPage')"
+          @click="emit('prevPage')"
         >
           Previous
         </Button>
@@ -176,7 +188,7 @@ watch(selectedCategories, () => {
           variant="outline"
           size="sm"
           :disabled="props.isLastPage"
-          @click="emit('goToNextPage')"
+          @click="emit('nextPage')"
         >
           Next
         </Button>
