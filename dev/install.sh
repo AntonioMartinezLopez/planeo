@@ -26,20 +26,22 @@ if [ ! -f "$SHELL_RC_FILE" ]; then
 fi
 
 # Check for the required environment variable exports in the shell rc file
-GOPATH_EXPORT="export GOPATH=\$HOME/go"
-PATH_EXPORT="export PATH=\$PATH:/usr/local/go/bin:\$GOPATH/bin"
+GOPATH_EXPORT="export GOPATH"
+PATH_EXPORT="export PATH"
 
 add_to_shell_rc=false
 
 if ! grep -q "$GOPATH_EXPORT" "$SHELL_RC_FILE"; then
-    echo "$GOPATH_EXPORT" >>"$SHELL_RC_FILE"
-    echo "Added '$GOPATH_EXPORT' to $SHELL_RC_FILE"
+    echo "Missing GOPATH export in $SHELL_RC_FILE. Adding it now."
+    echo "$GOPATH_EXPORT=\$HOME/go" >>"$SHELL_RC_FILE"
+    echo "Added '$GOPATH_EXPORT=\$HOME/go' to $SHELL_RC_FILE"
     add_to_shell_rc=true
 fi
 
 if ! grep -q "$PATH_EXPORT" "$SHELL_RC_FILE"; then
-    echo "$PATH_EXPORT" >>"$SHELL_RC_FILE"
-    echo "Added '$PATH_EXPORT' to $SHELL_RC_FILE"
+    echo "Missing PATH export in $SHELL_RC_FILE. Adding it now."
+    echo "$PATH_EXPORT=\$GOPATH/bin:\$PATH" >>"$SHELL_RC_FILE"
+    echo "Added '$PATH_EXPORT=\$GOPATH/bin:\$PATH' to $SHELL_RC_FILE"
     add_to_shell_rc=true
 fi
 

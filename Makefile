@@ -78,10 +78,10 @@ test:
 		go test ./services/$(SERVICE)/... -v -short -count=1; \
 	elif [ "$(TEST_TYPE)" = "integration" ]; then \
 		echo "Running integration tests for $(SERVICE)..."; \
-		go test ./services/$(SERVICE)/... -v -count=1; \
+		go test ./services/$(SERVICE)/... -p 1 -v -count=1; \
 	else \
 		echo "Running all tests for $(SERVICE)..."; \
-		go test ./services/$(SERVICE)/... -v -count=1; \
+		go test ./services/$(SERVICE)/... -p 1 -v -count=1; \
 	fi
 
 ## Build a Docker image for a service.

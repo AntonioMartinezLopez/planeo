@@ -263,7 +263,9 @@ components:
           description: Optional list of individual error details
           items:
             $ref: "#/components/schemas/ErrorDetail"
-          type: array
+          type:
+            - array
+            - "null"
         instance:
           description: A URI reference that identifies the specific occurrence of the problem.
           examples:
@@ -303,7 +305,9 @@ components:
           description: Array of categories
           items:
             $ref: "#/components/schemas/Category"
-          type: array
+          type:
+            - array
+            - "null"
       required:
         - categories
       type: object
@@ -329,7 +333,9 @@ components:
           description: Array of requests
           items:
             $ref: "#/components/schemas/Request"
-          type: array
+          type:
+            - array
+            - "null"
       required:
         - requests
         - limit
@@ -349,7 +355,9 @@ components:
           description: Array of roles that can be assigned to users
           items:
             $ref: "#/components/schemas/Role"
-          type: array
+          type:
+            - array
+            - "null"
       required:
         - roles
       type: object
@@ -367,7 +375,9 @@ components:
           description: Array of users with basic informations
           items:
             $ref: "#/components/schemas/BasicUserInformation"
-          type: array
+          type:
+            - array
+            - "null"
       required:
         - users
       type: object
@@ -401,7 +411,9 @@ components:
           description: Array of users managed in organization
           items:
             $ref: "#/components/schemas/User"
-          type: array
+          type:
+            - array
+            - "null"
       required:
         - users
       type: object
@@ -629,7 +641,9 @@ components:
               - UPDATE_PROFILE
               - VERIFY_EMAIL
             type: string
-          type: array
+          type:
+            - array
+            - "null"
         totp:
           description: Flag describing whether TOTP was set or not
           type: boolean
@@ -687,12 +701,16 @@ components:
               - UPDATE_PROFILE
               - VERIFY_EMAIL
             type: string
-          type: array
+          type:
+            - array
+            - "null"
         roles:
           description: Array of roles assigned to the user
           items:
             $ref: "#/components/schemas/Role"
-          type: array
+          type:
+            - array
+            - "null"
         totp:
           description: Flag describing whether TOTP was set or not
           type: boolean
@@ -1102,7 +1120,9 @@ paths:
               description: Array of role representations
               items:
                 $ref: "#/components/schemas/PutUserRoleInputBody"
-              type: array
+              type:
+                - array
+                - "null"
         required: true
       responses:
         "204":

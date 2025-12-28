@@ -11,10 +11,9 @@ createClient({
     ...defaultPlugins,
     {
       name: "@hey-api/typescript",
-      readableNameBuilder: "{{name}}",
-      writableNameBuilder: "{{name}}",
+
     // ...custom options
     },
-    { name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" },
+    { name: "@hey-api/client-nuxt", runtimeConfigPath: "../../clients/configuration/core" },
   ],
 });
