@@ -1174,6 +1174,18 @@ paths:
             description: Cursor for pagination
             format: int64
             type: integer
+        - description: Array of category IDs to filter requests by
+          explode: true
+          in: query
+          name: selectedCategories
+          schema:
+            description: Array of category IDs to filter requests by
+            items:
+              format: int64
+              type: integer
+            type:
+              - array
+              - "null"
       responses:
         "200":
           content:

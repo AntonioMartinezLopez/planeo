@@ -11,11 +11,10 @@ export default function (organizationId: number, initialPageSize: number = 10) {
 
   // Categories query
   const { data: categories } = useQuery({
-    queryKey: ["get-requests", "get-categories"],
+    queryKey: ["get-categories", organizationId],
     queryFn: () => getCategories({
       composable: "$fetch",
-      path: { organizationId: 1 },
-
+      path: { organizationId },
     }),
   });
 
@@ -36,10 +35,14 @@ export default function (organizationId: number, initialPageSize: number = 10) {
 
   const { data, isLoading } = useQuery({
     queryKey,
-    queryFn: async () => await getRequests({
+    queryFn: () => getRequests({
       composable: "$fetch",
       path: { organizationId },
-      query: { pageSize: pageSize.value, cursor: cursor.value === 0 ? undefined : cursor.value },
+      query: {
+        pageSize: pageSize.value,
+        cursor: cursor.value === 0 ? undefined : cursor.value,
+        selectedCategories: selectedCategories.value,
+      },
     }),
     placeholderData: keepPreviousData,
     enabled: queryEnabled,
@@ -55,6 +58,12 @@ export default function (organizationId: number, initialPageSize: number = 10) {
     cursor.value = 0;
     prevCursors.value = [];
   });
+
+  // Reset pagination when selected categories change
+  watch(selectedCategories, () => {
+    cursor.value = 0;
+    prevCursors.value = [];
+  }, { deep: true });
 
   onBeforeUnmount(async () => {
     await useQueryClient().invalidateQueries({

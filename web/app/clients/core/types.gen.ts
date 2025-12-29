@@ -1054,6 +1054,10 @@ export interface GetRequestsData {
      * Cursor for pagination
      */
     cursor?: number;
+    /**
+     * Array of category IDs to filter requests by
+     */
+    selectedCategories?: Array<number> | null;
   };
   url: "/organizations/{organizationId}/requests";
 }

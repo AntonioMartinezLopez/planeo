@@ -9,7 +9,6 @@ import {
   getCoreRowModel,
   useVueTable,
 } from "@tanstack/vue-table";
-import { ref } from "vue";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "../ui/select";
 import { valueUpdater } from "../ui/table/utils";
 import { getRequestColumnDefinition } from "./columns";
@@ -22,7 +21,6 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "update:selectedCategories", value: number[]): void;
   (e: "nextPage"): void;
   (e: "prevPage"): void;
 }>();
@@ -30,10 +28,17 @@ const emit = defineEmits<{
 const pageSize = defineModel("pageSize", { type: Number });
 const selectedCategories = defineModel("selectedCategories", { type: Array<number>, default: () => [] });
 
-const { getCategoryIdByName } = useCategories(props.categories);
+const { getCategoryIdByName, getCategoryById } = useCategories(props.categories);
 const rowSelection = ref({});
 const expanded = ref<ExpandedState>({});
 const columns = computed(() => getRequestColumnDefinition(props.categories));
+
+// Convert selected category IDs to labels for the Select component
+const selectedCategoryLabels = computed(() => {
+  return selectedCategories.value
+    .map(id => getCategoryById(id)?.Label)
+    .filter((label): label is string => label !== undefined);
+});
 
 const tableOptions = reactive<TableOptions<Request>>({
   get data() {
@@ -53,8 +58,13 @@ const tableOptions = reactive<TableOptions<Request>>({
 
 const table = useVueTable(tableOptions);
 
-function setSelectedCategories(value: Record<number, string>) {
-  const categoryIds = Object.values(value).reduce((acc, categoryName) => {
+function setSelectedCategories(value: unknown) {
+  if (!value || typeof value !== "object") {
+    selectedCategories.value = [];
+    return;
+  }
+
+  const categoryIds = Object.values(value as Record<string, string>).reduce((acc, categoryName) => {
     const categoryId = getCategoryIdByName(categoryName);
     if (categoryId !== undefined) {
       acc.push(categoryId);
@@ -62,13 +72,8 @@ function setSelectedCategories(value: Record<number, string>) {
     return acc;
   }, [] as number[]);
 
-  emit("update:selectedCategories", categoryIds);
+  selectedCategories.value = categoryIds;
 }
-
-// watch(selectedCategories, () => {
-//   const mappedCategories = selectedCategories.value.map(cat => getCategoryIdByName(cat));
-//   table.setColumnFilters([{ id: "CategoryId", value: mappedCategories }]);
-// });
 </script>
 
 <template>
@@ -76,8 +81,8 @@ function setSelectedCategories(value: Record<number, string>) {
     <div class="flex gap-2 items-center py-4">
       <Select
         multiple
-
-        @update:model-value="(value) => setSelectedCategories"
+        :model-value="selectedCategoryLabels"
+        @update:model-value="(value) => setSelectedCategories(value)"
       >
         <SelectTrigger class="w-[200px]">
           <span v-if="selectedCategories.length">Select categories</span>

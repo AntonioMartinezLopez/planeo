@@ -37,7 +37,7 @@ func (r *RequestController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{permissions.Apply("request", "read")},
 	}), func(ctx context.Context, input *dto.GetRequestsInput) (*dto.GetRequestsOutput, error) {
 
-		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
+		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed, input.SelectedCategories)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)
