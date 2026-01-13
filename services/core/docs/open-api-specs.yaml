@@ -417,6 +417,35 @@ components:
       required:
         - users
       type: object
+    Organization:
+      additionalProperties: false
+      properties:
+        address:
+          type: string
+        created_at:
+          format: date-time
+          type: string
+        email:
+          type: string
+        iam_organization_id:
+          type: string
+        id:
+          format: int64
+          type: integer
+        name:
+          type: string
+        updated_at:
+          format: date-time
+          type: string
+      required:
+        - id
+        - name
+        - address
+        - email
+        - iam_organization_id
+        - created_at
+        - updated_at
+      type: object
     PutUserRoleInputBody:
       additionalProperties: false
       properties:
@@ -746,6 +775,33 @@ info:
   version: 0.0.1
 openapi: 3.1.0
 paths:
+  /organizations:
+    get:
+      description: Returns all organizations that the authenticated user belongs to, based on the sub claim from the JWT token.
+      operationId: get-organizations
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                description: Array of organizations the user belongs to
+                items:
+                  $ref: "#/components/schemas/Organization"
+                type:
+                  - array
+                  - "null"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      security:
+        - bearer: []
+      summary: Get Organizations for Current User
+      tags:
+        - Organizations
   /organizations/{organizationId}/categories:
     get:
       operationId: get-categories

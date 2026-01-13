@@ -1,8 +1,9 @@
+import type { Ref } from "vue";
 import type { Category } from "~/clients/core/types.gen";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/vue-query";
 import { getCategories, getRequests } from "~/clients/core/sdk.gen";
 
-export default function (organizationId: number, initialPageSize: number = 10) {
+export default function (organizationId: Ref<number | null>, initialPageSize: number = 10) {
   const pageSize = ref(initialPageSize);
   const cursor = ref(0);
   const nextCursor = ref<number | undefined>(0);
@@ -14,8 +15,9 @@ export default function (organizationId: number, initialPageSize: number = 10) {
     queryKey: ["get-categories", organizationId],
     queryFn: () => getCategories({
       composable: "$fetch",
-      path: { organizationId },
+      path: { organizationId: organizationId.value! },
     }),
+    enabled: computed(() => organizationId.value !== null),
   });
 
   // Watch for categories data changes with deep watching
@@ -37,7 +39,7 @@ export default function (organizationId: number, initialPageSize: number = 10) {
     queryKey,
     queryFn: () => getRequests({
       composable: "$fetch",
-      path: { organizationId },
+      path: { organizationId: organizationId.value! },
       query: {
         pageSize: pageSize.value,
         cursor: cursor.value === 0 ? undefined : cursor.value,
@@ -45,7 +47,7 @@ export default function (organizationId: number, initialPageSize: number = 10) {
       },
     }),
     placeholderData: keepPreviousData,
-    enabled: queryEnabled,
+    enabled: computed(() => queryEnabled.value && organizationId.value !== null),
   });
 
   nextCursor.value = data.value?.nextCursor;

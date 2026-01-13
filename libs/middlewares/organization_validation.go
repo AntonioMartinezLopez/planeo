@@ -9,6 +9,14 @@ import (
 func OrganizationCheckMiddleware(api huma.API, resolveOrganization func(organizationId string) (string, error)) func(ctx huma.Context, next func(huma.Context)) {
 
 	return func(ctx huma.Context, next func(huma.Context)) {
+		organizationId := ctx.Param("organizationId")
+
+		// Skip organization check for routes without organizationId path parameter
+		if organizationId == "" {
+			next(ctx)
+			return
+		}
+
 		accessClaims, assertionCorrect := ctx.Context().Value(AccessClaimsContextKey{}).(*OauthAccessClaims)
 
 		if !assertionCorrect {
@@ -16,7 +24,6 @@ func OrganizationCheckMiddleware(api huma.API, resolveOrganization func(organiza
 			return
 		}
 
-		organizationId := ctx.Param("organizationId")
 		organization, err := resolveOrganization(organizationId)
 
 		if err != nil {

@@ -258,6 +258,16 @@ export interface GetUsersOutputBody {
   users: Array<User> | null;
 }
 
+export interface Organization {
+  address: string;
+  created_at: string;
+  email: string;
+  iam_organization_id: string;
+  id: number;
+  name: string;
+  updated_at: string;
+}
+
 export interface PutUserRoleInputBody {
   /**
    * ID of the role to be assigned to the user
@@ -672,6 +682,31 @@ export interface UpdateUserInputBodyWritable {
    */
   username: string;
 }
+
+export interface GetOrganizationsData {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/organizations";
+}
+
+export interface GetOrganizationsErrors {
+  /**
+   * Error
+   */
+  default: ErrorModel;
+}
+
+export type GetOrganizationsError = GetOrganizationsErrors[keyof GetOrganizationsErrors];
+
+export interface GetOrganizationsResponses {
+  /**
+   * Array of organizations the user belongs to
+   */
+  200: Array<Organization> | null;
+}
+
+export type GetOrganizationsResponse = GetOrganizationsResponses[keyof GetOrganizationsResponses];
 
 export interface GetCategoriesData {
   body?: never;

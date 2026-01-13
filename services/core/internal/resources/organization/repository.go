@@ -14,7 +14,7 @@ type OrganizationRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewRequestRepository(database *pgxpool.Pool) *OrganizationRepository {
+func NewOrganizationRepository(database *pgxpool.Pool) *OrganizationRepository {
 	return &OrganizationRepository{
 		db: database,
 	}
@@ -53,4 +53,34 @@ func GetOrganizationIamById(db *pgxpool.Pool, id string) (string, error) {
 		return "", appError.New(appError.InternalError, "Something went wrong", err)
 	}
 	return organization.IAMOrganizationID, nil
+}
+
+// GetOrganizationsByUserSub returns all organizations that a user belongs to,
+// based on the user's IAM identifier (sub claim from JWT)
+func (repo *OrganizationRepository) GetOrganizationsByUserSub(ctx context.Context, userSub string) ([]models.Organization, error) {
+	query := `
+		SELECT o.* 
+		FROM organizations o
+		JOIN users u ON u.organization_id = o.id
+		WHERE u.iam_user_id = @userSub`
+
+	args := pgx.NamedArgs{"userSub": userSub}
+
+	rows, err := repo.db.Query(ctx, query, args)
+
+	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetOrganizationsByUserSub").Msg("Error querying database")
+		return nil, appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	organizations, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Organization])
+
+	if err != nil {
+		logger := logger.FromContext(ctx)
+		logger.Error().Err(err).Str("operation", "GetOrganizationsByUserSub").Msg("Error collecting rows")
+		return nil, appError.New(appError.InternalError, "Something went wrong", err)
+	}
+
+	return organizations, nil
 }

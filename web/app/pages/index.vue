@@ -3,6 +3,8 @@ definePageMeta({
   middleware: ["auth"],
 });
 
+const { organizationId } = useOrganization();
+
 const {
   requests,
   categories,
@@ -13,7 +15,7 @@ const {
   isLastPage,
   nextPage,
   prevPage,
-} = usePaginatedRequests(1, 10);
+} = usePaginatedRequests(organizationId, 10);
 </script>
 
 <template>
