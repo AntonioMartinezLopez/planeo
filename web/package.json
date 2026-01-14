@@ -42,6 +42,7 @@
     "@hey-api/client-nuxt": "^0.4.2",
     "@hey-api/openapi-ts": "^0.87.5",
     "@nuxtjs/color-mode": "^3.5.2",
+    "baseline-browser-mapping": "^2.9.14",
     "eslint": "^9.28.0",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.10"
