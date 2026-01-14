@@ -55,7 +55,7 @@ func TestOrganizationIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var organizations []models.Organization
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
 			assert.NotEmpty(t, organizations)
 			assert.Equal(t, "local", organizations[0].Name)
 			assert.Equal(t, "local", organizations[0].IAMOrganizationID)
@@ -71,7 +71,7 @@ func TestOrganizationIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var organizations []models.Organization
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
 			assert.NotEmpty(t, organizations)
 			assert.Equal(t, "local", organizations[0].Name)
 		})
@@ -86,7 +86,7 @@ func TestOrganizationIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var organizations []models.Organization
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, organizations)
 			assert.Equal(t, "local", organizations[0].Name)
@@ -122,7 +122,7 @@ func TestOrganizationIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var organizations []models.Organization
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &organizations, true)
 			// In the test environment, all users belong to the "local" organization
 			assert.NotEmpty(t, organizations)
 			for _, org := range organizations {

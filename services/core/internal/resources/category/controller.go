@@ -27,6 +27,7 @@ func NewCategoryController(api huma.API, config *config.ApplicationConfiguration
 	}
 }
 
+//nolint:funlen
 func (c *CategoryController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(c.api, c.config.OauthIssuerUrl(), c.config.KcOauthClientID)
 	huma.Register(c.api, humaUtils.WithAuth(huma.Operation{

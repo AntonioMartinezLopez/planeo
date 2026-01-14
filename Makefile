@@ -3,11 +3,11 @@ VERSION ?= latest
 DOCKER_REGISTRY ?= ghcr.io/antoniomartinezlopez
 
 # Extract extra arguments by filtering out our primary targets.
-ARGS := $(filter-out run test build, $(MAKECMDGOALS))
+ARGS := $(filter-out run test build lint, $(MAKECMDGOALS))
 SERVICE := $(firstword $(ARGS))
 TEST_TYPE := $(word 2, $(ARGS))
 
-.PHONY: run test build
+.PHONY: run test build lint
 
 ## Show help.
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  up                     - Start up the dev environment."
 	@echo "  down                   - Shut down the dev environment."
 	@echo "  run <service>          - Run a service with Air auto-reloading."
+	@echo "  lint <service>         - Run golangci-lint on a service."
 	@echo "  test <service> [unit|integration]"
 	@echo "                         - Test a service."
 	@echo "  build <service> [VERSION=<tag>]"
@@ -66,6 +67,15 @@ run:
 	fi
 	@echo "Running service '$(SERVICE)' with Air auto-reloading..."
 	cd services/$(SERVICE) && air -c air.toml
+
+## Run golangci-lint on a service.
+## Usage: make lint <service>
+lint:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Usage: make lint <service>"; exit 1; \
+	fi
+	@echo "Running golangci-lint on service '$(SERVICE)'..."
+	cd services/$(SERVICE) && golangci-lint-v2 run --config ../../.golangci.yml
 
 ## Test a service.
 ## Usage: make test <service> [unit|integration]

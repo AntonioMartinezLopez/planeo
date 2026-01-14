@@ -69,7 +69,7 @@ func TestUserinfoIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ Users []models.BasicUserInformation }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Users), 0)
 		})
 
@@ -87,7 +87,7 @@ func TestUserinfoIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ Users []models.BasicUserInformation }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Users), 0)
 		})
 
@@ -105,7 +105,7 @@ func TestUserinfoIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ Users []models.BasicUserInformation }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Users), 0)
 		})
 

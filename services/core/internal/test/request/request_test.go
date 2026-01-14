@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:gocyclo
 func TestRequestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -347,13 +348,13 @@ func TestRequestIntegration(t *testing.T) {
 				Requests   []models.Request
 				NextCursor int
 			}
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
 			assert.Equal(t, 200, response.Code)
 			assert.Equal(t, 3, len(requests.Requests))
 
 			// Fetch the next page
 			nextPageResponse := testApi.Get(fmt.Sprintf("/organizations/1/requests?pageSize=3&cursor=%d", requests.NextCursor), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
-			jsonHelper.DecodeJSONAndValidate(nextPageResponse.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(nextPageResponse.Result().Body, &requests, true)
 			assert.Equal(t, 200, nextPageResponse.Code)
 			assert.Equal(t, 2, len(requests.Requests))
 		})
@@ -373,7 +374,7 @@ func TestRequestIntegration(t *testing.T) {
 				Requests   []models.Request
 				NextCursor int
 			}
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
 			assert.Equal(t, 200, response.Code)
 
 			// All returned requests should have CategoryId = 1
@@ -397,7 +398,7 @@ func TestRequestIntegration(t *testing.T) {
 				Requests   []models.Request
 				NextCursor int
 			}
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
 			assert.Equal(t, 200, response.Code)
 
 			// All returned requests should have CategoryId = 1 or 2
@@ -421,7 +422,7 @@ func TestRequestIntegration(t *testing.T) {
 				Requests   []models.Request
 				NextCursor int
 			}
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
 			assert.Equal(t, 200, response.Code)
 			assert.GreaterOrEqual(t, len(requests.Requests), 5, "Expected at least 5 requests without filter")
 		})
@@ -488,7 +489,7 @@ func TestRequestIntegration(t *testing.T) {
 				Id int `json:"id"`
 			}
 			response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
 
 			assert.Equal(t, 201, response.Code)
 			assert.Greater(t, responseBody.Id, 0)

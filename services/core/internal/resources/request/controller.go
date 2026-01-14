@@ -26,6 +26,7 @@ func NewRequestController(api huma.API, config *config.ApplicationConfiguration,
 	}
 }
 
+//nolint:funlen
 func (r *RequestController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(r.api, r.config.OauthIssuerUrl(), r.config.KcOauthClientID)
 	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{

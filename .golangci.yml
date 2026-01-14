@@ -1,0 +1,62 @@
+version: "2"
+run:
+  allow-parallel-runners: true
+output:
+  formats:
+    tab:
+      path: stdout
+      colors: false
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - dupl
+    - errcheck
+    - funlen
+    - gochecknoinits
+    - gocyclo
+    - gosec
+    - ineffassign
+    - unparam
+    - unused
+  settings:
+    funlen:
+      lines: 60
+      statements: 40
+    gocyclo:
+      min-complexity: 20
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - funlen
+        path: main.go|app.go
+      - linters:
+          - bodyclose
+          - funlen
+        path: _test\.go|mock|integration
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

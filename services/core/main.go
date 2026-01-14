@@ -21,7 +21,7 @@ func generateOpenApiSpecs(api huma.API, filename string) {
 		panic(err)
 	}
 
-	if err := os.WriteFile(filename, spec, 0644); err != nil {
+	if err := os.WriteFile(filename, spec, 0600); err != nil {
 		panic(err)
 	}
 }

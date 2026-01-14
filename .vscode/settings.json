@@ -51,17 +51,31 @@
       "source.organizeImports": "explicit"
     }
   },
-  "go.formatTool": "gofmt",
+  // "go.formatTool": "gofmt",
   "go.buildFlags": [
     "-tags=integration"
   ],
   "go.testTags": "integration",
   "go.toolsManagement.autoUpdate": true,
+  "go.lintTool": "golangci-lint-v2",
+  "go.lintFlags": [
+    "--config=${workspaceFolder}/.golangci.yml",
+    "--path-mode=abs",
+    "--fast-only"
+  ],
+  "go.formatTool": "custom",
+  "go.alternateTools": {
+    "customFormatter": "golangci-lint-v2"
+  },
+  "go.formatFlags": [
+    "fmt",
+    "--stdin"
+  ],
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
-  "notebook.cellToolbarLocation": {
-    "default": "right",
-    "jupyter-notebook": "left"
-  }
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "go.lintOnSave": "workspace",
 }

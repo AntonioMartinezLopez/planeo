@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+//nolint:funlen
 func CreateEmailReceivedCallback(ctx context.Context, services Services) func(payload events.EmailCreatedPayload) error {
 	logger := logger.FromContext(ctx)
 

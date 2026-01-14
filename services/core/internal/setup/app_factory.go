@@ -53,6 +53,7 @@ func NewApplicationFactory() *ApplicationFactory {
 	return &ApplicationFactory{}
 }
 
+//nolint:funlen
 func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService *events.EventService) *Application {
 	// Initialize repositories
 	requestRepository := request.NewRequestRepository(db.DB)

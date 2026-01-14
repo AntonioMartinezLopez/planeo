@@ -68,7 +68,7 @@ func TestUserRoleIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ Roles []models.Role }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Roles), 0)
 		})
 
@@ -129,7 +129,7 @@ func TestUserRoleIntegration(t *testing.T) {
 			response := testApi.Get("/organizations/1/iam/roles", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 200, response.Code)
 			var body struct{ Roles []models.Role }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Roles), 0)
 
 			// assign all roles

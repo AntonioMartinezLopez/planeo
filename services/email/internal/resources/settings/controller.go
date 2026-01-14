@@ -26,6 +26,7 @@ func NewSettingsController(api huma.API, config *config.ApplicationConfiguration
 	}
 }
 
+//nolint:funlen
 func (s *SettingsController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(s.api, s.config.OauthIssuerUrl(), s.config.KcOauthClientID)
 

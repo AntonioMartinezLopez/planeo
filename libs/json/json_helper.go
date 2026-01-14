@@ -11,6 +11,9 @@ import (
 
 var validate *validator.Validate
 
+// TODO: refactor to use a single instance of the validator across the application
+//
+//nolint:gochecknoinits
 func init() {
 	validate = validator.New(validator.WithRequiredStructEnabled())
 }

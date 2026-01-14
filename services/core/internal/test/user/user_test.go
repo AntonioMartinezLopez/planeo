@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:gocyclo
 func TestUserIntegration(t *testing.T) {
 
 	if testing.Short() {
@@ -72,7 +73,7 @@ func TestUserIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ Users []models.User }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.Greater(t, len(body.Users), 0)
 		})
 
@@ -125,7 +126,7 @@ func TestUserIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ User models.User }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.NotNil(t, body.User)
 			assert.Equal(t, "d7eddb93-254e-4482-9a53-f31a5975dd1d", body.User.Id)
 			assert.Equal(t, "user@local.de", body.User.Username)
@@ -312,7 +313,7 @@ func TestUserIntegration(t *testing.T) {
 			response := testApi.Get("/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var body struct{ User models.User }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 
 			updatePayload := dto.UpdateUserInputBody{
 				FirstName:       "Jane",
@@ -443,7 +444,7 @@ func TestUserIntegration(t *testing.T) {
 			assert.Equal(t, 200, response.Code)
 
 			var users struct{ Users []models.User }
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &users, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &users, true)
 
 			index := slices.IndexFunc(users.Users, func(u models.User) bool {
 				return u.Email == "john.test@local.de"
