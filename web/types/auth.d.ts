@@ -1,6 +1,7 @@
 // auth.d.ts
 declare module "#auth-utils" {
   interface User {
+    sub: string;
     email_verified: boolean;
     name: string;
     groups: string[];

@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//nolint:gocyclo
 func TestRequestIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -347,15 +348,83 @@ func TestRequestIntegration(t *testing.T) {
 				Requests   []models.Request
 				NextCursor int
 			}
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
 			assert.Equal(t, 200, response.Code)
 			assert.Equal(t, 3, len(requests.Requests))
 
 			// Fetch the next page
 			nextPageResponse := testApi.Get(fmt.Sprintf("/organizations/1/requests?pageSize=3&cursor=%d", requests.NextCursor), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
-			jsonHelper.DecodeJSONAndValidate(nextPageResponse.Result().Body, &requests, true)
+			_ = jsonHelper.DecodeJSONAndValidate(nextPageResponse.Result().Body, &requests, true)
 			assert.Equal(t, 200, nextPageResponse.Code)
 			assert.Equal(t, 2, len(requests.Requests))
+		})
+
+		t.Run("should filter requests by single category", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+
+			// Filter by category 1 (Installation)
+			response := testApi.Get("/organizations/1/requests?pageSize=10&selectedCategories=1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			var requests struct {
+				Requests   []models.Request
+				NextCursor int
+			}
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			assert.Equal(t, 200, response.Code)
+
+			// All returned requests should have CategoryId = 1
+			for _, req := range requests.Requests {
+				assert.Equal(t, 1, *req.CategoryId)
+			}
+		})
+
+		t.Run("should filter requests by multiple categories", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+
+			// Filter by categories 1 and 2 (Installation and Maintenance)
+			response := testApi.Get("/organizations/1/requests?pageSize=10&selectedCategories=1&selectedCategories=2", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			var requests struct {
+				Requests   []models.Request
+				NextCursor int
+			}
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			assert.Equal(t, 200, response.Code)
+
+			// All returned requests should have CategoryId = 1 or 2
+			for _, req := range requests.Requests {
+				assert.True(t, *req.CategoryId == 1 || *req.CategoryId == 2, "Expected CategoryId to be 1 or 2, got %d", *req.CategoryId)
+			}
+		})
+
+		t.Run("should return all requests when no category filter is provided", func(t *testing.T) {
+			session, err := env.GetUserSession("admin", "admin")
+
+			if err != nil {
+				t.Error(err)
+			}
+			assert.NotNil(t, session)
+
+			// No category filter
+			response := testApi.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			var requests struct {
+				Requests   []models.Request
+				NextCursor int
+			}
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
+			assert.Equal(t, 200, response.Code)
+			assert.GreaterOrEqual(t, len(requests.Requests), 5, "Expected at least 5 requests without filter")
 		})
 	})
 
@@ -420,7 +489,7 @@ func TestRequestIntegration(t *testing.T) {
 				Id int `json:"id"`
 			}
 			response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
-			jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
+			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
 
 			assert.Equal(t, 201, response.Code)
 			assert.Greater(t, responseBody.Id, 0)

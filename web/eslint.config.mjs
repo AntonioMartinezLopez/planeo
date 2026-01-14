@@ -9,6 +9,9 @@ export default antfu(
       semi: true,
       printWidth: 80,
     },
+    ignores: [
+      "app/clients/**",
+    ],
   },
   {
     files: ["**/*.vue"],

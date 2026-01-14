@@ -7,7 +7,7 @@ import (
 
 type RequestRepositoryInterface interface {
 	CreateRequest(ctx context.Context, request models.NewRequest) (int, error)
-	GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error)
+	GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]models.Request, error)
 	GetRequest(ctx context.Context, organizationId int, requestId int) (models.Request, error)
 	UpdateRequest(ctx context.Context, request models.UpdateRequest) error
 	DeleteRequest(ctx context.Context, organizationId int, requestId int) error
@@ -23,8 +23,8 @@ func NewRequestService(requestRepository RequestRepositoryInterface) *RequestSer
 	}
 }
 
-func (s *RequestService) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error) {
-	return s.requestRepository.GetRequests(ctx, organizationId, cursor, limit, getClosed)
+func (s *RequestService) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]models.Request, error) {
+	return s.requestRepository.GetRequests(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 }
 
 func (s *RequestService) GetRequest(ctx context.Context, organizationId int, requestId int) (models.Request, error) {

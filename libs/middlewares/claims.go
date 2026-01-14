@@ -6,6 +6,7 @@ import (
 )
 
 type OauthAccessClaims struct {
+	Sub            string   `json:"sub"`
 	Name           string   `json:"name"`
 	Email          string   `json:"email"`
 	UserId         string   `json:"userid"`

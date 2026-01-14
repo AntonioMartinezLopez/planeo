@@ -26,6 +26,7 @@ func NewRequestController(api huma.API, config *config.ApplicationConfiguration,
 	}
 }
 
+//nolint:funlen
 func (r *RequestController) InitializeRoutes() {
 	permissions := middlewares.NewPermissionMiddlewareConfig(r.api, r.config.OauthIssuerUrl(), r.config.KcOauthClientID)
 	huma.Register(r.api, humaUtils.WithAuth(huma.Operation{
@@ -37,7 +38,7 @@ func (r *RequestController) InitializeRoutes() {
 		Middlewares: huma.Middlewares{permissions.Apply("request", "read")},
 	}), func(ctx context.Context, input *dto.GetRequestsInput) (*dto.GetRequestsOutput, error) {
 
-		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed)
+		result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed, input.SelectedCategories)
 
 		if err != nil {
 			return nil, humaUtils.NewHumaError(err)

@@ -1,31 +1,40 @@
 <script setup lang="ts">
-import { useQuery } from "@tanstack/vue-query";
-import { getRequests } from "~/clients/core/sdk.gen";
-
 definePageMeta({
   middleware: ["auth"],
 });
 
-const permissions = await usePermissions();
+const { organizationId } = useOrganization();
 
-const { data, isLoading } = useQuery({ queryKey: ["get-requests"], queryFn: () => getRequests({
-  composable: "$fetch",
-  path: { organizationId: 1 },
-  query: { pageSize: 10 },
-}) });
+const {
+  requests,
+  categories,
+  selectedCategories,
+  isLoading,
+  pageSize,
+  isFirstPage,
+  isLastPage,
+  nextPage,
+  prevPage,
+} = usePaginatedRequests(organizationId, 10);
 </script>
 
 <template>
-  <div class="container">
-    <h1>Welcome to our Application</h1>
-    <p>This is the starting page of our application.</p>
-    <section>
-      <h2>Permissions</h2>
-      {{ permissions }}
-    </section>
-    <section>
-      <h2>Data</h2>
-      {{ isLoading ? 'is loading...' : data }}
+  <div class="container mx-auto flex flex-1 flex-col items-stretch">
+    <h1 class="text-3xl font-semibold tracking-tight transition-colors first:mt-0">
+      Requests
+    </h1>
+    <section class="w-full flex-1">
+      <RequestsDataTable
+        v-if="!isLoading && requests && categories"
+        v-model:page-size="pageSize"
+        v-model:selected-categories="selectedCategories"
+        :requests="requests || []"
+        :categories="categories"
+        :is-first-page="isFirstPage"
+        :is-last-page="isLastPage"
+        @next-page="nextPage"
+        @prev-page="prevPage"
+      />
     </section>
   </div>
 </template>

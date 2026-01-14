@@ -17,23 +17,26 @@ import (
 )
 
 type Repositories struct {
-	RequestRepository  *request.RequestRepository
-	UserRepository     *user.UserRepository
-	CategoryRepository *category.CategoryRepository
-	KeycloakService    *user.KeycloakService
+	RequestRepository      *request.RequestRepository
+	UserRepository         *user.UserRepository
+	CategoryRepository     *category.CategoryRepository
+	OrganizationRepository *organization.OrganizationRepository
+	KeycloakService        *user.KeycloakService
 }
 
 type Services struct {
-	RequestService  *request.RequestService
-	UserService     *user.UserService
-	CategoryService *category.CategoryService
-	KeyCloakService *user.KeycloakService
+	RequestService      *request.RequestService
+	UserService         *user.UserService
+	CategoryService     *category.CategoryService
+	OrganizationService *organization.OrganizationService
+	KeyCloakService     *user.KeycloakService
 }
 
 type Controllers struct {
-	RequestController  *request.RequestController
-	UserController     *user.UserController
-	CategoryController *category.CategoryController
+	RequestController      *request.RequestController
+	UserController         *user.UserController
+	CategoryController     *category.CategoryController
+	OrganizationController *organization.OrganizationController
 }
 
 type Application struct {
@@ -50,11 +53,13 @@ func NewApplicationFactory() *ApplicationFactory {
 	return &ApplicationFactory{}
 }
 
+//nolint:funlen
 func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService *events.EventService) *Application {
 	// Initialize repositories
 	requestRepository := request.NewRequestRepository(db.DB)
 	userRepository := user.NewUserRepository(db.DB)
 	categoryRepository := category.NewCategoryRepository(db.DB)
+	organizationRepository := organization.NewOrganizationRepository(db.DB)
 
 	// Initialize services
 	keycloakAdminClient := keycloak.NewKeycloakAdminClient(*config)
@@ -62,6 +67,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 	requestService := request.NewRequestService(requestRepository)
 	userService := user.NewUserService(userRepository, keycloakService)
 	categoryService := category.NewCategoryService(categoryRepository)
+	organizationService := organization.NewOrganizationService(organizationRepository)
 
 	// Initialize API
 	huma := api.NewHumaAPI(config, "Planeo Core", "0.0.1", "/api")
@@ -70,6 +76,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 	requestController := request.NewRequestController(huma.Api, config, requestService)
 	userController := user.NewUserController(huma.Api, config, userService)
 	categoryController := category.NewCategoryController(huma.Api, config, categoryService)
+	organizationController := organization.NewOrganizationController(huma.Api, organizationService)
 
 	// Register controllers with middleware setup
 	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl())
@@ -82,6 +89,7 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 		requestController,
 		userController,
 		categoryController,
+		organizationController,
 	}
 
 	api.InitializeControllers(huma.Api, middlewares, controllers)
@@ -96,20 +104,23 @@ func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfigu
 
 	return &Application{
 		Repositories: Repositories{
-			RequestRepository:  requestRepository,
-			UserRepository:     userRepository,
-			CategoryRepository: categoryRepository,
+			RequestRepository:      requestRepository,
+			UserRepository:         userRepository,
+			CategoryRepository:     categoryRepository,
+			OrganizationRepository: organizationRepository,
 		},
 		Services: Services{
-			RequestService:  requestService,
-			UserService:     userService,
-			CategoryService: categoryService,
-			KeyCloakService: keycloakService,
+			RequestService:      requestService,
+			UserService:         userService,
+			CategoryService:     categoryService,
+			OrganizationService: organizationService,
+			KeyCloakService:     keycloakService,
 		},
 		Controllers: Controllers{
-			RequestController:  requestController,
-			UserController:     userController,
-			CategoryController: categoryController,
+			RequestController:      requestController,
+			UserController:         userController,
+			CategoryController:     categoryController,
+			OrganizationController: organizationController,
 		},
 		API: huma,
 	}

@@ -98,6 +98,7 @@ func TestCategoryIntegration(t *testing.T) {
 		})
 	})
 
+	//nolint:dupl
 	t.Run("POST /categories", func(t *testing.T) {
 		t.Run("Test authorization for category creation", func(t *testing.T) {
 			testCases := []struct {
@@ -210,6 +211,7 @@ func TestCategoryIntegration(t *testing.T) {
 		})
 	})
 
+	//nolint:dupl
 	t.Run("PUT /categories/{categoryId}", func(t *testing.T) {
 		t.Run("Test authorization for category update", func(t *testing.T) {
 			testCases := []struct {

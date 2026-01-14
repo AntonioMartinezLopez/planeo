@@ -185,9 +185,9 @@ func (_c *MockRequestRepositoryInterface_GetRequest_Call) RunAndReturn(run func(
 	return _c
 }
 
-// GetRequests provides a mock function with given fields: ctx, organizationId, cursor, limit, getClosed
-func (_m *MockRequestRepositoryInterface) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error) {
-	ret := _m.Called(ctx, organizationId, cursor, limit, getClosed)
+// GetRequests provides a mock function with given fields: ctx, organizationId, cursor, limit, getClosed, selectedCategories
+func (_m *MockRequestRepositoryInterface) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]models.Request, error) {
+	ret := _m.Called(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRequests")
@@ -195,19 +195,19 @@ func (_m *MockRequestRepositoryInterface) GetRequests(ctx context.Context, organ
 
 	var r0 []models.Request
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, int, int, bool) ([]models.Request, error)); ok {
-		return rf(ctx, organizationId, cursor, limit, getClosed)
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, int, bool, []int) ([]models.Request, error)); ok {
+		return rf(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, int, int, int, bool) []models.Request); ok {
-		r0 = rf(ctx, organizationId, cursor, limit, getClosed)
+	if rf, ok := ret.Get(0).(func(context.Context, int, int, int, bool, []int) []models.Request); ok {
+		r0 = rf(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]models.Request)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, int, int, int, bool) error); ok {
-		r1 = rf(ctx, organizationId, cursor, limit, getClosed)
+	if rf, ok := ret.Get(1).(func(context.Context, int, int, int, bool, []int) error); ok {
+		r1 = rf(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -226,13 +226,14 @@ type MockRequestRepositoryInterface_GetRequests_Call struct {
 //   - cursor int
 //   - limit int
 //   - getClosed bool
-func (_e *MockRequestRepositoryInterface_Expecter) GetRequests(ctx interface{}, organizationId interface{}, cursor interface{}, limit interface{}, getClosed interface{}) *MockRequestRepositoryInterface_GetRequests_Call {
-	return &MockRequestRepositoryInterface_GetRequests_Call{Call: _e.mock.On("GetRequests", ctx, organizationId, cursor, limit, getClosed)}
+//   - selectedCategories []int
+func (_e *MockRequestRepositoryInterface_Expecter) GetRequests(ctx interface{}, organizationId interface{}, cursor interface{}, limit interface{}, getClosed interface{}, selectedCategories interface{}) *MockRequestRepositoryInterface_GetRequests_Call {
+	return &MockRequestRepositoryInterface_GetRequests_Call{Call: _e.mock.On("GetRequests", ctx, organizationId, cursor, limit, getClosed, selectedCategories)}
 }
 
-func (_c *MockRequestRepositoryInterface_GetRequests_Call) Run(run func(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool)) *MockRequestRepositoryInterface_GetRequests_Call {
+func (_c *MockRequestRepositoryInterface_GetRequests_Call) Run(run func(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int)) *MockRequestRepositoryInterface_GetRequests_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int), args[2].(int), args[3].(int), args[4].(bool))
+		run(args[0].(context.Context), args[1].(int), args[2].(int), args[3].(int), args[4].(bool), args[5].([]int))
 	})
 	return _c
 }
@@ -242,7 +243,7 @@ func (_c *MockRequestRepositoryInterface_GetRequests_Call) Return(_a0 []models.R
 	return _c
 }
 
-func (_c *MockRequestRepositoryInterface_GetRequests_Call) RunAndReturn(run func(context.Context, int, int, int, bool) ([]models.Request, error)) *MockRequestRepositoryInterface_GetRequests_Call {
+func (_c *MockRequestRepositoryInterface_GetRequests_Call) RunAndReturn(run func(context.Context, int, int, int, bool, []int) ([]models.Request, error)) *MockRequestRepositoryInterface_GetRequests_Call {
 	_c.Call.Return(run)
 	return _c
 }

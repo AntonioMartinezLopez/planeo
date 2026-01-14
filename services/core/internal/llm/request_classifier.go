@@ -15,6 +15,7 @@ type RequestData struct {
 	Text    string
 }
 
+//nolint:funlen
 func ClassifyRequest(ctx context.Context, request RequestData, categories []categories.Category) (int, error) {
 
 	llm, err := mistral.New(mistral.WithModel("mistral-small-latest"))

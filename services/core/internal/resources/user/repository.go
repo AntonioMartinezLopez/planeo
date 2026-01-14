@@ -145,14 +145,15 @@ func (repo *UserRepository) DeleteUser(ctx context.Context, organizationId int, 
 	return nil
 }
 
+//nolint:funlen
 func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, users []models.User) error {
 	logger := logger.FromContext(ctx)
 	tx, err := repo.db.Begin(ctx)
 	if err != nil {
-		appError.New(appError.InternalError, "Something went wrong", err)
+		return appError.New(appError.InternalError, "Something went wrong", err)
 	}
 
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Step 1: Delete users that are in the organization but not in the list of the valid user IDs
 	// Create a list of user IDs
@@ -172,7 +173,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 
 	if err != nil {
 		logger.Error().Err(err).Msg("Error deleting in SyncUsers.")
-		tx.Rollback(ctx)
+		_ = tx.Rollback(ctx)
 		return appError.New(appError.InternalError, "Error deleting in SyncUsers", err)
 	}
 
@@ -196,7 +197,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 
 		if err != nil {
 			logger.Error().Err(err).Msg("Error updating user in SyncUsers")
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
 			return appError.New(appError.InternalError, "Error updating user in SyncUsers", err)
 		}
 		rowsAffected := result.RowsAffected()
@@ -219,7 +220,7 @@ func (repo *UserRepository) SyncUsers(ctx context.Context, organizationId int, u
 			_, err := tx.Exec(ctx, query, args)
 			if err != nil {
 				logger.Error().Err(err).Msg("Error creating user in SyncUsers.")
-				tx.Rollback(ctx)
+				_ = tx.Rollback(ctx)
 				return appError.New(appError.InternalError, "Error creating user in SyncUsers", err)
 			}
 		}

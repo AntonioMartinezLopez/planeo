@@ -78,7 +78,7 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUse
 	err = s.userRepository.CreateUser(ctx, organizationId, *user)
 
 	if err != nil {
-		s.iamService.DeleteUser(ctx, organizationIamIdentifier, user.Id)
+		_ = s.iamService.DeleteUser(ctx, organizationIamIdentifier, user.Id)
 		return err
 	}
 

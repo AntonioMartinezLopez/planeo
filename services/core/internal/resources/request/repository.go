@@ -20,15 +20,20 @@ func NewRequestRepository(database *pgxpool.Pool) *RequestRepository {
 	}
 }
 
-func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool) ([]models.Request, error) {
+func (repo *RequestRepository) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]models.Request, error) {
 
 	var query string
-	if cursor == 0 {
-		query = "SELECT * FROM requests WHERE organization_id = @organizationId AND id > @id ORDER BY id DESC FETCH FIRST @limit ROWS ONLY"
-	} else {
-		query = "SELECT * FROM requests WHERE organization_id = @organizationId AND id < @id ORDER BY id DESC FETCH FIRST @limit ROWS ONLY"
+	categoryFilter := ""
+	if len(selectedCategories) > 0 {
+		categoryFilter = " AND category_id = ANY(@categoryIds)"
 	}
-	args := pgx.NamedArgs{"organizationId": organizationId, "id": cursor, "limit": limit}
+
+	if cursor == 0 {
+		query = "SELECT * FROM requests WHERE organization_id = @organizationId AND id > @id" + categoryFilter + " ORDER BY id DESC FETCH FIRST @limit ROWS ONLY"
+	} else {
+		query = "SELECT * FROM requests WHERE organization_id = @organizationId AND id < @id" + categoryFilter + " ORDER BY id DESC FETCH FIRST @limit ROWS ONLY"
+	}
+	args := pgx.NamedArgs{"organizationId": organizationId, "id": cursor, "limit": limit, "categoryIds": selectedCategories}
 
 	rows, err := repo.db.Query(ctx, query, args)
 

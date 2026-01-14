@@ -24,18 +24,9 @@ services:
       - pg-data:/var/lib/pgadmin
 
   ##### Keycloak services #####
-  keycloak_postgres:
-    image: postgres:16.2
-    environment:
-      POSTGRES_DB: keycloak_db
-      POSTGRES_USER: keycloak_db_user
-      POSTGRES_PASSWORD: keycloak_db_user_password
-    networks:
-      - keycloak_network
-
   keycloak:
     image: quay.io/keycloak/keycloak:25.0.2
-    command: start
+    command: start-dev
     environment:
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8080
@@ -45,17 +36,9 @@ services:
       KC_HEALTH_ENABLED: true
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: password
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak_postgres/keycloak_db
-      KC_DB_USERNAME: keycloak_db_user
-      KC_DB_PASSWORD: keycloak_db_user_password
     ports:
       - 8080:8080
     restart: always
-    depends_on:
-      - postgres
-    networks:
-      - keycloak_network
 
   # email services
   greenmail:
@@ -82,34 +65,18 @@ services:
       - ROUNDCUBEMAIL_SMTP_SERVER=greenmail # SMTP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
       - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
 
-# nats messaging cluster
-  nats1:
-    container_name: nats1
+# nats messaging (single node with JetStream)
+  nats:
+    container_name: nats
     image: nats
     entrypoint: /nats-server
-    command: --server_name N1 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats2:4245,nats://nats3:4245 -p 4222
+    command: --server_name N1 --js --sd /data -p 4222
     ports:
       - 4222:4222
       - 8222:8222
 
-  nats2:
-    container_name: nats2
-    image: nats
-    entrypoint: /nats-server
-    command: --server_name N2 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats1:4245,nats://nats3:4245 -p 4222
-    ports:
-      - 4223:4222
-
-  nats3:
-    container_name: nats3
-    image: nats
-    entrypoint: /nats-server
-    command: --server_name N3 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://nats1:4245,nats://nats2:4245 -p 4222
-    ports:
-      - 4224:4222
-
 networks:
-  keycloak_network:
+  default:
     driver: bridge
 
 # volumes for pgadmin,postgres and keycloak
