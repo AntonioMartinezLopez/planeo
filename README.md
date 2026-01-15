@@ -8,7 +8,7 @@ AI-driven process management platform tailored for various service providers, su
 
 ### Prerequisites
 
-- Golang > 1.23.0 installed
+- Golang >= 1.24.5 installed
 - Docker and Docker compose installed
 - Task (https://taskfile.dev) - Install via `brew install go-task`
 - `.env` file generated from `.env.template`

@@ -1,4 +1,4 @@
-FROM golang:1.23.4-alpine AS base
+FROM golang:1.24.5-alpine AS base
 
 ENV USER=docker
 ENV GROUPNAME=$USER
