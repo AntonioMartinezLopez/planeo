@@ -105,3 +105,37 @@ else
     echo "Failed to install Go modules from go.mod. Please check your Go setup and try again."
     exit 1
 fi
+
+
+# install dev tools
+echo "Installing development tools..."
+
+# Install golangci-lint
+if ! command -v golangci-lint &>/dev/null; then
+    echo "Installing golangci-lint..."
+    curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
+    if [ $? -eq 0 ]; then
+        echo "golangci-lint installed successfully."
+    else
+        echo "Failed to install golangci-lint."
+        exit 1
+    fi
+else
+    echo "golangci-lint is already installed."
+fi
+
+# Install taskfile
+if ! command -v task &>/dev/null; then
+    echo "Installing taskfile..."
+    sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d
+    if [ $? -eq 0 ]; then
+        echo "taskfile installed successfully."
+    else
+        echo "Failed to install taskfile."
+        exit 1
+    fi
+else
+    echo "taskfile is already installed."
+fi
+
+echo "Development environment setup is complete."

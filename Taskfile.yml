@@ -1,0 +1,280 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  VERSION: '{{.VERSION | default "latest"}}'
+  DOCKER_REGISTRY: '{{.DOCKER_REGISTRY | default "ghcr.io/antoniomartinezlopez"}}'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list-all
+    silent: true
+
+  # ========================================
+  # Environment Setup
+  # ========================================
+  
+  setup:
+    desc: Install all dependencies and prepare dev environment
+    cmds:
+      - echo "Installing dependencies..."
+      - cd dev && ./install.sh
+      - echo "Setting up the dev environment variables..."
+      - cp ./dev/.env.template ./dev/.env
+      - cp ./services/core/db/.envrc.template ./services/core/db/.envrc
+      - cp ./services/core/.env.template ./services/core/.env
+      - cp ./services/email/.env.template ./services/email/.env
+    sources:
+      - dev/install.sh
+      - dev/.env.template
+      - services/core/db/.envrc.template
+      - services/core/.env.template
+      - services/email/.env.template
+    generates:
+      - dev/.env
+      - services/core/db/.envrc
+      - services/core/.env
+      - services/email/.env
+
+  # ========================================
+  # Development Environment
+  # ========================================
+
+  login:
+    desc: Get test tokens for dev environment (admin/planner/user)
+    cmds:
+      - echo "Login to the dev environment..."
+      - cd dev && ./get_test_token.sh
+
+  up:
+    desc: Start Docker services and run DB migrations
+    cmds:
+      - echo "Starting up the dev environment..."
+      - cd dev && ./start.sh
+      - task: migrate:core
+      - task: migrate:email
+
+  down:
+    desc: Stop all Docker services and remove volumes
+    cmds:
+      - echo "Shutting down the dev environment..."
+      - cd dev && docker compose down -v
+
+  restart:
+    desc: Restart the dev environment
+    cmds:
+      - task: down
+      - task: up
+
+  # ========================================
+  # Database Migrations
+  # ========================================
+
+  migrate:core:
+    desc: Run core service database migrations
+    dir: services/core/db
+    cmds:
+      - echo "Running core database migrations..."
+      - source .envrc && goose up
+
+  migrate:email:
+    desc: Run email service database migrations
+    dir: services/email/db
+    cmds:
+      - echo "Running email database migrations..."
+      - source .envrc && goose up
+
+  migrate:core:down:
+    desc: Rollback core service database migration
+    dir: services/core/db
+    cmds:
+      - source .envrc && goose down
+
+  migrate:email:down:
+    desc: Rollback email service database migration
+    dir: services/email/db
+    cmds:
+      - source .envrc && goose down
+
+  migrate:core:status:
+    desc: Show core database migration status
+    dir: services/core/db
+    cmds:
+      - source .envrc && goose status
+
+  migrate:email:status:
+    desc: Show email database migration status
+    dir: services/email/db
+    cmds:
+      - source .envrc && goose status
+
+  # ========================================
+  # Service Management
+  # ========================================
+
+  run:core:
+    desc: Run core service with Air hot-reload
+    dir: services/core
+    cmds:
+      - air -c air.toml
+
+  run:email:
+    desc: Run email service with Air hot-reload
+    dir: services/email
+    cmds:
+      - air -c air.toml
+
+  # ========================================
+  # Testing
+  # ========================================
+
+  test:core:unit:
+    desc: Run core service unit tests only
+    cmds:
+      - echo "Running unit tests for core service..."
+      - go test ./services/core/... -v -short -count=1
+
+  test:core:integration:
+    desc: Run core service integration tests
+    cmds:
+      - echo "Running integration tests for core service..."
+      - go test ./services/core/... -p 1 -v -count=1
+
+  test:core:all:
+    desc: Run all core service tests
+    cmds:
+      - task: test:core:integration
+
+  test:email:unit:
+    desc: Run email service unit tests only
+    cmds:
+      - echo "Running unit tests for email service..."
+      - go test ./services/email/... -v -short -count=1
+
+  test:email:integration:
+    desc: Run email service integration tests
+    cmds:
+      - echo "Running integration tests for email service..."
+      - go test ./services/email/... -p 1 -v -count=1
+
+  test:email:all:
+    desc: Run all email service tests
+    cmds:
+      - task: test:email:integration
+
+  test:all:
+    desc: Run all tests for all services
+    cmds:
+      - task: test:core:all
+      - task: test:email:all
+
+  # ========================================
+  # Linting
+  # ========================================
+
+  lint:core:
+    desc: Run golangci-lint on core service
+    dir: services/core
+    cmds:
+      - echo "Running golangci-lint on core service..."
+      - golangci-lint-v2 run --config ../../.golangci.yml
+
+  lint:email:
+    desc: Run golangci-lint on email service
+    dir: services/email
+    cmds:
+      - echo "Running golangci-lint on email service..."
+      - golangci-lint-v2 run --config ../../.golangci.yml
+
+  lint:all:
+    desc: Run linting on all services
+    cmds:
+      - task: lint:core
+      - task: lint:email
+
+  # ========================================
+  # Building
+  # ========================================
+
+  build:core:
+    desc: Build Docker image for core service
+    cmds:
+      - echo "Building Docker image for core with tag {{.VERSION}}..."
+      - docker build -t {{.DOCKER_REGISTRY}}/core:{{.VERSION}} -f services/core/Dockerfile .
+
+  build:email:
+    desc: Build Docker image for email service
+    cmds:
+      - echo "Building Docker image for email with tag {{.VERSION}}..."
+      - docker build -t {{.DOCKER_REGISTRY}}/email:{{.VERSION}} -f services/email/Dockerfile .
+
+  build:all:
+    desc: Build Docker images for all services
+    cmds:
+      - task: build:core
+      - task: build:email
+
+  # ========================================
+  # Frontend
+  # ========================================
+
+  web:dev:
+    desc: Start frontend development server
+    dir: web
+    cmds:
+      - npm run dev
+
+  web:build:
+    desc: Build frontend for production
+    dir: web
+    cmds:
+      - npm run build
+
+  web:generate-client:
+    desc: Generate API client from OpenAPI spec
+    dir: web
+    cmds:
+      - npm run generate-client:core
+
+  web:install:
+    desc: Install frontend dependencies
+    dir: web
+    cmds:
+      - npm install
+
+  # ========================================
+  # Cleanup
+  # ========================================
+
+  clean:docker:
+    desc: Remove all Docker containers, images, and volumes
+    cmds:
+      - docker system prune -af --volumes
+    prompt: This will remove all Docker containers, images, and volumes. Continue?
+
+  clean:deps:
+    desc: Clean Go module cache
+    cmds:
+      - go clean -modcache
+
+  # ========================================
+  # CI/CD Helpers
+  # ========================================
+
+  ci:test:
+    desc: Run all tests for CI/CD
+    cmds:
+      - task: test:all
+
+  ci:lint:
+    desc: Run all linters for CI/CD
+    cmds:
+      - task: lint:all
+
+  ci:build:
+    desc: Build all services for CI/CD
+    cmds:
+      - task: build:all
