@@ -17,17 +17,20 @@ Planeo is an AI-driven process management platform with a **monorepo** structure
 ## Developer Commands
 
 ```bash
-make setup          # Install deps, create .env files
-make up             # Start Docker services + run DB migrations
-make run core       # Start core service with Air hot-reload
-make run email      # Start email service with Air hot-reload
-make login          # Get test tokens (admin/planner/user)
-make test core unit       # Unit tests only (-short flag)
-make test core integration  # Integration tests with testcontainers
-make down           # Stop all containers
+task setup               # Install deps, create .env files
+task up                  # Start Docker services + run DB migrations
+task run:core            # Start core service with Air hot-reload
+task run:email           # Start email service with Air hot-reload
+task login               # Get test tokens (admin/planner/user)
+task test:core:unit      # Unit tests only (-short flag)
+task test:core:integration  # Integration tests with testcontainers
+task down                # Stop all containers
+task --list              # Show all available tasks
 ```
 
-Frontend: `cd web && npm run dev` | Generate API client: `npm run generate-client:core`
+**Frontend**: `task web:dev` or `cd web && npm run dev` | Generate API client: `task web:generate-client`
+
+**Note**: Legacy `make` commands still work but are deprecated. See [docs/MAKEFILE_MIGRATION.md](docs/MAKEFILE_MIGRATION.md) for details.
 
 ## Backend Patterns
 

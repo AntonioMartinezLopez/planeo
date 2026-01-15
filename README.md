@@ -8,20 +8,24 @@ AI-driven process management platform tailored for various service providers, su
 
 ### Prerequisites
 
-- Golang > 1.23.0 installed
+- Golang >= 1.24.5 installed
 - Docker and Docker compose installed
+- Task (https://taskfile.dev) - Install via `brew install go-task`
 - `.env` file generated from `.env.template`
 
 ### Preparing the development environment
 
-- `make install`: This command checks and installs all dependencies needed for running the development environment
-- `make up`: This scripts starts the development environment and runs migrations.
-- `make run <service>`: This command starts given service (currently: `core` and `email`)
-- run additional migrations: see [Database migrations](#database-migrations)
+- `task setup`: Install all dependencies needed for running the development environment
+- `task up`: Start the development environment and run migrations
+- `task run:core` or `task run:email`: Start a specific service with hot-reload
+- `task --list`: Show all available tasks
+- Run additional migrations: see [Database migrations](#database-migrations)
+
+> **Note**: Legacy `make` commands are still available but deprecated. New development should use `task`.
 
 ### Generating Access Tokens (For backend testing)
 
-- `make login`: This command is used to login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
+- `task login`: Login to the local instance realm using client credentials grant. You can either login as Admin, Planner or User
 
 <br>
 <center>
@@ -48,9 +52,16 @@ for more commands see: https://github.com/pressly/goose?tab=readme-ov-file#usage
 
 #### Run migrations in the dev environment
 
-1. start all containers and processes using `make up` and `make run <services>`
-2. `source` the `.envrc` file in order to create environmental variables (or use something like `direnv` to automatically load those when entering the `db/migrations` directory)
-3. Run `goose up`
+1. Start all containers using `task up` (migrations run automatically)
+2. Start services using `task run:core` or `task run:email`
+3. For manual migration control:
+   - `task migrate:core:status` - Check core migration status
+   - `task migrate:core` or `task migrate:email` - Run migrations manually
+   - `task migrate:core:down` - Rollback last migration
+
+Alternatively, use goose directly:
+1. `source` the `.envrc` file in order to create environmental variables
+2. Run `goose up`
 
 ## Testing
 
@@ -91,6 +102,12 @@ go test ./... -run TestUserIntegration
 # or for a particular sub test
 go test ./... -run TestUserIntegration/DELETE_/admin/users
 ```
+
+## Build Tool
+
+This project uses [Task](https://taskfile.dev) for build automation. Run `task --list` to see all available commands.
+
+For details on the migration from Make to Task, see [docs/MAKEFILE_MIGRATION.md](docs/MAKEFILE_MIGRATION.md).
 
 ## Documentation
 
