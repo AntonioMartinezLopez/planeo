@@ -1,0 +1,3 @@
+export GOOSE_DRIVER=postgres
+export GOOSE_DBSTRING=postgresql://planeo:planeo@127.0.0.1:5432/planeo?sslmode=disable
+export GOOSE_MIGRATION_DIR=./migrations
