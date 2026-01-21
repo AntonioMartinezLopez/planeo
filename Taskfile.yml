@@ -121,6 +121,12 @@ tasks:
     cmds:
       - air -c air.toml
 
+  run:core2:
+    desc: Run core service with Air hot-reload
+    dir: services/core2
+    cmds:
+      - air -c air.toml
+
   run:email:
     desc: Run email service with Air hot-reload
     dir: services/email

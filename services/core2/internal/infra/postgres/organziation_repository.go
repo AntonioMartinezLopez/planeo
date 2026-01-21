@@ -52,7 +52,7 @@ func (c *Client) GetOrganizationsByUserSub(ctx context.Context, userSub string) 
 		SELECT o.* 
 		FROM organizations o
 		JOIN users u ON u.organization_id = o.id
-		WHERE u.iam_user_id = @userSub`
+		WHERE u.uuid = @userSub`
 
 	args := pgx.NamedArgs{"userSub": userSub}
 

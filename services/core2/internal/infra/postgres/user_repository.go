@@ -2,22 +2,20 @@ package postgres
 
 import (
 	"context"
-	appError "planeo/libs/errors"
-	"planeo/libs/logger"
+	"fmt"
 	"planeo/services/core2/internal/domain/user"
 
 	"github.com/jackc/pgx/v5"
 )
 
 func (c *Client) GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error) {
-
 	query := "SELECT iam_organization_id FROM organizations WHERE id = @organizationId LIMIT 1"
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error querying database: %w", err)
 	}
 
 	type Organization struct {
@@ -28,9 +26,7 @@ func (c *Client) GetIamOrganizationIdentifier(ctx context.Context, organizationI
 	if rows.Next() {
 		err = rows.Scan(&organization.IamOrganizationID)
 		if err != nil {
-			logger := logger.FromContext(ctx)
-			logger.Error().Err(err).Str("operation", "GetIamOrganizationIdentifier").Msg("Error scanning row")
-			return "", err
+			return "", fmt.Errorf("error scanning organization IAM ID: %w", err)
 		}
 	}
 	rows.Close()
@@ -41,57 +37,28 @@ func (c *Client) GetIamOrganizationIdentifier(ctx context.Context, organizationI
 	return organization.IamOrganizationID, nil
 }
 
-func (c *Client) GetUsersInformation(ctx context.Context, organizationId int) ([]user.User, error) {
+func (c *Client) GetUsers(ctx context.Context, organizationId int) ([]user.User, error) {
 	query := "SELECT * FROM users WHERE organization_id = @organizationId"
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
 
 	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "GetUsersInformation").Msg("Error querying database")
-		return nil, appError.New(appError.InternalError, "Something went wrong", err)
+		return nil, fmt.Errorf("error querying database: %w", err)
 	}
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[user.User])
 }
 
-func (c *Client) UpdateUser(ctx context.Context, organizationId int, userId string, user user.User) error {
-
+func (c *Client) UpdateUser(ctx context.Context, organizationId int, uuid string, user user.UpdateUser) error {
 	query := `
 		UPDATE users 
 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
-		WHERE iam_user_id = @userID AND organization_id = @organizationId`
+		WHERE uuid = @uuid AND organization_id = @organizationId`
 
 	args := pgx.NamedArgs{
 		"organizationId": organizationId,
-		"userID":         userId,
-		"username":       user.Username,
-		"firstname":      user.FirstName,
-		"lastname":       user.LastName,
-		"email":          user.Email,
-	}
-
-	_, err := c.db.Exec(ctx, query, args)
-
-	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "UpdateUser").Msg("Error updating user")
-		return appError.New(appError.InternalError, "Something went wrong", err)
-	}
-
-	return nil
-}
-
-func (c *Client) CreateUser(ctx context.Context, organizationId int, user user.User) error {
-
-	query := `
-		INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization_id) 
-		VALUES (@username, @firstname, @lastname, @email, @userID, @organizationId)`
-
-	args := pgx.NamedArgs{
-		"organizationId": organizationId,
-		"userID":         user.Id,
+		"uuid":           uuid,
 		"username":       user.Username,
 		"firstname":      user.FirstName,
 		"lastname":       user.LastName,
@@ -102,44 +69,62 @@ func (c *Client) CreateUser(ctx context.Context, organizationId int, user user.U
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return appError.New(appError.EntityNotFound, "User not found in organization")
+			return err
 		}
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "CreateUser").Msg("Error creating user")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return fmt.Errorf("error updating user: %w", err)
 	}
 
 	return nil
 }
 
-func (c *Client) DeleteUser(ctx context.Context, organizationId int, userId string) error {
+func (c *Client) CreateUser(ctx context.Context, organizationId int, uuid string, user user.NewUser) error {
+	query := `
+		INSERT INTO users (username, first_name, last_name, email, uuid, organization_id) 
+		VALUES (@username, @firstname, @lastname, @email, @uuid, @organizationId)`
 
+	args := pgx.NamedArgs{
+		"organizationId": organizationId,
+		"uuid":           uuid,
+		"username":       user.Username,
+		"firstname":      user.FirstName,
+		"lastname":       user.LastName,
+		"email":          user.Email,
+	}
+
+	_, err := c.db.Exec(ctx, query, args)
+
+	if err != nil {
+		return fmt.Errorf("error creating user: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteUser(ctx context.Context, organizationId int, uuid string) error {
 	query := `
 		DELETE FROM users 
-		WHERE organization_id = @organizationId AND iam_user_id = @userId`
+		WHERE organization_id = @organizationId AND uuid = @uuid`
 
-	args := pgx.NamedArgs{"organizationId": organizationId, "userId": userId}
+	args := pgx.NamedArgs{"organizationId": organizationId, "uuid": uuid}
 
 	_, err := c.db.Exec(ctx, query, args)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return appError.New(appError.EntityNotFound, "User not found in organization")
+			return err
 		}
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "DeleteUser").Msg("Error deleting user")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+
+		return err
 	}
 
 	return nil
 }
 
 //nolint:funlen
-func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user.User) error {
-	logger := logger.FromContext(ctx)
+func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user.IAMUser) error {
 	tx, err := c.db.Begin(ctx)
 	if err != nil {
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return err
 	}
 
 	defer func() { _ = tx.Rollback(ctx) }()
@@ -148,22 +133,21 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 	// Create a list of user IDs
 	userIds := make([]string, len(users))
 	for i, user := range users {
-		userIds[i] = user.IAMUserID
+		userIds[i] = user.Id
 	}
 
 	// Delete users that are in the organization but not in the list of user IDs
 	query := `
 		DELETE FROM users 
-		WHERE organization_id = @organizationId AND NOT iam_user_id = any(@userIds)`
+		WHERE organization_id = @organizationId AND NOT uuid = any(@uuids)`
 
-	args := pgx.NamedArgs{"organizationId": organizationId, "userIds": userIds}
+	args := pgx.NamedArgs{"organizationId": organizationId, "uuids": userIds}
 
 	_, err = tx.Exec(ctx, query, args)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error deleting in SyncUsers.")
 		_ = tx.Rollback(ctx)
-		return appError.New(appError.InternalError, "Error deleting in SyncUsers", err)
+		return err
 	}
 
 	// Step 2: Update existing users or insert new users
@@ -171,11 +155,11 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 		query := `
 		UPDATE users 
 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
-		WHERE iam_user_id = @userID AND organization_id = @organizationId`
+		WHERE uuid = @uuid AND organization_id = @organizationId`
 
 		args := pgx.NamedArgs{
 			"organizationId": organizationId,
-			"userID":         user.Id,
+			"uuid":           user.Id,
 			"username":       user.Username,
 			"firstname":      user.FirstName,
 			"lastname":       user.LastName,
@@ -185,21 +169,20 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 		result, err := tx.Exec(ctx, query, args)
 
 		if err != nil {
-			logger.Error().Err(err).Msg("Error updating user in SyncUsers")
 			_ = tx.Rollback(ctx)
-			return appError.New(appError.InternalError, "Error updating user in SyncUsers", err)
+			return err
 		}
 		rowsAffected := result.RowsAffected()
 
 		// If no row was updated, insert new user
 		if rowsAffected == 0 {
 			query := `
-			INSERT INTO users (username, first_name, last_name, email, iam_user_id, organization_id) 
-			VALUES (@username, @firstname, @lastname, @email, @userID, @organizationId)`
+			INSERT INTO users (username, first_name, last_name, email, uuid, organization_id) 
+			VALUES (@username, @firstname, @lastname, @email, @uuid, @organizationId)`
 
 			args := pgx.NamedArgs{
 				"organizationId": organizationId,
-				"userID":         user.Id,
+				"uuid":           user.Id,
 				"username":       user.Username,
 				"firstname":      user.FirstName,
 				"lastname":       user.LastName,
@@ -208,9 +191,8 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 
 			_, err := tx.Exec(ctx, query, args)
 			if err != nil {
-				logger.Error().Err(err).Msg("Error creating user in SyncUsers.")
 				_ = tx.Rollback(ctx)
-				return appError.New(appError.InternalError, "Error creating user in SyncUsers", err)
+				return err
 			}
 		}
 	}

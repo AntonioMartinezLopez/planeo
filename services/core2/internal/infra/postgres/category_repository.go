@@ -2,8 +2,6 @@ package postgres
 
 import (
 	"context"
-	appError "planeo/libs/errors"
-	"planeo/libs/logger"
 	"planeo/services/core2/internal/domain/category"
 
 	"github.com/jackc/pgx/v5"
@@ -15,26 +13,25 @@ func (c *Client) GetCategories(ctx context.Context, organizationId int) ([]categ
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
+
 	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "GetCategories").Msg("Error querying database")
-		return nil, appError.New(appError.InternalError, "Something went wrong", err)
+		return nil, NewDatabaseError("failed to query categories", err)
 	}
 	defer rows.Close()
 
 	return pgx.CollectRows(rows, pgx.RowToStructByName[category.Category])
 }
 
-func (c *Client) CreateCategory(ctx context.Context, organizationId int, category category.NewCategory) (int, error) {
+func (c *Client) CreateCategory(ctx context.Context, organizationId int, newCategory category.NewCategory) (int, error) {
 	query := `
         INSERT INTO categories (label, color, label_description, organization_id)
         VALUES (@label, @color, @labelDescription, @organizationId)
 		RETURNING id`
 
 	args := pgx.NamedArgs{
-		"label":            category.Label,
-		"color":            category.Color,
-		"labelDescription": category.LabelDescription,
+		"label":            newCategory.Label,
+		"color":            newCategory.Color,
+		"labelDescription": newCategory.LabelDescription,
 		"organizationId":   organizationId,
 	}
 
@@ -42,37 +39,33 @@ func (c *Client) CreateCategory(ctx context.Context, organizationId int, categor
 
 	err := c.db.QueryRow(ctx, query, args).Scan(&id)
 	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "CreateCategory").Msg("Error querying database")
-		return 0, appError.New(appError.InternalError, "Something went wrong", err)
+		return 0, NewDatabaseError("failed to create category", err)
 	}
 
 	return id, nil
 }
 
-func (c *Client) UpdateCategory(ctx context.Context, organizationId int, categoryId int, category category.UpdateCategory) error {
+func (c *Client) UpdateCategory(ctx context.Context, organizationId int, categoryId int, updateCategory category.UpdateCategory) error {
 	query := `
         UPDATE categories
         SET label = @label, color = @color, label_description = @labelDescription
         WHERE id = @categoryId AND organization_id = @organizationId`
 
 	args := pgx.NamedArgs{
-		"label":            category.Label,
-		"color":            category.Color,
-		"labelDescription": category.LabelDescription,
+		"label":            updateCategory.Label,
+		"color":            updateCategory.Color,
+		"labelDescription": updateCategory.LabelDescription,
 		"categoryId":       categoryId,
 		"organizationId":   organizationId,
 	}
 
 	result, err := c.db.Exec(ctx, query, args)
 	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "UpdateCategory").Msg("Error querying database")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return NewDatabaseError("failed to update category", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return appError.New(appError.EntityNotFound, "Category not found", nil)
+		return &category.CategoryNotFoundError
 	}
 
 	return nil
@@ -87,13 +80,11 @@ func (c *Client) DeleteCategory(ctx context.Context, organizationId int, categor
 
 	result, err := c.db.Exec(ctx, query, args)
 	if err != nil {
-		logger := logger.FromContext(ctx)
-		logger.Error().Err(err).Str("operation", "DeleteCategory").Msg("Error querying database")
-		return appError.New(appError.InternalError, "Something went wrong", err)
+		return NewDatabaseError("failed to delete category", err)
 	}
 
 	if result.RowsAffected() == 0 {
-		return appError.New(appError.EntityNotFound, "Category not found", nil)
+		return &category.CategoryNotFoundError
 	}
 
 	return nil

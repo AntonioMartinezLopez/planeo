@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"time"
 
-	"planeo/libs/db"
 	"planeo/libs/logger"
-	"planeo/services/core2/config"
+	"planeo/services/core2/internal/config"
 	"planeo/services/core2/internal/infra/postgres"
 )
 
@@ -21,7 +21,6 @@ import (
 // }
 
 func main() {
-
 	// Initialize logger
 	logConfig := logger.DefaultConfig()
 	logger.Setup(logConfig)
@@ -35,12 +34,9 @@ func main() {
 
 	log.Info().Msgf("Server configuration loaded: %s", serverConfig)
 
-	// initialize database connection
-	db := db.InitializeDatabaseConnection(ctx, config.DatabaseConfig())
-
 	// initialize
-	postgresClient := postgres.NewClient(db)
-	defer postgresClient.Close()
+	db := postgres.NewClient(ctx, config.DatabaseConfig())
+	defer db.Close()
 
 	// // initialize event service
 	// eventService, err := events.NewEventService(config.NatsUrl)
@@ -65,4 +61,8 @@ func main() {
 
 	// log.Info().Msgf("Server Running at %s", serverConfig)
 	// log.Fatal().Msgf("%v", server.ListenAndServe())
+	sleepDuration := 5 * time.Second
+	log.Info().Msgf("Sleeping for %s before closing application", sleepDuration)
+	time.Sleep(sleepDuration)
+	log.Info().Msg("Closing application")
 }

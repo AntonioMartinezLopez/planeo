@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"planeo/libs/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,7 +13,8 @@ type Client struct {
 }
 
 // NewClient creates a new instance of the Postgres client
-func NewClient(db *db.DBConnection) *Client {
+func NewClient(ctx context.Context, connectionUrl string) *Client {
+	db := db.InitializeDatabaseConnection(ctx, connectionUrl)
 	return &Client{
 		db: db.DB,
 	}

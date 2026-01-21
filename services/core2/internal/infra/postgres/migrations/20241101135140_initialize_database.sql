@@ -19,7 +19,7 @@ CREATE TABLE users (
     first_name text NOT NULL,
     last_name text NOT NULL,
     email text NOT NULL,
-    iam_user_id text NOT NULL,
+    uuid text NOT NULL,
     organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -100,7 +100,7 @@ INSERT INTO requests (text, subject, name, email, address, telephone, category_i
 ('Order new circuit breakers for the electrical panel', 'Order: Circuit breakers No.PW-44021' ,'David Wilson', 'david.wilson@example.com', '101 Pine St, Gotham', '555-4321', 4, 1, '1234', ''),
 ('Customer support for troubleshooting a power outage issue', 'Customer support needed for outage problem' ,'Laura Martinez', 'laura.martinez@example.com', '202 Maple St, Star City', '555-6789', 5, 1, '1234', '');
 
-INSERT INTO "users" ("username", "first_name", "last_name", "email", "iam_user_id", "organization_id") VALUES 
+INSERT INTO "users" ("username", "first_name", "last_name", "email", "uuid", "organization_id") VALUES 
 ('admin', 'admin', 'admin', 'admin@local.de', '7c806e52-e7cc-484b-843b-1242046590dc', 1),
 ('planner', 'planner', 'planner', 'planner@local.de', '146b3857-090e-453d-b1e6-8cdfbb1a6dcb', 1),
 ('user', 'User', 'User', 'user@local.de', 'd7eddb93-254e-4482-9a53-f31a5975dd1d', 1);
