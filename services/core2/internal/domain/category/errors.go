@@ -1,17 +1,15 @@
 package category
 
 import (
-	"errors"
 	err "planeo/services/core2/pkg/errors"
 )
 
 const (
-	ErrTypeDomain   = "domain"
-	ErrTypeDatabase = "database"
+	ErrTypeDomain = "domain"
 )
 
 const (
-	ErrCodeCategoryNotFound = iota + 5001000
+	ErrCodeCategoryNotFound = iota + 5000000
 	ErrCodeInternal
 )
 
@@ -19,7 +17,6 @@ var CategoryNotFoundError = &err.Error{
 	Message: "Category not found",
 	Code:    ErrCodeCategoryNotFound,
 	Type:    ErrTypeDomain,
-	Err:     errors.New("category not found"),
 }
 
 func NewInternalError(msg string, underlyingErr error) *err.Error {

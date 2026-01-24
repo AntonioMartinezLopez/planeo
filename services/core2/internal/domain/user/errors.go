@@ -9,17 +9,15 @@ const (
 )
 
 const (
-	ErrCodeUserNotFound = iota + 5001000
+	ErrCodeUserNotFound = iota + 5003000
 	ErrCodeInternal
 )
 
-var (
-	UserNotFoundError = &err.Error{
-		Message: "User not found",
-		Code:    ErrCodeUserNotFound,
-		Type:    ErrTypeDomain,
-	}
-)
+var UserNotFoundError = &err.Error{
+	Message: "User not found",
+	Code:    ErrCodeUserNotFound,
+	Type:    ErrTypeDomain,
+}
 
 func NewInternalError(msg string, underlyingErr error) *err.Error {
 	return &err.Error{

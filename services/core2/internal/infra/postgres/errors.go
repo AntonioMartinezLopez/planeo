@@ -9,7 +9,7 @@ const (
 )
 
 const (
-	ErrCodeCategoryNotFound = iota + 5001000
+	ErrCodeCategoryNotFound = iota + 5004000
 	ErrCodeInternal
 )
 

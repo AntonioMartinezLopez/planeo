@@ -1,7 +1,6 @@
 package request
 
 import (
-	"errors"
 	err "planeo/services/core2/pkg/errors"
 )
 
@@ -10,7 +9,7 @@ const (
 )
 
 const (
-	ErrCodeRequestNotFound = iota + 5001000
+	ErrCodeRequestNotFound = iota + 5002000
 	ErrCodeInternal
 )
 
@@ -18,7 +17,6 @@ var RequestNotFoundError = &err.Error{
 	Message: "Request not found",
 	Code:    ErrCodeRequestNotFound,
 	Type:    ErrTypeDomain,
-	Err:     errors.New("request not found"),
 }
 
 func NewInternalError(msg string, underlyingErr error) *err.Error {

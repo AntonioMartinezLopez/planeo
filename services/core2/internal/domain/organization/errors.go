@@ -1,7 +1,6 @@
 package organization
 
 import (
-	"errors"
 	err "planeo/services/core2/pkg/errors"
 )
 
@@ -18,7 +17,6 @@ var OrganizationNotFoundError = &err.Error{
 	Message: "Organization not found",
 	Code:    ErrCodeOrganizationNotFound,
 	Type:    ErrTypeDomain,
-	Err:     errors.New("organization not found"),
 }
 
 func NewInternalError(msg string, underlyingErr error) *err.Error {
