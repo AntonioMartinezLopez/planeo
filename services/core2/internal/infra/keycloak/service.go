@@ -2,8 +2,6 @@ package keycloak
 
 import (
 	"context"
-	"errors"
-	"planeo/libs/logger"
 	"planeo/services/core2/internal/config"
 	"planeo/services/core2/internal/domain/user"
 	"planeo/services/core2/pkg/keycloak"
@@ -24,11 +22,9 @@ func NewKeycloakService(keycloakAdminClient *keycloak.KeycloakAdminClient, confi
 
 func (k *KeycloakService) GetUsers(ctx context.Context, organizationUuid string) ([]user.IAMUser, error) {
 	keycloakUsers, err := k.keycloakAdminClient.GetKeycloakUsers(organizationUuid)
-	logger := logger.FromContext(ctx)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak users")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak users", err)
 	}
 
 	iamUsers := []user.IAMUser{}
@@ -40,19 +36,16 @@ func (k *KeycloakService) GetUsers(ctx context.Context, organizationUuid string)
 }
 
 func (k *KeycloakService) GetUserById(ctx context.Context, organizationUuid string, userId string) (*user.IAMUser, error) {
-	logger := logger.FromContext(ctx)
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		logger.Error().Msg("User not found in organization")
-		return nil, errors.New("User not found in organization")
+		return nil, NewKeycloakError("User not found in organization", nil)
 	}
 
 	keycloakUser, err := k.keycloakAdminClient.GetKeycloakUserById(userId)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak user")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak user by id", err)
 	}
 
 	iamUser := FromKeycloakUser(keycloakUser)
@@ -60,15 +53,13 @@ func (k *KeycloakService) GetUserById(ctx context.Context, organizationUuid stri
 	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak client", err)
 	}
 
 	userRoles, err := k.keycloakAdminClient.GetKeycloakUserClientRoles(client.Uuid, userId)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak user roles")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak user roles", err)
 	}
 
 	roles := []user.Role{}
@@ -83,8 +74,6 @@ func (k *KeycloakService) GetUserById(ctx context.Context, organizationUuid stri
 }
 
 func (k *KeycloakService) CreateUser(ctx context.Context, organizationUuid string, newUser user.NewUser) (*user.IAMUser, error) {
-
-	logger := logger.FromContext(ctx)
 	createUserData := keycloak.CreateUserParams{
 		FirstName: newUser.FirstName,
 		LastName:  newUser.LastName,
@@ -94,23 +83,20 @@ func (k *KeycloakService) CreateUser(ctx context.Context, organizationUuid strin
 	err := k.keycloakAdminClient.CreateKeycloakUser(organizationUuid, createUserData)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error creating keycloak user")
-		return nil, err
+		return nil, NewKeycloakError("Error creating keycloak user", err)
 	}
 
 	// assign default role
 	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak client", err)
 	}
 
 	clientRoles, err := k.keycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client roles")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak client roles", err)
 	}
 
 	index := slices.IndexFunc(clientRoles, func(role keycloak.KeycloakClientRole) bool {
@@ -118,8 +104,7 @@ func (k *KeycloakService) CreateUser(ctx context.Context, organizationUuid strin
 	})
 
 	if index == -1 {
-		logger.Error().Msg("Default role not found")
-		return nil, err
+		return nil, NewKeycloakError("Default user role not found", nil)
 	}
 
 	role := clientRoles[index]
@@ -127,15 +112,13 @@ func (k *KeycloakService) CreateUser(ctx context.Context, organizationUuid strin
 	keycloakUser, err := k.keycloakAdminClient.GetKeycloakUserByEmail(newUser.Email)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak user by email")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak user by email", err)
 	}
 
 	err = k.keycloakAdminClient.AddKeycloakClientRoleToUser(client.Uuid, []keycloak.KeycloakClientRole{role}, keycloakUser.Id)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error adding keycloak client role to user")
-		return nil, err
+		return nil, NewKeycloakError("Error assigning default role to user", err)
 	}
 
 	iamUser := FromKeycloakUser(keycloakUser)
@@ -143,13 +126,10 @@ func (k *KeycloakService) CreateUser(ctx context.Context, organizationUuid strin
 }
 
 func (k *KeycloakService) UpdateUser(ctx context.Context, organizationUuid string, userId string, updateUser user.UpdateUser) error {
-
-	logger := logger.FromContext(ctx)
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		logger.Error().Msg("User not found in organization")
-		return errors.New("User not found in organization")
+		return NewKeycloakError("User not found in organization", nil)
 	}
 
 	updateKeycloakUserParams := keycloak.UpdateUserParams{
@@ -167,48 +147,39 @@ func (k *KeycloakService) UpdateUser(ctx context.Context, organizationUuid strin
 	err := k.keycloakAdminClient.UpdateKeycloakUser(userId, updateKeycloakUserParams)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error updating keycloak user")
-		return err
+		return NewKeycloakError("Error updating keycloak user", err)
 	}
 
 	return nil
 }
 
 func (k *KeycloakService) DeleteUser(ctx context.Context, organizationUuid string, userId string) error {
-
-	logger := logger.FromContext(ctx)
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		logger.Error().Msg("User not found in organization")
-		return errors.New("User not found in organization")
+		return NewKeycloakError("User not found in organization", nil)
 	}
 
 	err := k.keycloakAdminClient.DeleteKeycloakUser(userId)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error deleting keycloak user")
-		return err
+		return NewKeycloakError("Error deleting keycloak user", err)
 	}
 
 	return nil
 }
 
 func (k *KeycloakService) GetRoles(ctx context.Context) ([]user.Role, error) {
-
-	logger := logger.FromContext(ctx)
 	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak client", err)
 	}
 
 	keycloakClientRoles, err := k.keycloakAdminClient.GetKeycloakClientRoles(client.Uuid)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client roles")
-		return nil, err
+		return nil, NewKeycloakError("Error getting keycloak client roles", err)
 	}
 
 	roles := []user.Role{}
@@ -220,26 +191,22 @@ func (k *KeycloakService) GetRoles(ctx context.Context) ([]user.Role, error) {
 }
 
 func (k *KeycloakService) AssignRolesToUser(ctx context.Context, organizationUuid string, userId string, roles []user.Role) error {
-	logger := logger.FromContext(ctx)
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		logger.Error().Msg("User not found in organization")
-		return errors.New("User not found in organization")
+		return NewKeycloakError("User not found in organization", nil)
 	}
 
 	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak client")
-		return err
+		return NewKeycloakError("Error getting keycloak client", err)
 	}
 
 	userRoles, err := k.keycloakAdminClient.GetKeycloakUserClientRoles(client.Uuid, userId)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error getting keycloak user roles")
-		return err
+		return NewKeycloakError("Error getting keycloak user client roles", err)
 	}
 
 	rolesToDelete := slices.DeleteFunc(userRoles, func(userRole keycloak.KeycloakClientRole) bool {
@@ -253,8 +220,7 @@ func (k *KeycloakService) AssignRolesToUser(ctx context.Context, organizationUui
 	deleteError := k.keycloakAdminClient.DeleteKeycloakUserClientRoles(client.Uuid, rolesToDelete, userId)
 
 	if deleteError != nil {
-		logger.Error().Err(deleteError).Msg("Error deleting keycloak user roles")
-		return err
+		return NewKeycloakError("Error deleting keycloak user client roles", deleteError)
 	}
 
 	var keycloakRoles = []keycloak.KeycloakClientRole{}
@@ -265,8 +231,7 @@ func (k *KeycloakService) AssignRolesToUser(ctx context.Context, organizationUui
 	err = k.keycloakAdminClient.AddKeycloakClientRoleToUser(client.Uuid, keycloakRoles, userId)
 
 	if err != nil {
-		logger.Error().Err(err).Msg("Error adding keycloak client role to user")
-		return err
+		return NewKeycloakError("Error adding keycloak client roles to user", err)
 	}
 
 	return nil
