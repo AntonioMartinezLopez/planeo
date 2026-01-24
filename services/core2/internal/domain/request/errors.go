@@ -1,6 +1,7 @@
-package user
+package request
 
 import (
+	"errors"
 	err "planeo/services/core2/pkg/errors"
 )
 
@@ -9,17 +10,16 @@ const (
 )
 
 const (
-	ErrCodeUserNotFound = iota + 5001000
+	ErrCodeRequestNotFound = iota + 5001000
 	ErrCodeInternal
 )
 
-var (
-	UserNotFoundError = &err.Error{
-		Message: "User not found",
-		Code:    ErrCodeUserNotFound,
-		Type:    ErrTypeDomain,
-	}
-)
+var RequestNotFoundError = &err.Error{
+	Message: "Request not found",
+	Code:    ErrCodeRequestNotFound,
+	Type:    ErrTypeDomain,
+	Err:     errors.New("request not found"),
+}
 
 func NewInternalError(msg string, underlyingErr error) *err.Error {
 	return &err.Error{

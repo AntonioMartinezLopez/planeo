@@ -13,9 +13,8 @@ func (c *Client) GetIamOrganizationIdentifier(ctx context.Context, organizationI
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
-
 	if err != nil {
-		return "", fmt.Errorf("error querying database: %w", err)
+		return "", NewDatabaseError("error querying database", err)
 	}
 
 	type Organization struct {
@@ -26,13 +25,13 @@ func (c *Client) GetIamOrganizationIdentifier(ctx context.Context, organizationI
 	if rows.Next() {
 		err = rows.Scan(&organization.IamOrganizationID)
 		if err != nil {
-			return "", fmt.Errorf("error scanning organization IAM ID: %w", err)
+			return "", NewDatabaseError("error scanning organization IAM ID", err)
 		}
 	}
 	rows.Close()
 
 	if err != nil {
-		return "", err
+		return "", NewDatabaseError("error retrieving organization IAM ID", err)
 	}
 	return organization.IamOrganizationID, nil
 }
@@ -42,15 +41,19 @@ func (c *Client) GetUsers(ctx context.Context, organizationId int) ([]user.User,
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
-
 	if err != nil {
-		return nil, fmt.Errorf("error querying database: %w", err)
+		return nil, NewDatabaseError("error querying database", err)
 	}
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[user.User])
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[user.User])
+	if err != nil {
+		return nil, NewDatabaseError("error collecting users", err)
+	}
+
+	return users, nil
 }
 
-func (c *Client) UpdateUser(ctx context.Context, organizationId int, uuid string, user user.UpdateUser) error {
+func (c *Client) UpdateUser(ctx context.Context, organizationId int, uuid string, updateUser user.UpdateUser) error {
 	query := `
 		UPDATE users 
 		SET username = @username, first_name = @firstname, last_name = @lastname, email = @email 
@@ -59,19 +62,18 @@ func (c *Client) UpdateUser(ctx context.Context, organizationId int, uuid string
 	args := pgx.NamedArgs{
 		"organizationId": organizationId,
 		"uuid":           uuid,
-		"username":       user.Username,
-		"firstname":      user.FirstName,
-		"lastname":       user.LastName,
-		"email":          user.Email,
+		"username":       updateUser.Username,
+		"firstname":      updateUser.FirstName,
+		"lastname":       updateUser.LastName,
+		"email":          updateUser.Email,
 	}
 
 	_, err := c.db.Exec(ctx, query, args)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return err
+			return user.UserNotFoundError
 		}
-		return fmt.Errorf("error updating user: %w", err)
+		return NewDatabaseError("error updating user", err)
 	}
 
 	return nil
@@ -92,9 +94,8 @@ func (c *Client) CreateUser(ctx context.Context, organizationId int, uuid string
 	}
 
 	_, err := c.db.Exec(ctx, query, args)
-
 	if err != nil {
-		return fmt.Errorf("error creating user: %w", err)
+		return NewDatabaseError("error creating user", err)
 	}
 
 	return nil
@@ -108,13 +109,12 @@ func (c *Client) DeleteUser(ctx context.Context, organizationId int, uuid string
 	args := pgx.NamedArgs{"organizationId": organizationId, "uuid": uuid}
 
 	_, err := c.db.Exec(ctx, query, args)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return err
+			return user.UserNotFoundError
 		}
 
-		return err
+		return NewDatabaseError(fmt.Sprintf("error deleting user with uuid %s", uuid), err)
 	}
 
 	return nil
@@ -144,10 +144,9 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 	args := pgx.NamedArgs{"organizationId": organizationId, "uuids": userIds}
 
 	_, err = tx.Exec(ctx, query, args)
-
 	if err != nil {
 		_ = tx.Rollback(ctx)
-		return err
+		return NewDatabaseError("failed to delete users not in IAM", err)
 	}
 
 	// Step 2: Update existing users or insert new users
@@ -170,7 +169,7 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 
 		if err != nil {
 			_ = tx.Rollback(ctx)
-			return err
+			return NewDatabaseError("failed to update user", err)
 		}
 		rowsAffected := result.RowsAffected()
 
@@ -192,7 +191,7 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 			_, err := tx.Exec(ctx, query, args)
 			if err != nil {
 				_ = tx.Rollback(ctx)
-				return err
+				return NewDatabaseError("failed to insert user", err)
 			}
 		}
 	}

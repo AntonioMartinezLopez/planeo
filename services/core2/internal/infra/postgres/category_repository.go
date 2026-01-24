@@ -13,13 +13,17 @@ func (c *Client) GetCategories(ctx context.Context, organizationId int) ([]categ
 	args := pgx.NamedArgs{"organizationId": organizationId}
 
 	rows, err := c.db.Query(ctx, query, args)
-
 	if err != nil {
 		return nil, NewDatabaseError("failed to query categories", err)
 	}
 	defer rows.Close()
 
-	return pgx.CollectRows(rows, pgx.RowToStructByName[category.Category])
+	categories, err := pgx.CollectRows(rows, pgx.RowToStructByName[category.Category])
+	if err != nil {
+		return nil, NewDatabaseError("failed to collect categories", err)
+	}
+
+	return categories, nil
 }
 
 func (c *Client) CreateCategory(ctx context.Context, organizationId int, newCategory category.NewCategory) (int, error) {
@@ -65,7 +69,7 @@ func (c *Client) UpdateCategory(ctx context.Context, organizationId int, categor
 	}
 
 	if result.RowsAffected() == 0 {
-		return &category.CategoryNotFoundError
+		return category.CategoryNotFoundError
 	}
 
 	return nil
@@ -84,7 +88,7 @@ func (c *Client) DeleteCategory(ctx context.Context, organizationId int, categor
 	}
 
 	if result.RowsAffected() == 0 {
-		return &category.CategoryNotFoundError
+		return category.CategoryNotFoundError
 	}
 
 	return nil

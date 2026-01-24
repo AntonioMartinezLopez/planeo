@@ -15,7 +15,7 @@ const (
 	ErrCodeInternal
 )
 
-var CategoryNotFoundError = err.Error{
+var CategoryNotFoundError = &err.Error{
 	Message: "Category not found",
 	Code:    ErrCodeCategoryNotFound,
 	Type:    ErrTypeDomain,
