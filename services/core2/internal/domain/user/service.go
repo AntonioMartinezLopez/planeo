@@ -5,11 +5,11 @@ import (
 )
 
 type UserService struct {
-	iamService     IAMInterface
-	userRepository UserRepositoryInterface
+	iamService     IAM
+	userRepository UserRepository
 }
 
-func NewUserService(userRepository UserRepositoryInterface, iamService IAMInterface) *UserService {
+func NewService(userRepository UserRepository, iamService IAM) *UserService {
 	return &UserService{
 		iamService:     iamService,
 		userRepository: userRepository,

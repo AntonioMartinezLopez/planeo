@@ -5,10 +5,10 @@ import (
 )
 
 type Service struct {
-	categoryRepository CategoryRepositoryInterface
+	categoryRepository CategoryRepository
 }
 
-func NewService(categoryRepository CategoryRepositoryInterface) *Service {
+func NewService(categoryRepository CategoryRepository) *Service {
 	return &Service{
 		categoryRepository: categoryRepository,
 	}

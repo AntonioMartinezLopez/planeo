@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type CategoryRepositoryInterface interface {
+type CategoryRepository interface {
 	GetCategories(ctx context.Context, organizationId int) ([]Category, error)
 	CreateCategory(ctx context.Context, organizationId int, category NewCategory) (int, error)
 	UpdateCategory(ctx context.Context, organizationId int, categoryId int, category UpdateCategory) error

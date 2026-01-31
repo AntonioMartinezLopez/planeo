@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type RequestRepositoryInterface interface {
+type RequestRepository interface {
 	CreateRequest(ctx context.Context, request NewRequest) (int, error)
 	GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]Request, error)
 	GetRequest(ctx context.Context, organizationId int, requestId int) (Request, error)

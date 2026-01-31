@@ -6,7 +6,13 @@ import (
 
 	"planeo/libs/logger"
 	"planeo/services/core2/internal/config"
+	"planeo/services/core2/internal/domain/category"
+	"planeo/services/core2/internal/domain/organization"
+	"planeo/services/core2/internal/domain/request"
+	"planeo/services/core2/internal/domain/user"
+	"planeo/services/core2/internal/infra/keycloak"
 	"planeo/services/core2/internal/infra/postgres"
+	keycloakClient "planeo/services/core2/pkg/keycloak"
 )
 
 // func generateOpenApiSpecs(api huma.API, filename string) {
@@ -34,10 +40,32 @@ func main() {
 
 	log.Info().Msgf("Server configuration loaded: %s", serverConfig)
 
-	// initialize
+	// initialize database
 	db := postgres.NewClient(ctx, config.DatabaseConfig())
 	defer db.Close()
 
+	// itiliaze keycloak service
+	keycloakClientProps := keycloakClient.KeycloakAdminClientProps{
+		BaseUrl:      config.KcBaseUrl,
+		Realm:        config.KcIssuer,
+		Username:     config.KcAdminUsername,
+		Password:     config.KcAdminPassword,
+		ClientId:     config.KcAdminClientID,
+		ClientSecret: config.KcAdminClientSecret,
+	}
+	keycloakAdminClient := keycloakClient.NewKeycloakAdminClient(keycloakClientProps)
+	keycloakService := keycloak.NewKeycloakService(keycloakAdminClient, config)
+
+	//initialize services
+	categoryService := category.NewService(db)
+	organizationService := organization.NewService(db)
+	requestService := request.NewService(db)
+	userService := user.NewService(db, keycloakService)
+
+	_ = categoryService
+	_ = organizationService
+	_ = requestService
+	_ = userService
 	// // initialize event service
 	// eventService, err := events.NewEventService(config.NatsUrl)
 	// if err != nil {

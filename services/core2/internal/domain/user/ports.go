@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type IAMInterface interface {
+type IAM interface {
 	GetUsers(ctx context.Context, organizationIamIdentifier string) ([]IAMUser, error)
 	GetUserById(ctx context.Context, organizationIamIdentifier string, uuid string) (*IAMUser, error)
 	CreateUser(ctx context.Context, organizationIamIdentifier string, newUser NewUser) (*IAMUser, error)
@@ -14,7 +14,7 @@ type IAMInterface interface {
 	AssignRolesToUser(ctx context.Context, organizationIamIdentifier string, uuid string, roles []Role) error
 }
 
-type UserRepositoryInterface interface {
+type UserRepository interface {
 	GetIamOrganizationIdentifier(ctx context.Context, organizationId int) (string, error)
 	GetUsers(ctx context.Context, organizationId int) ([]User, error)
 	SyncUsers(ctx context.Context, organizationId int, users []IAMUser) error

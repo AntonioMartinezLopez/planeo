@@ -4,6 +4,6 @@ import (
 	"context"
 )
 
-type OrganizationRepositoryInterface interface {
+type OrganizationRepository interface {
 	GetOrganizationsByUserSub(ctx context.Context, userSub string) ([]Organization, error)
 }

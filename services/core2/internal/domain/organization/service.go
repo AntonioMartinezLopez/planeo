@@ -3,10 +3,10 @@ package organization
 import "context"
 
 type Service struct {
-	organizationRepository OrganizationRepositoryInterface
+	organizationRepository OrganizationRepository
 }
 
-func NewService(organizationRepository OrganizationRepositoryInterface) *Service {
+func NewService(organizationRepository OrganizationRepository) *Service {
 	return &Service{
 		organizationRepository: organizationRepository,
 	}

@@ -1,12 +1,17 @@
 package keycloak
 
 import (
-	"planeo/libs/logger"
-	"planeo/services/core/config"
 	"time"
-
-	"github.com/rs/zerolog"
 )
+
+type KeycloakAdminClientProps struct {
+	BaseUrl      string
+	Realm        string
+	Username     string
+	Password     string
+	ClientId     string
+	ClientSecret string
+}
 
 type KeycloakAdminClient struct {
 	baseUrl      string
@@ -16,19 +21,17 @@ type KeycloakAdminClient struct {
 	clientId     string
 	clientSecret string
 	session      *AdminKeycloakSession
-	logger       zerolog.Logger
 }
 
-func NewKeycloakAdminClient(configuration config.ApplicationConfiguration) *KeycloakAdminClient {
+func NewKeycloakAdminClient(props KeycloakAdminClientProps) *KeycloakAdminClient {
 
 	return &KeycloakAdminClient{
-		baseUrl:      configuration.KcBaseUrl,
-		realm:        configuration.KcIssuer,
-		username:     configuration.KcAdminUsername,
-		password:     configuration.KcAdminPassword,
-		clientId:     configuration.KcAdminClientID,
-		clientSecret: configuration.KcAdminClientSecret,
-		logger:       logger.New("keycloak-admin-client"),
+		baseUrl:      props.BaseUrl,
+		realm:        props.Realm,
+		username:     props.Username,
+		password:     props.Password,
+		clientId:     props.ClientId,
+		clientSecret: props.ClientSecret,
 	}
 }
 

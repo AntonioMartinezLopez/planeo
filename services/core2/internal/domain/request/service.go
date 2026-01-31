@@ -3,10 +3,10 @@ package request
 import "context"
 
 type Service struct {
-	requestRepository RequestRepositoryInterface
+	requestRepository RequestRepository
 }
 
-func NewService(requestRepository RequestRepositoryInterface) *Service {
+func NewService(requestRepository RequestRepository) *Service {
 	return &Service{
 		requestRepository: requestRepository,
 	}

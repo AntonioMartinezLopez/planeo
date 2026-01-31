@@ -55,7 +55,6 @@ func SendRequest(kc *KeycloakAdminClient, keycloakRequestParams KeycloakRequestP
 	expectedStatusCode := slices.Contains(expectedReturnCodes[keycloakRequestParams.Method], response.StatusCode)
 	if !expectedStatusCode {
 		body, _ := io.ReadAll(response.Body)
-		kc.logger.Error().Msgf("something went wrong: Fetching Keycloak endpoint resulted in http response %d: %s", response.StatusCode, body)
 		return fmt.Errorf("something went wrong: Fetching Keycloak endpoint resulted in http response %d: %s", response.StatusCode, body)
 	}
 
@@ -63,7 +62,6 @@ func SendRequest(kc *KeycloakAdminClient, keycloakRequestParams KeycloakRequestP
 		validationError := jsonHelper.DecodeJSONAndValidate(response.Body, data, true)
 
 		if validationError != nil {
-			kc.logger.Error().Err(err).Msg("Validation error.")
 			return validationError
 		}
 	}
