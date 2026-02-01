@@ -11,7 +11,6 @@ import (
 )
 
 func TestRequestService(t *testing.T) {
-
 	if !testing.Short() {
 		t.Skip()
 	}
@@ -56,7 +55,6 @@ func TestRequestService(t *testing.T) {
 	}
 
 	t.Run("CreateRequest", func(t *testing.T) {
-
 		t.Run("returns nil when request is created successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepository(t)
 			mockRequestRepository.EXPECT().CreateRequest(context.Background(), requestCreateInput).Return(1, nil)
@@ -79,7 +77,6 @@ func TestRequestService(t *testing.T) {
 	})
 
 	t.Run("UpdateRequest", func(t *testing.T) {
-
 		t.Run("returns nil when request is updated successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepository(t)
 			mockRequestRepository.EXPECT().UpdateRequest(context.Background(), requestUpdateInput).Return(nil)
@@ -100,7 +97,6 @@ func TestRequestService(t *testing.T) {
 	})
 
 	t.Run("DeleteRequest", func(t *testing.T) {
-
 		t.Run("returns nil when request is deleted successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepository(t)
 			mockRequestRepository.EXPECT().DeleteRequest(context.Background(), testOrganizationId, request.Id).Return(nil)
@@ -121,7 +117,6 @@ func TestRequestService(t *testing.T) {
 	})
 
 	t.Run("GetRequests", func(t *testing.T) {
-
 		t.Run("returns requests when requests are fetched successfully", func(t *testing.T) {
 			mockRequestRepository := mocks.NewMockRequestRepository(t)
 			mockRequestRepository.EXPECT().GetRequests(context.Background(), testOrganizationId, 0, 10, false, []int{}).Return([]Request{request}, nil)

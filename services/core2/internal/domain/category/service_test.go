@@ -11,7 +11,6 @@ import (
 )
 
 func TestCategoryService(t *testing.T) {
-
 	if !testing.Short() {
 		t.Skip()
 	}
@@ -41,7 +40,6 @@ func TestCategoryService(t *testing.T) {
 	}
 
 	t.Run("CreateCategory", func(t *testing.T) {
-
 		t.Run("returns nil when category is created successfully", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepository(t)
 			mockCategoryRepository.EXPECT().CreateCategory(context.Background(), testOrganizationId, categoryCreateInput).Return(1, nil)
@@ -64,7 +62,6 @@ func TestCategoryService(t *testing.T) {
 	})
 
 	t.Run("UpdateCategory", func(t *testing.T) {
-
 		t.Run("returns nil when category is updated successfully", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepository(t)
 			mockCategoryRepository.EXPECT().UpdateCategory(context.Background(), testOrganizationId, category.Id, categoryUpdateInput).Return(nil)
@@ -85,7 +82,6 @@ func TestCategoryService(t *testing.T) {
 	})
 
 	t.Run("DeleteCategory", func(t *testing.T) {
-
 		t.Run("returns nil when category is deleted successfully", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepository(t)
 			mockCategoryRepository.EXPECT().DeleteCategory(context.Background(), testOrganizationId, category.Id).Return(nil)
@@ -106,7 +102,6 @@ func TestCategoryService(t *testing.T) {
 	})
 
 	t.Run("GetCategories", func(t *testing.T) {
-
 		t.Run("returns categories when categories are fetched successfully", func(t *testing.T) {
 			mockCategoryRepository := mocks.NewMockCategoryRepository(t)
 			mockCategoryRepository.EXPECT().GetCategories(context.Background(), testOrganizationId).Return([]Category{category}, nil)
