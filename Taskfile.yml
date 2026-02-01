@@ -143,6 +143,12 @@ tasks:
       - echo "Running unit tests for core service..."
       - go test ./services/core/... -v -short -count=1
 
+  test:core2:unit:
+    desc: Run core service unit tests only
+    cmds:
+      - echo "Running unit tests for core service..."
+      - go test ./services/core2/... -v -short -count=1
+
   test:core:integration:
     desc: Run core service integration tests
     cmds:

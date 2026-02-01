@@ -41,7 +41,6 @@ func (s *UserService) GetIAMUsers(ctx context.Context, organizationId int, sync 
 }
 
 func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUser NewUser) error {
-
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -65,7 +64,6 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUse
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, organizationId int, uuid string) error {
-
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -88,7 +86,6 @@ func (s *UserService) DeleteUser(ctx context.Context, organizationId int, uuid s
 }
 
 func (s *UserService) UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error {
-
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -111,7 +108,6 @@ func (s *UserService) UpdateUser(ctx context.Context, organizationId int, uuid s
 }
 
 func (s *UserService) GetAvailableRoles(ctx context.Context) ([]Role, error) {
-
 	roles, err := s.iamService.GetRoles(ctx)
 
 	if err != nil {
@@ -121,14 +117,14 @@ func (s *UserService) GetAvailableRoles(ctx context.Context) ([]Role, error) {
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(ctx context.Context, organizationId int, iamUserId string, roles []Role) error {
+func (s *UserService) AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
 		return err
 	}
 
-	return s.iamService.AssignRolesToUser(ctx, organizationIamIdentifier, iamUserId, roles)
+	return s.iamService.AssignRolesToUser(ctx, organizationIamIdentifier, uuid, roles)
 }
 
 func (s *UserService) GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error) {

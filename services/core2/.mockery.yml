@@ -1,6 +1,7 @@
 all: true
 dir: '{{.InterfaceDir}}/mocks'
 structname: Mock{{.InterfaceName}}
+filename: '{{.InterfaceName | snakecase}}_mock.go'
 pkgname: mocks
 template: testify
 template-data:
