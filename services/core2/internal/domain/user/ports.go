@@ -22,3 +22,14 @@ type UserRepository interface {
 	DeleteUser(ctx context.Context, organizationId int, uuid string) error
 	UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error
 }
+
+type Service interface {
+	GetIAMUsers(ctx context.Context, organizationId int, sync bool) ([]IAMUser, error)
+	CreateUser(ctx context.Context, organizationId int, newUser NewUser) error
+	DeleteUser(ctx context.Context, organizationId int, uuid string) error
+	UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error
+	GetAvailableRoles(ctx context.Context) ([]Role, error)
+	AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error
+	GetUsers(ctx context.Context, organizationId int) ([]User, error)
+	GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error)
+}

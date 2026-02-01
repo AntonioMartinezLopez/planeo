@@ -4,19 +4,19 @@ import (
 	"context"
 )
 
-type UserService struct {
+type service struct {
 	iamService     IAM
 	userRepository UserRepository
 }
 
-func NewService(userRepository UserRepository, iamService IAM) *UserService {
-	return &UserService{
+func NewService(userRepository UserRepository, iamService IAM) Service {
+	return &service{
 		iamService:     iamService,
 		userRepository: userRepository,
 	}
 }
 
-func (s *UserService) GetIAMUsers(ctx context.Context, organizationId int, sync bool) ([]IAMUser, error) {
+func (s *service) GetIAMUsers(ctx context.Context, organizationId int, sync bool) ([]IAMUser, error) {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *UserService) GetIAMUsers(ctx context.Context, organizationId int, sync 
 	return users, nil
 }
 
-func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUser NewUser) error {
+func (s *service) CreateUser(ctx context.Context, organizationId int, newUser NewUser) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *UserService) CreateUser(ctx context.Context, organizationId int, newUse
 	return nil
 }
 
-func (s *UserService) DeleteUser(ctx context.Context, organizationId int, uuid string) error {
+func (s *service) DeleteUser(ctx context.Context, organizationId int, uuid string) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *UserService) DeleteUser(ctx context.Context, organizationId int, uuid s
 	return nil
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error {
+func (s *service) UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *UserService) UpdateUser(ctx context.Context, organizationId int, uuid s
 	return nil
 }
 
-func (s *UserService) GetAvailableRoles(ctx context.Context) ([]Role, error) {
+func (s *service) GetAvailableRoles(ctx context.Context) ([]Role, error) {
 	roles, err := s.iamService.GetRoles(ctx)
 
 	if err != nil {
@@ -117,7 +117,7 @@ func (s *UserService) GetAvailableRoles(ctx context.Context) ([]Role, error) {
 	return roles, nil
 }
 
-func (s *UserService) AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error {
+func (s *service) AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -127,7 +127,7 @@ func (s *UserService) AssignRoles(ctx context.Context, organizationId int, uuid 
 	return s.iamService.AssignRolesToUser(ctx, organizationIamIdentifier, uuid, roles)
 }
 
-func (s *UserService) GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error) {
+func (s *service) GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error) {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *UserService) GetUserByUuid(ctx context.Context, organizationId int, uui
 	return s.iamService.GetUserById(ctx, organizationIamIdentifier, uuid)
 }
 
-func (s *UserService) GetUsers(ctx context.Context, organizationId int) ([]User, error) {
+func (s *service) GetUsers(ctx context.Context, organizationId int) ([]User, error) {
 	user, err := s.userRepository.GetUsers(ctx, organizationId)
 
 	if err != nil {

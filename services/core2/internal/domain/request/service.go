@@ -2,32 +2,32 @@ package request
 
 import "context"
 
-type Service struct {
+type service struct {
 	requestRepository RequestRepository
 }
 
-func NewService(requestRepository RequestRepository) *Service {
-	return &Service{
+func NewService(requestRepository RequestRepository) Service {
+	return &service{
 		requestRepository: requestRepository,
 	}
 }
 
-func (s *Service) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]Request, error) {
+func (s *service) GetRequests(ctx context.Context, organizationId int, cursor int, limit int, getClosed bool, selectedCategories []int) ([]Request, error) {
 	return s.requestRepository.GetRequests(ctx, organizationId, cursor, limit, getClosed, selectedCategories)
 }
 
-func (s *Service) GetRequest(ctx context.Context, organizationId int, requestId int) (Request, error) {
+func (s *service) GetRequest(ctx context.Context, organizationId int, requestId int) (Request, error) {
 	return s.requestRepository.GetRequest(ctx, organizationId, requestId)
 }
 
-func (s *Service) CreateRequest(ctx context.Context, request NewRequest) (int, error) {
+func (s *service) CreateRequest(ctx context.Context, request NewRequest) (int, error) {
 	return s.requestRepository.CreateRequest(ctx, request)
 }
 
-func (s *Service) UpdateRequest(ctx context.Context, request UpdateRequest) error {
+func (s *service) UpdateRequest(ctx context.Context, request UpdateRequest) error {
 	return s.requestRepository.UpdateRequest(ctx, request)
 }
 
-func (s *Service) DeleteRequest(ctx context.Context, organizationId int, requestId int) error {
+func (s *service) DeleteRequest(ctx context.Context, organizationId int, requestId int) error {
 	return s.requestRepository.DeleteRequest(ctx, organizationId, requestId)
 }
