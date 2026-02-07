@@ -44,7 +44,7 @@ func main() {
 	db := postgres.NewClient(ctx, config.DatabaseConfig())
 	defer db.Close()
 
-	// itiliaze keycloak service
+	// initialize keycloak service
 	keycloakClientProps := keycloakClient.KeycloakAdminClientProps{
 		BaseUrl:      config.KcBaseUrl,
 		Realm:        config.KcIssuer,
@@ -56,7 +56,7 @@ func main() {
 	keycloakAdminClient := keycloakClient.NewKeycloakAdminClient(keycloakClientProps)
 	keycloakService := keycloak.NewKeycloakService(keycloakAdminClient, config)
 
-	//initialize services
+	// initialize services
 	categoryService := category.NewService(db)
 	organizationService := organization.NewService(db)
 	requestService := request.NewService(db)

@@ -6,17 +6,17 @@ import (
 	"planeo/services/core2/internal/infra/http/server"
 )
 
-type RequestController struct {
+type RequestHandler struct {
 	requestService request.Service
 }
 
-func NewRequestController(requestService request.Service) *RequestController {
-	return &RequestController{
+func NewRequestController(requestService request.Service) *RequestHandler {
+	return &RequestHandler{
 		requestService: requestService,
 	}
 }
 
-func (r *RequestController) GetRequests(ctx context.Context, input *GetRequestsInput) (*GetRequestsOutput, error) {
+func (r *RequestHandler) GetRequests(ctx context.Context, input *GetRequestsInput) (*GetRequestsOutput, error) {
 	result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed, input.SelectedCategories)
 
 	if err != nil {
@@ -34,7 +34,7 @@ func (r *RequestController) GetRequests(ctx context.Context, input *GetRequestsI
 	return resp, nil
 }
 
-func (r *RequestController) CreateRequest(ctx context.Context, input *CreateRequestInput) (*CreateRequestOutput, error) {
+func (r *RequestHandler) CreateRequest(ctx context.Context, input *CreateRequestInput) (*CreateRequestOutput, error) {
 	newRequest := request.NewRequest{
 		Text:           input.Body.Text,
 		Name:           input.Body.Name,
@@ -55,7 +55,7 @@ func (r *RequestController) CreateRequest(ctx context.Context, input *CreateRequ
 	return resp, nil
 }
 
-func (r *RequestController) UpdateRequest(ctx context.Context, input *UpdateRequestInput) (*struct{}, error) {
+func (r *RequestHandler) UpdateRequest(ctx context.Context, input *UpdateRequestInput) (*struct{}, error) {
 	request := request.UpdateRequest{
 		Text:           input.Body.Text,
 		Name:           input.Body.Name,
@@ -76,7 +76,7 @@ func (r *RequestController) UpdateRequest(ctx context.Context, input *UpdateRequ
 	return nil, nil
 }
 
-func (r *RequestController) DeleteRequest(ctx context.Context, input *DeleteRequestInput) (*struct{}, error) {
+func (r *RequestHandler) DeleteRequest(ctx context.Context, input *DeleteRequestInput) (*struct{}, error) {
 	err := r.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
 
 	if err != nil {

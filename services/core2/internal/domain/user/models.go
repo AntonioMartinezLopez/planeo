@@ -33,7 +33,7 @@ var RequiredActionsMap = map[string]RequiredAction{
 // }
 
 type IAMUser struct {
-	Id              string           `json:"id" example:"123456" doc:"User identifier within the authentication system" validate:"required"`
+	Uuid            string           `json:"uuid" example:"123456" doc:"User identifier within the authentication system" validate:"required"`
 	Username        string           `json:"username" example:"user123" doc:"User name" binding:"required"`
 	FirstName       string           `json:"firstName" example:"John" doc:"First name of the user" validate:"required"`
 	LastName        string           `json:"lastName" validate:"required" example:"Doe" doc:"Last name of the user"`

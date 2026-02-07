@@ -53,10 +53,10 @@ func (s *service) CreateUser(ctx context.Context, organizationId int, newUser Ne
 		return err
 	}
 
-	err = s.userRepository.CreateUser(ctx, organizationId, user.Id, newUser)
+	err = s.userRepository.CreateUser(ctx, organizationId, user.Uuid, newUser)
 
 	if err != nil {
-		_ = s.iamService.DeleteUser(ctx, organizationIamIdentifier, user.Id)
+		_ = s.iamService.DeleteUser(ctx, organizationIamIdentifier, user.Uuid)
 		return err
 	}
 
@@ -127,7 +127,7 @@ func (s *service) AssignRoles(ctx context.Context, organizationId int, uuid stri
 	return s.iamService.AssignRolesToUser(ctx, organizationIamIdentifier, uuid, roles)
 }
 
-func (s *service) GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error) {
+func (s *service) GetIAMUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error) {
 	organizationIamIdentifier, err := s.userRepository.GetIamOrganizationIdentifier(ctx, organizationId)
 
 	if err != nil {

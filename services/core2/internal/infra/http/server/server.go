@@ -1,4 +1,4 @@
-package api
+package server
 
 import (
 	"context"
@@ -13,54 +13,41 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type API struct {
-	Name    string
-	Version string
-	Router  *chi.Mux
-	Api     huma.API
+type Config struct {
+	AppName          string
+	Version          string
+	ServerAddress    string
+	OauthIssuerUrl   string
+	EnableStackTrace bool
+	AllowOrigins     []string
 }
 
-type Controller interface {
-	InitializeRoutes()
+type Server struct {
+	api    huma.API
+	router *chi.Mux
+	config Config
 }
 
-type ApiConfiguation interface {
-	ServerConfig() string
-	OauthIssuerUrl() string
-}
-
-func NewHumaAPI(config ApiConfiguation, name string, version string, basePath string) *API {
-
+func New(config Config) *Server {
 	router := chi.NewRouter()
 	router.Use(middlewares.LoggerMiddleware)
 	router.Use(middleware.Recoverer)
-	router.Use(middlewares.Cors([]string{}))
+	router.Use(middlewares.Cors(config.AllowOrigins))
 
-	humaConfig := huma.DefaultConfig(name, version)
+	humaConfig := huma.DefaultConfig(config.AppName, config.Version)
 	humaConfig.Components.SecuritySchemes = getSecuritySchemes(config)
 	humaConfig.Servers = []*huma.Server{
 		{URL: getApiUrl(config)},
 	}
 
 	apiRouter := chi.NewRouter()
-	router.Mount(basePath, apiRouter)
+	router.Mount("/api/v1", apiRouter)
 	api := humachi.New(apiRouter, humaConfig)
 
-	return &API{
-		Name:    name,
-		Version: version,
-		Router:  router,
-		Api:     api,
-	}
-}
-
-type Middleware = func(ctx huma.Context, next func(huma.Context))
-
-func InitializeControllers(api huma.API, middlewares []Middleware, controllers []Controller) {
-	registerStatusEndpoint(api)
-	api.UseMiddleware(middlewares...)
-	for _, controller := range controllers {
-		controller.InitializeRoutes()
+	return &Server{
+		api:    api,
+		router: router,
+		config: config,
 	}
 }
 
@@ -87,8 +74,8 @@ func registerStatusEndpoint(api huma.API) {
 	})
 }
 
-func getApiUrl(config ApiConfiguation) string {
-	server := config.ServerConfig()
+func getApiUrl(config Config) string {
+	server := config.ServerAddress
 	containsLocalhost := strings.Contains(server, "localhost")
 	if containsLocalhost {
 		return strings.Join([]string{"http://", server, "/api"}, "")
@@ -96,14 +83,14 @@ func getApiUrl(config ApiConfiguation) string {
 	return strings.Join([]string{"https://", server, "/api"}, "")
 }
 
-func getSecuritySchemes(config ApiConfiguation) map[string]*huma.SecurityScheme {
+func getSecuritySchemes(config Config) map[string]*huma.SecurityScheme {
 	return map[string]*huma.SecurityScheme{
 		"bearer": {
 			Type: "oauth2",
 			Flows: &huma.OAuthFlows{
 				AuthorizationCode: &huma.OAuthFlow{
-					AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", config.OauthIssuerUrl()),
-					TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", config.OauthIssuerUrl()),
+					AuthorizationURL: fmt.Sprintf("%s/protocol/openid-connect/authorize", config.OauthIssuerUrl),
+					TokenURL:         fmt.Sprintf("%s/protocol/openid-connect/token", config.OauthIssuerUrl),
 					Scopes: map[string]string{
 						"openid":  "Scope for requesting OpenID token",
 						"profile": "Scope for including user profile",

@@ -131,9 +131,9 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 
 	// Step 1: Delete users that are in the organization but not in the list of the valid user IDs
 	// Create a list of user IDs
-	userIds := make([]string, len(users))
+	userUuids := make([]string, len(users))
 	for i, user := range users {
-		userIds[i] = user.Id
+		userUuids[i] = user.Uuid
 	}
 
 	// Delete users that are in the organization but not in the list of user IDs
@@ -141,7 +141,7 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 		DELETE FROM users 
 		WHERE organization_id = @organizationId AND NOT uuid = any(@uuids)`
 
-	args := pgx.NamedArgs{"organizationId": organizationId, "uuids": userIds}
+	args := pgx.NamedArgs{"organizationId": organizationId, "uuids": userUuids}
 
 	_, err = tx.Exec(ctx, query, args)
 	if err != nil {
@@ -158,7 +158,7 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 
 		args := pgx.NamedArgs{
 			"organizationId": organizationId,
-			"uuid":           user.Id,
+			"uuid":           user.Uuid,
 			"username":       user.Username,
 			"firstname":      user.FirstName,
 			"lastname":       user.LastName,
@@ -181,7 +181,7 @@ func (c *Client) SyncUsers(ctx context.Context, organizationId int, users []user
 
 			args := pgx.NamedArgs{
 				"organizationId": organizationId,
-				"uuid":           user.Id,
+				"uuid":           user.Uuid,
 				"username":       user.Username,
 				"firstname":      user.FirstName,
 				"lastname":       user.LastName,

@@ -31,5 +31,5 @@ type Service interface {
 	GetAvailableRoles(ctx context.Context) ([]Role, error)
 	AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error
 	GetUsers(ctx context.Context, organizationId int) ([]User, error)
-	GetUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error)
+	GetIAMUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error)
 }
