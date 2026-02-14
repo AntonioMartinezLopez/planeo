@@ -3,7 +3,7 @@ package requests
 import (
 	"context"
 	"planeo/services/core2/internal/domain/request"
-	"planeo/services/core2/internal/infra/http/server"
+	. "planeo/services/core2/internal/infra/rest/api"
 )
 
 type RequestHandler struct {
@@ -20,7 +20,7 @@ func (r *RequestHandler) GetRequests(ctx context.Context, input *GetRequestsInpu
 	result, err := r.requestService.GetRequests(ctx, input.OrganizationId, input.Cursor, input.PageSize, input.GetClosed, input.SelectedCategories)
 
 	if err != nil {
-		return nil, server.NewHTTPError(err)
+		return nil, NewHTTPError(err)
 	}
 
 	resp := &GetRequestsOutput{}
@@ -48,7 +48,7 @@ func (r *RequestHandler) CreateRequest(ctx context.Context, input *CreateRequest
 	result, err := r.requestService.CreateRequest(ctx, newRequest)
 
 	if err != nil {
-		return nil, server.NewHTTPError(err)
+		return nil, NewHTTPError(err)
 	}
 	resp := &CreateRequestOutput{}
 	resp.Body.Id = result
@@ -70,7 +70,7 @@ func (r *RequestHandler) UpdateRequest(ctx context.Context, input *UpdateRequest
 	err := r.requestService.UpdateRequest(ctx, request)
 
 	if err != nil {
-		return nil, server.NewHTTPError(err)
+		return nil, NewHTTPError(err)
 	}
 
 	return nil, nil
@@ -80,7 +80,7 @@ func (r *RequestHandler) DeleteRequest(ctx context.Context, input *DeleteRequest
 	err := r.requestService.DeleteRequest(ctx, input.OrganizationId, input.RequestId)
 
 	if err != nil {
-		return nil, server.NewHTTPError(err)
+		return nil, NewHTTPError(err)
 	}
 
 	return nil, nil

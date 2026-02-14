@@ -5,6 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"planeo/libs/middlewares"
+	"planeo/services/core2/internal/domain/category"
+	"planeo/services/core2/internal/domain/organization"
+	"planeo/services/core2/internal/domain/request"
+	"planeo/services/core2/internal/domain/user"
+	"planeo/services/core2/internal/infra/rest/api/v1/categories"
+	"planeo/services/core2/internal/infra/rest/api/v1/organizations"
+	"strconv"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -18,6 +25,7 @@ type Config struct {
 	Version          string
 	ServerAddress    string
 	OauthIssuerUrl   string
+	OauthClientID    string
 	EnableStackTrace bool
 	AllowOrigins     []string
 }
@@ -27,6 +35,8 @@ type Server struct {
 	router *chi.Mux
 	config Config
 }
+
+type Middleware = func(ctx huma.Context, next func(huma.Context))
 
 func New(config Config) *Server {
 	router := chi.NewRouter()
@@ -100,4 +110,45 @@ func getSecuritySchemes(config Config) map[string]*huma.SecurityScheme {
 			},
 		},
 	}
+}
+
+type Services struct {
+	userService         user.Service
+	categoryService     category.Service
+	organizationService organization.Service
+	requestService      request.Service
+}
+
+func InitRoutes(api huma.API, config Config, services Services) {
+	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl)
+	appMiddlewares := []Middleware{
+		middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl),
+		middlewares.OrganizationCheckMiddleware(api, func(organizationId string) (string, error) {
+			id, err := strconv.Atoi(organizationId)
+			if err != nil {
+				return "", err
+			}
+
+			organization, err := services.organizationService.GetOrganizationById(context.Background(), id)
+			if err != nil {
+				return "", err
+			}
+
+			return organization.IAMOrganizationID, nil
+		}),
+	}
+	permissions := middlewares.NewPermissionMiddlewareConfig(api, config.OauthIssuerUrl, config.OauthClientID)
+
+	// register status endpoint
+	registerStatusEndpoint(api)
+
+	// register application middlewares
+	api.UseMiddleware(appMiddlewares...)
+
+	// register handler
+	categoryHandler := categories.NewCategoriesHandler(services.categoryService)
+	organizationHandler := organizations.NewOrganizationHandler(services.organizationService)
+
+	categoryHandler.RegisterRoutes(api, *permissions)
+	organizationHandler.RegisterRoutes(api, *permissions)
 }

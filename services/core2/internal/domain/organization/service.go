@@ -15,3 +15,7 @@ func NewService(organizationRepository OrganizationRepository) Service {
 func (s *service) GetOrganizationsByUserSub(ctx context.Context, userSub string) ([]Organization, error) {
 	return s.organizationRepository.GetOrganizationsByUserSub(ctx, userSub)
 }
+
+func (s *service) GetOrganizationById(ctx context.Context, organizationId int) (Organization, error) {
+	return s.organizationRepository.GetOrganizationById(ctx, organizationId)
+}

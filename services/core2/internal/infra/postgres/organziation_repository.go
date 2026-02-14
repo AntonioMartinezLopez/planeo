@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (c *Client) GetOrganizationIamById(ctx context.Context, id int) (organization.Organization, error) {
+func (c *Client) GetOrganizationById(ctx context.Context, id int) (organization.Organization, error) {
 	query := "SELECT * FROM organizations WHERE id = @id"
 	args := pgx.NamedArgs{"id": id}
 
