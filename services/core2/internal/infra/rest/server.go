@@ -1,4 +1,4 @@
-package server
+package rest
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"planeo/services/core2/internal/domain/user"
 	"planeo/services/core2/internal/infra/rest/api/v1/categories"
 	"planeo/services/core2/internal/infra/rest/api/v1/organizations"
+	"planeo/services/core2/internal/infra/rest/api/v1/requests"
+	"planeo/services/core2/internal/infra/rest/api/v1/users"
 	"strconv"
 	"strings"
 
@@ -30,34 +32,45 @@ type Config struct {
 	AllowOrigins     []string
 }
 
+type Services struct {
+	UserService         user.Service
+	CategoryService     category.Service
+	OrganizationService organization.Service
+	RequestService      request.Service
+}
+
 type Server struct {
-	api    huma.API
-	router *chi.Mux
-	config Config
+	Api    huma.API
+	Router *chi.Mux
+	Config Config
 }
 
 type Middleware = func(ctx huma.Context, next func(huma.Context))
 
-func New(config Config) *Server {
+func New(config Config, services Services) *Server {
 	router := chi.NewRouter()
 	router.Use(middlewares.LoggerMiddleware)
 	router.Use(middleware.Recoverer)
 	router.Use(middlewares.Cors(config.AllowOrigins))
 
-	humaConfig := huma.DefaultConfig(config.AppName, config.Version)
-	humaConfig.Components.SecuritySchemes = getSecuritySchemes(config)
-	humaConfig.Servers = []*huma.Server{
+	humaConfigV1 := huma.DefaultConfig(config.AppName, config.Version)
+	humaConfigV1.Components.SecuritySchemes = getSecuritySchemes(config)
+	humaConfigV1.OpenAPIPath = "/docs/v1/openapi"
+	humaConfigV1.DocsPath = "/docs/v1/"
+	humaConfigV1.Servers = []*huma.Server{
 		{URL: getApiUrl(config)},
 	}
 
 	apiRouter := chi.NewRouter()
-	router.Mount("/api/v1", apiRouter)
-	api := humachi.New(apiRouter, humaConfig)
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, humaConfigV1)
+
+	initRoutes(api, config, services)
 
 	return &Server{
-		api:    api,
-		router: router,
-		config: config,
+		Api:    api,
+		Router: router,
+		Config: config,
 	}
 }
 
@@ -112,14 +125,7 @@ func getSecuritySchemes(config Config) map[string]*huma.SecurityScheme {
 	}
 }
 
-type Services struct {
-	userService         user.Service
-	categoryService     category.Service
-	organizationService organization.Service
-	requestService      request.Service
-}
-
-func InitRoutes(api huma.API, config Config, services Services) {
+func initRoutes(api huma.API, config Config, services Services) {
 	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl)
 	appMiddlewares := []Middleware{
 		middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl),
@@ -129,7 +135,7 @@ func InitRoutes(api huma.API, config Config, services Services) {
 				return "", err
 			}
 
-			organization, err := services.organizationService.GetOrganizationById(context.Background(), id)
+			organization, err := services.OrganizationService.GetOrganizationById(context.Background(), id)
 			if err != nil {
 				return "", err
 			}
@@ -145,10 +151,15 @@ func InitRoutes(api huma.API, config Config, services Services) {
 	// register application middlewares
 	api.UseMiddleware(appMiddlewares...)
 
-	// register handler
-	categoryHandler := categories.NewCategoriesHandler(services.categoryService)
-	organizationHandler := organizations.NewOrganizationHandler(services.organizationService)
+	// create handler
+	categoryHandler := categories.NewCategoriesHandler(services.CategoryService)
+	organizationHandler := organizations.NewOrganizationHandler(services.OrganizationService)
+	requestHandler := requests.NewRequestHandler(services.RequestService)
+	userHandler := users.NewUserHandler(services.UserService)
 
+	// register routes
 	categoryHandler.RegisterRoutes(api, *permissions)
 	organizationHandler.RegisterRoutes(api, *permissions)
+	requestHandler.RegisterRoutes(api, *permissions)
+	userHandler.RegisterRoutes(api, *permissions)
 }

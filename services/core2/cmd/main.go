@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"os"
 	"time"
 
 	"planeo/libs/logger"
@@ -12,19 +14,11 @@ import (
 	"planeo/services/core2/internal/domain/user"
 	"planeo/services/core2/internal/infra/keycloak"
 	"planeo/services/core2/internal/infra/postgres"
+	"planeo/services/core2/internal/infra/rest"
 	keycloakClient "planeo/services/core2/pkg/keycloak"
+
+	"github.com/danielgtaylor/huma/v2"
 )
-
-// func generateOpenApiSpecs(api huma.API, filename string) {
-// 	spec, err := api.OpenAPI().YAML()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	if err := os.WriteFile(filename, spec, 0600); err != nil {
-// 		panic(err)
-// 	}
-// }
 
 func main() {
 	// Initialize logger
@@ -62,10 +56,22 @@ func main() {
 	requestService := request.NewService(db)
 	userService := user.NewService(db, keycloakService)
 
-	_ = categoryService
-	_ = organizationService
-	_ = requestService
-	_ = userService
+	// initialize rest server
+	srv := rest.New(rest.Config{
+		AppName:          "core",
+		Version:          "0.0.1",
+		ServerAddress:    config.Host,
+		OauthIssuerUrl:   config.OauthIssuerUrl(),
+		OauthClientID:    config.KcOauthClientID,
+		EnableStackTrace: false,
+		AllowOrigins:     []string{},
+	}, rest.Services{
+		UserService:         userService,
+		CategoryService:     categoryService,
+		OrganizationService: organizationService,
+		RequestService:      requestService,
+	})
+
 	// // initialize event service
 	// eventService, err := events.NewEventService(config.NatsUrl)
 	// if err != nil {
@@ -76,21 +82,28 @@ func main() {
 	// appFactory := setup.NewApplicationFactory()
 	// application := appFactory.CreateApplication(config, db, eventService)
 
-	// server := http.Server{
-	// 	Addr:              serverConfig,
-	// 	Handler:           application.API.Router,
-	// 	ReadTimeout:       5 * time.Second,
-	// 	WriteTimeout:      5 * time.Second,
-	// 	IdleTimeout:       30 * time.Second,
-	// 	ReadHeaderTimeout: 2 * time.Second,
-	// }
+	server := http.Server{
+		Addr:              serverConfig,
+		Handler:           srv.Router,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+	}
 
-	// generateOpenApiSpecs(application.API.Api, "./docs/open-api-specs.yaml")
+	generateOpenApiSpecs(srv.Api, "./docs/open-api-specs.yaml")
 
-	// log.Info().Msgf("Server Running at %s", serverConfig)
-	// log.Fatal().Msgf("%v", server.ListenAndServe())
-	sleepDuration := 5 * time.Second
-	log.Info().Msgf("Sleeping for %s before closing application", sleepDuration)
-	time.Sleep(sleepDuration)
-	log.Info().Msg("Closing application")
+	log.Info().Msgf("Server Running at %s", serverConfig)
+	log.Fatal().Msgf("%v", server.ListenAndServe())
+}
+
+func generateOpenApiSpecs(api huma.API, filename string) {
+	spec, err := api.OpenAPI().YAML()
+	if err != nil {
+		panic(err)
+	}
+
+	if err := os.WriteFile(filename, spec, 0600); err != nil {
+		panic(err)
+	}
 }

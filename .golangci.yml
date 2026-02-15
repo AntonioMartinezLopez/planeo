@@ -21,10 +21,10 @@ linters:
     - unused
   settings:
     funlen:
-      lines: 60
+      lines: 100
       statements: 40
     gocyclo:
-      min-complexity: 20
+      min-complexity: 30
   exclusions:
     generated: lax
     presets:

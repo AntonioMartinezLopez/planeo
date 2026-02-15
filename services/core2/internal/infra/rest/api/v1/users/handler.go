@@ -2,8 +2,14 @@ package users
 
 import (
 	"context"
+	"net/http"
+	humaUtils "planeo/libs/huma_utils"
+	"planeo/libs/middlewares"
 	"planeo/services/core2/internal/domain/user"
+
 	. "planeo/services/core2/internal/infra/rest/api"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type UserHandler struct {
@@ -125,4 +131,82 @@ func (u *UserHandler) GetUsers(ctx context.Context, input *GetUsersInput) (*GetU
 	response := &GetUsersOutput{}
 	response.Body.Users = users
 	return response, nil
+}
+
+func (u *UserHandler) RegisterRoutes(api huma.API, permissions middlewares.PermissionMiddlewareConfig) {
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID: "get-users",
+		Method:      http.MethodGet,
+		Path:        "/v1/organizations/{organizationId}/iam/users",
+		Summary:     "[Admin] Get all users from organization",
+		Tags:        []string{"User"},
+		Middlewares: huma.Middlewares{permissions.Apply("user", "read")},
+	}), u.GetIAMUsers)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID: "get-user",
+		Method:      http.MethodGet,
+		Path:        "/v1/organizations/{organizationId}/iam/users/{iamUserId}",
+		Summary:     "[Admin] Get single user",
+		Tags:        []string{"User"},
+		Middlewares: huma.Middlewares{permissions.Apply("user", "read")},
+	}), u.GetIAMUser)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "create-user",
+		Method:        http.MethodPost,
+		DefaultStatus: http.StatusCreated,
+		Path:          "/v1/organizations/{organizationId}/iam/users",
+		Summary:       "[Admin] Create user",
+		Tags:          []string{"User"},
+		Middlewares:   huma.Middlewares{permissions.Apply("user", "create")},
+	}), u.CreateUser)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "update-user",
+		Method:        http.MethodPut,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/v1/organizations/{organizationId}/iam/users/{iamUserId}",
+		Summary:       "[Admin] Update user",
+		Tags:          []string{"User"},
+		Middlewares:   huma.Middlewares{permissions.Apply("user", "update")},
+	}), u.UpdateUser)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "delete-user",
+		Method:        http.MethodDelete,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/v1/organizations/{organizationId}/iam/users/{iamUserId}",
+		Summary:       "[Admin] Delete user",
+		Tags:          []string{"User"},
+		Middlewares:   huma.Middlewares{permissions.Apply("user", "delete")},
+	}), u.DeleteUser)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "Assign-user-roles",
+		Method:        http.MethodPut,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/v1/organizations/{organizationId}/iam/users/{iamUserId}/roles",
+		Summary:       "[Admin] Assign roles to a user",
+		Tags:          []string{"User"},
+		Middlewares:   huma.Middlewares{permissions.Apply("user", "update")},
+	}), u.AssignRoles)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID: "get-roles",
+		Method:      http.MethodGet,
+		Path:        "/v1/organizations/{organizationId}/iam/roles",
+		Summary:     "[Admin] Get roles",
+		Tags:        []string{"Roles"},
+		Middlewares: huma.Middlewares{permissions.Apply("role", "read")},
+	}), u.GetAvailableRoles)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID: "get-basic-user-information",
+		Method:      http.MethodGet,
+		Path:        "/v1/organizations/{organizationId}/users",
+		Summary:     "Get basic information of users",
+		Tags:        []string{"User"},
+		Middlewares: huma.Middlewares{permissions.Apply("userinfo", "read")},
+	}), u.GetUsers)
 }

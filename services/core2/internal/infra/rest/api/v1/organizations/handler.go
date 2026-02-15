@@ -47,7 +47,7 @@ func (o *OrganizationHandler) RegisterRoutes(api huma.API, permissions middlewar
 	huma.Register(api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-organizations",
 		Method:      http.MethodGet,
-		Path:        "/organizations",
+		Path:        "/v1/organizations",
 		Summary:     "Get Organizations for Current User",
 		Description: "Returns all organizations that the authenticated user belongs to, based on the sub claim from the JWT token.",
 		Tags:        []string{"Organizations"},

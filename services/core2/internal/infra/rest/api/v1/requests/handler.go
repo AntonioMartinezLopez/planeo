@@ -2,15 +2,21 @@ package requests
 
 import (
 	"context"
+	"net/http"
+	humaUtils "planeo/libs/huma_utils"
+	"planeo/libs/middlewares"
 	"planeo/services/core2/internal/domain/request"
+
 	. "planeo/services/core2/internal/infra/rest/api"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type RequestHandler struct {
 	requestService request.Service
 }
 
-func NewRequestController(requestService request.Service) *RequestHandler {
+func NewRequestHandler(requestService request.Service) *RequestHandler {
 	return &RequestHandler{
 		requestService: requestService,
 	}
@@ -84,4 +90,45 @@ func (r *RequestHandler) DeleteRequest(ctx context.Context, input *DeleteRequest
 	}
 
 	return nil, nil
+}
+
+func (r *RequestHandler) RegisterRoutes(api huma.API, permissions middlewares.PermissionMiddlewareConfig) {
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID: "get-requests",
+		Method:      http.MethodGet,
+		Path:        "/v1/organizations/{organizationId}/requests",
+		Summary:     "Get Requests",
+		Tags:        []string{"Requests"},
+		Middlewares: huma.Middlewares{permissions.Apply("request", "read")},
+	}), r.GetRequests)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "create-request",
+		Method:        http.MethodPost,
+		DefaultStatus: http.StatusCreated,
+		Path:          "/v1/organizations/{organizationId}/requests",
+		Summary:       "Create Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "create")},
+	}), r.CreateRequest)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "update-request",
+		Method:        http.MethodPut,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/v1/organizations/{organizationId}/requests/{requestId}",
+		Summary:       "Update Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "update")},
+	}), r.UpdateRequest)
+
+	huma.Register(api, humaUtils.WithAuth(huma.Operation{
+		OperationID:   "delete-request",
+		Method:        http.MethodDelete,
+		DefaultStatus: http.StatusNoContent,
+		Path:          "/v1/organizations/{organizationId}/requests/{requestId}",
+		Summary:       "Delete Request",
+		Tags:          []string{"Requests"},
+		Middlewares:   huma.Middlewares{permissions.Apply("request", "delete")},
+	}), r.DeleteRequest)
 }
