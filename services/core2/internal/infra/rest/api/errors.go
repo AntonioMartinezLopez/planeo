@@ -6,6 +6,7 @@ import (
 	"planeo/services/core2/internal/domain/organization"
 	"planeo/services/core2/internal/domain/request"
 	"planeo/services/core2/internal/domain/user"
+	"planeo/services/core2/internal/infra/keycloak"
 	err "planeo/services/core2/pkg/errors"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -28,6 +29,15 @@ func NewHTTPError(unknownErr error) huma.StatusError {
 				organization.ErrCodeInternal,
 				user.ErrCodeInternal,
 				request.ErrCodeInternal:
+				return huma.Error500InternalServerError(appError.Message, appError.Unwrap())
+			default:
+				return huma.Error500InternalServerError(appError.Message, appError.Unwrap())
+			}
+		case keycloak.ErrTypeKeycloak:
+			switch appError.Code {
+			case keycloak.ErrCodeKeycloakUserNotFound:
+				return huma.Error404NotFound(appError.Message, appError.Unwrap())
+			case keycloak.ErrCodeKeycloak:
 				return huma.Error500InternalServerError(appError.Message, appError.Unwrap())
 			default:
 				return huma.Error500InternalServerError(appError.Message, appError.Unwrap())

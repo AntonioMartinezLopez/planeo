@@ -65,7 +65,7 @@ func New(config Config, services Services) *Server {
 	router.Mount("/api", apiRouter)
 	api := humachi.New(apiRouter, humaConfigV1)
 
-	initRoutes(api, config, services)
+	InitRoutes(api, config, services)
 
 	return &Server{
 		Api:    api,
@@ -125,7 +125,7 @@ func getSecuritySchemes(config Config) map[string]*huma.SecurityScheme {
 	}
 }
 
-func initRoutes(api huma.API, config Config, services Services) {
+func InitRoutes(api huma.API, config Config, services Services) {
 	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl)
 	appMiddlewares := []Middleware{
 		middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl),

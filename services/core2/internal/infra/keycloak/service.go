@@ -39,7 +39,7 @@ func (k *KeycloakService) GetUserById(ctx context.Context, organizationUuid stri
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		return nil, NewKeycloakError("User not found in organization", nil)
+		return nil, UserNotFoundInOrganizationError
 	}
 
 	keycloakUser, err := k.keycloakAdminClient.GetKeycloakUserById(userId)
@@ -129,7 +129,7 @@ func (k *KeycloakService) UpdateUser(ctx context.Context, organizationUuid strin
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		return NewKeycloakError("User not found in organization", nil)
+		return UserNotFoundInOrganizationError
 	}
 
 	updateKeycloakUserParams := keycloak.UpdateUserParams{
@@ -157,7 +157,7 @@ func (k *KeycloakService) DeleteUser(ctx context.Context, organizationUuid strin
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		return NewKeycloakError("User not found in organization", nil)
+		return UserNotFoundInOrganizationError
 	}
 
 	err := k.keycloakAdminClient.DeleteKeycloakUser(userId)
@@ -194,7 +194,7 @@ func (k *KeycloakService) AssignRolesToUser(ctx context.Context, organizationUui
 	result := UserInOrganization(k.keycloakAdminClient, organizationUuid, userId)
 
 	if !result {
-		return NewKeycloakError("User not found in organization", nil)
+		return UserNotFoundInOrganizationError
 	}
 
 	client, err := k.keycloakAdminClient.GetKeycloakClient(k.config.KcOauthClientID)

@@ -155,6 +155,12 @@ tasks:
       - echo "Running integration tests for core service..."
       - go test ./services/core/... -p 1 -v -count=1
 
+  test:core2:integration:
+    desc: Run core2 service integration tests
+    cmds:
+      - echo "Running integration tests for core2 service..."
+      - go test ./services/core2/... -p 1 -v -count=1
+
   test:core:all:
     desc: Run all core service tests
     cmds:
