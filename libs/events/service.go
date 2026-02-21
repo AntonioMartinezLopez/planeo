@@ -13,13 +13,19 @@ type EventService struct {
 	Stream     jetstream.Stream
 }
 
+type EventServiceInterface interface {
+	SubscribeEmailReceived(ctx context.Context, callback func(payload EmailCreatedPayload) error) error
+	PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error
+	IsConnected() bool
+}
+
 type EventMessage interface {
 	Subject() string
 	Data() []byte
 	Ack() error
 }
 
-func NewEventService(url string) (*EventService, error) {
+func NewEventService(url string) (EventServiceInterface, error) {
 	nc, err := nats.Connect(url)
 	if err != nil {
 		return nil, err

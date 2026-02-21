@@ -1049,7 +1049,7 @@ paths:
       summary: "[Admin] Create user"
       tags:
         - User
-  /v1/organizations/{organizationId}/iam/users/{iamUserId}:
+  /v1/organizations/{organizationId}/iam/users/{uuid}:
     delete:
       operationId: delete-user
       parameters:
@@ -1156,7 +1156,7 @@ paths:
       summary: "[Admin] Update user"
       tags:
         - User
-  /v1/organizations/{organizationId}/iam/users/{iamUserId}/roles:
+  /v1/organizations/{organizationId}/iam/users/{uuid}/roles:
     put:
       operationId: Assign-user-roles
       parameters:

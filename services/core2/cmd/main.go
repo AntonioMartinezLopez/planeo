@@ -12,6 +12,7 @@ import (
 	"planeo/services/core2/internal/domain/organization"
 	"planeo/services/core2/internal/domain/request"
 	"planeo/services/core2/internal/domain/user"
+	coreEvents "planeo/services/core2/internal/infra/events"
 	"planeo/services/core2/internal/infra/keycloak"
 	"planeo/services/core2/internal/infra/postgres"
 	"planeo/services/core2/internal/infra/rest"
@@ -72,15 +73,12 @@ func main() {
 		RequestService:      requestService,
 	})
 
-	// // initialize event service
-	// eventService, err := events.NewEventService(config.NatsUrl)
-	// if err != nil {
-	// 	log.Fatal().Err(err).Msg("Failed to connect to NATS")
-	// }
+	// initialize event service
+	err := coreEvents.InitializeEvents(ctx, config.NatsUrl, coreEvents.Services{RequestService: requestService, CategoryService: categoryService})
 
-	// // initialize application
-	// appFactory := setup.NewApplicationFactory()
-	// application := appFactory.CreateApplication(config, db, eventService)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to NATS")
+	}
 
 	server := http.Server{
 		Addr:              serverConfig,
