@@ -24,18 +24,18 @@ tasks:
       - cd dev && ./install.sh
       - echo "Setting up the dev environment variables..."
       - cp ./dev/.env.template ./dev/.env
-      - cp ./services/core/db/.envrc.template ./services/core/db/.envrc
+      - cp ./services/core/internal/infra/postgres/.envrc.template ./services/core/internal/infra/postgres/.envrc
       - cp ./services/core/.env.template ./services/core/.env
       - cp ./services/email/.env.template ./services/email/.env
     sources:
       - dev/install.sh
       - dev/.env.template
-      - services/core/db/.envrc.template
+      - services/core/internal/infra/postgres/.envrc.template
       - services/core/.env.template
       - services/email/.env.template
     generates:
       - dev/.env
-      - services/core/db/.envrc
+      - services/core/internal/infra/postgres/.envrc
       - services/core/.env
       - services/email/.env
 
@@ -75,7 +75,7 @@ tasks:
 
   migrate:core:
     desc: Run core service database migrations
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - echo "Running core database migrations..."
       - source .envrc && goose up
@@ -89,7 +89,7 @@ tasks:
 
   migrate:core:down:
     desc: Rollback core service database migration
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - source .envrc && goose down
 
@@ -101,7 +101,7 @@ tasks:
 
   migrate:core:status:
     desc: Show core database migration status
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - source .envrc && goose status
 
@@ -121,12 +121,6 @@ tasks:
     cmds:
       - air -c air.toml
 
-  run:core2:
-    desc: Run core service with Air hot-reload
-    dir: services/core2
-    cmds:
-      - air -c air.toml
-
   run:email:
     desc: Run email service with Air hot-reload
     dir: services/email
@@ -143,23 +137,11 @@ tasks:
       - echo "Running unit tests for core service..."
       - go test ./services/core/... -v -short -count=1
 
-  test:core2:unit:
-    desc: Run core service unit tests only
-    cmds:
-      - echo "Running unit tests for core service..."
-      - go test ./services/core2/... -v -short -count=1
-
   test:core:integration:
     desc: Run core service integration tests
     cmds:
       - echo "Running integration tests for core service..."
       - go test ./services/core/... -p 1 -v -count=1
-
-  test:core2:integration:
-    desc: Run core2 service integration tests
-    cmds:
-      - echo "Running integration tests for core2 service..."
-      - go test ./services/core2/... -p 1 -v -count=1
 
   test:core:all:
     desc: Run all core service tests

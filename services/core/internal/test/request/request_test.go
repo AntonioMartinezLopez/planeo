@@ -1,20 +1,14 @@
-package test
+package request
 
 import (
-	"context"
 	"fmt"
-	"planeo/libs/api"
-	"planeo/libs/db"
-	jsonHelper "planeo/libs/json"
-	"planeo/libs/middlewares"
-	"planeo/services/core/internal/resources/organization"
-	"planeo/services/core/internal/resources/request"
-	"planeo/services/core/internal/resources/request/dto"
-	"planeo/services/core/internal/resources/request/models"
-	"planeo/services/core/internal/test/utils"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2/humatest"
+	jsonHelper "planeo/libs/json"
+	"planeo/services/core/internal/domain/request"
+	requestDto "planeo/services/core/internal/infra/rest/api/v1/requests"
+	"planeo/services/core/internal/test/utils"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,27 +20,7 @@ func TestRequestIntegration(t *testing.T) {
 
 	// Start integration environment
 	env := utils.NewIntegrationTestEnvironment(t)
-	db := db.InitializeDatabaseConnection(context.Background(), env.Configuration.DatabaseConfig())
-	_, testApi := humatest.New(t)
-
-	// setup request controller
-	requestRepository := request.NewRequestRepository(db.DB)
-	requestService := request.NewRequestService(requestRepository)
-	requestController := request.NewRequestController(testApi, env.Configuration, requestService)
-
-	// Register controllers
-	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
-	middlewares := []api.Middleware{
-		middlewares.AuthMiddleware(testApi, jwksURL, env.Configuration.OauthIssuerUrl()),
-		middlewares.OrganizationCheckMiddleware(testApi, func(organizationId string) (string, error) {
-			return organization.GetOrganizationIamById(db.DB, organizationId)
-		}),
-	}
-	controllers := []api.Controller{
-		requestController,
-	}
-
-	api.InitializeControllers(testApi, middlewares, controllers)
+	testApi := env.Api
 
 	// table tests for creating and updating requests
 	testCases := []struct {
@@ -280,7 +254,7 @@ func TestRequestIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					response := testApi.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+					response := testApi.Get("/v1/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 					assert.Equal(t, 200, response.Code)
 				})
@@ -294,19 +268,19 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Get("/organizations/1/requests?pageSize=10")
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Get("/organizations/1/requests?pageSize=10", "Authorization: Bearer invalid")
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -318,7 +292,7 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Get("/organizations/3525/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/3525/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -330,7 +304,7 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 		})
@@ -342,10 +316,10 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Get("/organizations/1/requests?pageSize=3", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=3", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var requests struct {
-				Requests   []models.Request
+				Requests   []request.Request
 				NextCursor int
 			}
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
@@ -353,7 +327,7 @@ func TestRequestIntegration(t *testing.T) {
 			assert.Equal(t, 3, len(requests.Requests))
 
 			// Fetch the next page
-			nextPageResponse := testApi.Get(fmt.Sprintf("/organizations/1/requests?pageSize=3&cursor=%d", requests.NextCursor), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			nextPageResponse := testApi.Get(fmt.Sprintf("/v1/organizations/1/requests?pageSize=3&cursor=%d", requests.NextCursor), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			_ = jsonHelper.DecodeJSONAndValidate(nextPageResponse.Result().Body, &requests, true)
 			assert.Equal(t, 200, nextPageResponse.Code)
 			assert.Equal(t, 2, len(requests.Requests))
@@ -368,10 +342,10 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			// Filter by category 1 (Installation)
-			response := testApi.Get("/organizations/1/requests?pageSize=10&selectedCategories=1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10&selectedCategories=1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var requests struct {
-				Requests   []models.Request
+				Requests   []request.Request
 				NextCursor int
 			}
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
@@ -392,10 +366,10 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			// Filter by categories 1 and 2 (Installation and Maintenance)
-			response := testApi.Get("/organizations/1/requests?pageSize=10&selectedCategories=1&selectedCategories=2", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10&selectedCategories=1&selectedCategories=2", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var requests struct {
-				Requests   []models.Request
+				Requests   []request.Request
 				NextCursor int
 			}
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
@@ -416,10 +390,10 @@ func TestRequestIntegration(t *testing.T) {
 			assert.NotNil(t, session)
 
 			// No category filter
-			response := testApi.Get("/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/1/requests?pageSize=10", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var requests struct {
-				Requests   []models.Request
+				Requests   []request.Request
 				NextCursor int
 			}
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &requests, true)
@@ -437,19 +411,19 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateRequestInputBody{})
+			response := testApi.Post("/v1/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), requestDto.CreateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Post("/organizations/1/requests", "", dto.CreateRequestInputBody{})
+			response := testApi.Post("/v1/organizations/1/requests", "", requestDto.CreateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Post("/organizations/1/requests", "Authorization: Bearer invalid", dto.CreateRequestInputBody{})
+			response := testApi.Post("/v1/organizations/1/requests", "Authorization: Bearer invalid", requestDto.CreateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -461,7 +435,7 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Post("/organizations/3525/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateRequestInputBody{})
+			response := testApi.Post("/v1/organizations/3525/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), requestDto.CreateRequestInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -474,7 +448,7 @@ func TestRequestIntegration(t *testing.T) {
 			}
 			assert.NotNil(t, session)
 
-			body := dto.CreateRequestInputBody{
+			body := requestDto.CreateRequestInputBody{
 				Subject:    "Test request",
 				Text:       "Test request",
 				Name:       "Test request",
@@ -488,7 +462,7 @@ func TestRequestIntegration(t *testing.T) {
 			var responseBody struct {
 				Id int `json:"id"`
 			}
-			response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := testApi.Post("/v1/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &responseBody, true)
 
 			assert.Equal(t, 201, response.Code)
@@ -505,7 +479,7 @@ func TestRequestIntegration(t *testing.T) {
 					}
 					assert.NotNil(t, session)
 
-					response := testApi.Post("/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
+					response := testApi.Post("/v1/organizations/1/requests", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
 					assert.Equal(t, 400, response.Code)
 				})
 			}
@@ -521,19 +495,19 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateRequestInputBody{})
+			response := testApi.Put("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), requestDto.UpdateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Put("/organizations/1/requests/1", "", dto.UpdateRequestInputBody{})
+			response := testApi.Put("/v1/organizations/1/requests/1", "", requestDto.UpdateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Put("/organizations/1/requests/1", "Authorization: Bearer invalid", dto.UpdateRequestInputBody{})
+			response := testApi.Put("/v1/organizations/1/requests/1", "Authorization: Bearer invalid", requestDto.UpdateRequestInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -545,7 +519,7 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Put("/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateRequestInputBody{})
+			response := testApi.Put("/v1/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), requestDto.UpdateRequestInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -558,7 +532,7 @@ func TestRequestIntegration(t *testing.T) {
 			}
 			assert.NotNil(t, session)
 
-			body := dto.UpdateRequestInputBody{
+			body := requestDto.UpdateRequestInputBody{
 				Subject:    "Updated request",
 				Text:       "Updated request",
 				Name:       "Updated name",
@@ -569,7 +543,7 @@ func TestRequestIntegration(t *testing.T) {
 				CategoryId: 1,
 			}
 
-			response := testApi.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
+			response := testApi.Put("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), body)
 			assert.Equal(t, 204, response.Code)
 		})
 
@@ -583,7 +557,7 @@ func TestRequestIntegration(t *testing.T) {
 					}
 					assert.NotNil(t, session)
 
-					response := testApi.Put("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
+					response := testApi.Put("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.body)
 					assert.Equal(t, 400, response.Code)
 				})
 			}
@@ -599,19 +573,19 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Delete("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Delete("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Delete("/organizations/1/requests/1", "")
+			response := testApi.Delete("/v1/organizations/1/requests/1", "")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Delete("/organizations/1/requests/1", "Authorization: Bearer invalid")
+			response := testApi.Delete("/v1/organizations/1/requests/1", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -623,7 +597,7 @@ func TestRequestIntegration(t *testing.T) {
 				t.Error(err)
 			}
 			assert.NotNil(t, session)
-			response := testApi.Delete("/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Delete("/v1/organizations/3525/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
@@ -636,7 +610,7 @@ func TestRequestIntegration(t *testing.T) {
 			}
 			assert.NotNil(t, session)
 
-			response := testApi.Delete("/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Delete("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 204, response.Code)
 		})
 	})

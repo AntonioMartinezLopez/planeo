@@ -1,18 +1,11 @@
 package test
 
 import (
-	"context"
 	"fmt"
-	"planeo/libs/api"
-	"planeo/libs/db"
-	"planeo/libs/middlewares"
-	"planeo/services/core/internal/resources/category"
-	"planeo/services/core/internal/resources/category/dto"
-	"planeo/services/core/internal/resources/organization"
+	categoryDto "planeo/services/core/internal/infra/rest/api/v1/categories"
 	"planeo/services/core/internal/test/utils"
 	"testing"
 
-	"github.com/danielgtaylor/huma/v2/humatest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,28 +16,9 @@ func TestCategoryIntegration(t *testing.T) {
 
 	// Start integration environment
 	env := utils.NewIntegrationTestEnvironment(t)
-	db := db.InitializeDatabaseConnection(context.Background(), env.Configuration.DatabaseConfig())
-	_, testApi := humatest.New(t)
+	testApi := env.Api
 
-	// setup category controller
-	categoryRepository := category.NewCategoryRepository(db.DB)
-	categoryService := category.NewCategoryService(categoryRepository)
-	categoryController := category.NewCategoryController(testApi, env.Configuration, categoryService)
-
-	// Register controllers
-	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", env.Configuration.OauthIssuerUrl())
-	middlewares := []api.Middleware{
-		middlewares.AuthMiddleware(testApi, jwksURL, env.Configuration.OauthIssuerUrl()),
-		middlewares.OrganizationCheckMiddleware(testApi, func(organizationId string) (string, error) {
-			return organization.GetOrganizationIamById(db.DB, organizationId)
-		}),
-	}
-	controllers := []api.Controller{
-		categoryController,
-	}
-	api.InitializeControllers(testApi, middlewares, controllers)
-
-	t.Run("GET /categories", func(t *testing.T) {
+	t.Run("GET /v1/organizations/{organizationId}/categories", func(t *testing.T) {
 		t.Run("Test authorization for category access", func(t *testing.T) {
 			testCases := []struct {
 				name     string
@@ -65,7 +39,7 @@ func TestCategoryIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					response := testApi.Get("/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+					response := testApi.Get("/v1/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 					assert.Equal(t, 200, response.Code)
 				})
@@ -73,13 +47,13 @@ func TestCategoryIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Get("/organizations/1/categories")
+			response := testApi.Get("/v1/organizations/1/categories")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Get("/organizations/1/categories", "Authorization: Bearer invalid")
+			response := testApi.Get("/v1/organizations/1/categories", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -92,14 +66,14 @@ func TestCategoryIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Get("/organizations/2/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get("/v1/organizations/2/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
 	})
 
 	//nolint:dupl
-	t.Run("POST /categories", func(t *testing.T) {
+	t.Run("POST /v1/organizations/{organizationId}/categories", func(t *testing.T) {
 		t.Run("Test authorization for category creation", func(t *testing.T) {
 			testCases := []struct {
 				name     string
@@ -119,12 +93,12 @@ func TestCategoryIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					payload := dto.CreateCategoryInputBody{
+					payload := categoryDto.CreateCategoryInputBody{
 						Label:            "Test Category",
 						LabelDescription: "Test description",
 						Color:            "#000000",
 					}
-					response := testApi.Post("/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), payload)
+					response := testApi.Post("/v1/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), payload)
 
 					assert.Equal(t, 201, response.Code)
 				})
@@ -139,7 +113,7 @@ func TestCategoryIntegration(t *testing.T) {
 			}{
 				{
 					name:     "missing label",
-					payload:  `{"labelDescription": "Test description", "Cclor": "#000000"}`,
+					payload:  `{"labelDescription": "Test description", "color": "#000000"}`,
 					expected: 400,
 				},
 				{
@@ -178,7 +152,7 @@ func TestCategoryIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					response := testApi.Post("/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.payload)
+					response := testApi.Post("/v1/organizations/1/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.payload)
 
 					assert.Equal(t, tc.expected, response.Code)
 				})
@@ -186,13 +160,13 @@ func TestCategoryIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Post("/organizations/1/categories", dto.CreateCategoryInputBody{})
+			response := testApi.Post("/v1/organizations/1/categories", categoryDto.CreateCategoryInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Post("/organizations/1/categories", "Authorization: Bearer invalid", dto.CreateCategoryInputBody{})
+			response := testApi.Post("/v1/organizations/1/categories", "Authorization: Bearer invalid", categoryDto.CreateCategoryInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -205,14 +179,14 @@ func TestCategoryIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Post("/organizations/2/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.CreateCategoryInputBody{})
+			response := testApi.Post("/v1/organizations/2/categories", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), categoryDto.CreateCategoryInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
 	})
 
 	//nolint:dupl
-	t.Run("PUT /categories/{categoryId}", func(t *testing.T) {
+	t.Run("PUT /v1/organizations/{organizationId}/categories/{categoryId}", func(t *testing.T) {
 		t.Run("Test authorization for category update", func(t *testing.T) {
 			testCases := []struct {
 				name     string
@@ -232,12 +206,12 @@ func TestCategoryIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					payload := dto.UpdateCategoryInputBody{
+					payload := categoryDto.UpdateCategoryInputBody{
 						Label:            "Updated Category",
 						LabelDescription: "Updated description",
 						Color:            "#FFFFFF",
 					}
-					response := testApi.Put("/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), payload)
+					response := testApi.Put("/v1/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), payload)
 
 					assert.Equal(t, 204, response.Code)
 				})
@@ -252,7 +226,7 @@ func TestCategoryIntegration(t *testing.T) {
 			}{
 				{
 					name:     "missing label",
-					payload:  `{"labelDescription": "Test description", "Cclor": "#000000"}`,
+					payload:  `{"labelDescription": "Test description", "color": "#000000"}`,
 					expected: 400,
 				},
 				{
@@ -291,7 +265,7 @@ func TestCategoryIntegration(t *testing.T) {
 					}
 
 					assert.NotNil(t, session)
-					response := testApi.Put("/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.payload)
+					response := testApi.Put("/v1/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), tc.payload)
 
 					assert.Equal(t, tc.expected, response.Code)
 				})
@@ -299,13 +273,13 @@ func TestCategoryIntegration(t *testing.T) {
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Put("/organizations/1/categories/1", dto.UpdateCategoryInputBody{})
+			response := testApi.Put("/v1/organizations/1/categories/1", categoryDto.UpdateCategoryInputBody{})
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Put("/organizations/1/categories/1", "Authorization: Bearer invalid", dto.UpdateCategoryInputBody{})
+			response := testApi.Put("/v1/organizations/1/categories/1", "Authorization: Bearer invalid", categoryDto.UpdateCategoryInputBody{})
 			assert.Equal(t, 401, response.Code)
 		})
 
@@ -317,13 +291,13 @@ func TestCategoryIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Put("/organizations/2/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), dto.UpdateCategoryInputBody{})
+			response := testApi.Put("/v1/organizations/2/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), categoryDto.UpdateCategoryInputBody{})
 
 			assert.Equal(t, 403, response.Code)
 		})
 	})
 
-	t.Run("DELETE /categories/{categoryId}", func(t *testing.T) {
+	t.Run("DELETE /v1/organizations/{organizationId}/categories/{categoryId}", func(t *testing.T) {
 		t.Run("should return 204 when user is admin", func(t *testing.T) {
 			session, err := env.GetUserSession("admin", "admin")
 
@@ -332,19 +306,19 @@ func TestCategoryIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Delete("/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Delete("/v1/organizations/1/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 204, response.Code)
 		})
 
 		t.Run("should return 401 with missing authorization header", func(t *testing.T) {
-			response := testApi.Delete("/organizations/1/categories/1")
+			response := testApi.Delete("/v1/organizations/1/categories/1")
 
 			assert.Equal(t, 401, response.Code)
 		})
 
 		t.Run("should return 401 with invalid authorization header", func(t *testing.T) {
-			response := testApi.Delete("/organizations/1/categories/1", "Authorization: Bearer invalid")
+			response := testApi.Delete("/v1/organizations/1/categories/1", "Authorization: Bearer invalid")
 
 			assert.Equal(t, 401, response.Code)
 		})
@@ -357,7 +331,7 @@ func TestCategoryIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Delete("/organizations/2/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Delete("/v1/organizations/2/categories/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 403, response.Code)
 		})
