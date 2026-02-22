@@ -2,6 +2,8 @@ name: "Core Test"
 run-name: Build core service on ${{ github.ref }}
 on:
   push:
+    branches:
+      - main
     paths:
       - services/core/**
       - .golangci.yml

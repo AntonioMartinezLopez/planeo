@@ -2,6 +2,8 @@ name: "Web Test"
 run-name: Build web client on ${{ github.ref }}
 on:
   push:
+    branches:
+      - main
     paths:
       - web/**
   pull_request:
