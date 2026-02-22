@@ -180,14 +180,14 @@ tasks:
     dir: services/core
     cmds:
       - echo "Running golangci-lint on core service..."
-      - golangci-lint-v2 run --config ../../.golangci.yml
+      - golangci-lint run --config ../../.golangci.yml
 
   lint:email:
     desc: Run golangci-lint on email service
     dir: services/email
     cmds:
       - echo "Running golangci-lint on email service..."
-      - golangci-lint-v2 run --config ../../.golangci.yml
+      - golangci-lint run --config ../../.golangci.yml
 
   lint:all:
     desc: Run linting on all services

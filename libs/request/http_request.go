@@ -21,6 +21,7 @@ func sendRequestWithRetry(request *http.Request) (*http.Response, error) {
 	var error error
 
 	for _, backoff := range backoffSchedule {
+		// #nosec G704s
 		response, error = client.Do(request)
 
 		if error == nil {

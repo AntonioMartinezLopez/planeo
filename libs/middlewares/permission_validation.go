@@ -87,14 +87,14 @@ func (p *PermissionMiddlewareConfig) Apply(resourceName string, permission strin
 		accessToken, assertionCorrect := ctx.Context().Value(AccessTokenContextKey{}).(string)
 
 		if !assertionCorrect {
-			huma.WriteErr(p.api, ctx, http.StatusForbidden, "Forbidden")
+			_ = huma.WriteErr(p.api, ctx, http.StatusForbidden, "Forbidden")
 			return
 		}
 
 		permissions, err := fetchUserPermissions(p.IssuerUrl, p.ClientId, accessToken)
 
 		if err != nil {
-			huma.WriteErr(p.api, ctx, http.StatusUnauthorized, err.Error())
+			_ = huma.WriteErr(p.api, ctx, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -105,6 +105,6 @@ func (p *PermissionMiddlewareConfig) Apply(resourceName string, permission strin
 			}
 		}
 
-		huma.WriteErr(p.api, ctx, http.StatusUnauthorized, "no permission")
+		_ = huma.WriteErr(p.api, ctx, http.StatusUnauthorized, "no permission")
 	}
 }
