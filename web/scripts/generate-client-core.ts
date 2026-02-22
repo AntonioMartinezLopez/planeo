@@ -14,6 +14,6 @@ createClient({
 
     // ...custom options
     },
-    { name: "@hey-api/client-nuxt", runtimeConfigPath: "../../clients/configuration/core" },
+    { name: "@hey-api/client-nuxt", runtimeConfigPath: "./app/clients/configuration/core" },
   ],
 });

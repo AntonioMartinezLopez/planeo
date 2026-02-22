@@ -6,65 +6,125 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"planeo/services/core/config"
+	"planeo/services/core/internal/config"
+	"planeo/services/core/internal/domain/category"
+	"planeo/services/core/internal/domain/organization"
+	"planeo/services/core/internal/domain/request"
+	"planeo/services/core/internal/domain/user"
+	"planeo/services/core/internal/infra/keycloak"
+	"planeo/services/core/internal/infra/postgres"
+	"planeo/services/core/internal/infra/rest"
+	keycloakClient "planeo/services/core/pkg/keycloak"
 	"testing"
 
-	keycloak "github.com/stillya/testcontainers-keycloak"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/danielgtaylor/huma/v2/humatest"
+	keycloakContainer "github.com/stillya/testcontainers-keycloak"
+	postgresContainer "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 type IntegrationTestEnvironment struct {
-	KeycloakContainer *keycloak.KeycloakContainer
-	PostgresContainer *postgres.PostgresContainer
+	KeycloakContainer *keycloakContainer.KeycloakContainer
+	PostgresContainer *postgresContainer.PostgresContainer
 	Configuration     *config.ApplicationConfiguration
+	Server            *rest.Server
+	DB                *postgres.Client
+	Api               humatest.TestAPI
 }
 
 func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 	// Start containers
-	var keycloakContainer *keycloak.KeycloakContainer
-	var postgresContainer *postgres.PostgresContainer
+	var keycloakCont *keycloakContainer.KeycloakContainer
+	var postgresCont *postgresContainer.PostgresContainer
 
-	keycloakContainer, err := NewKeycloakContainer(context.Background())
+	keycloakCont, err := NewKeycloakContainer(context.Background())
 	if err != nil {
 		fmt.Println("failed to start keycloak container")
 		panic(err)
 	}
 
-	postgresContainer, err = StartPostgresContainer(context.Background())
+	postgresCont, err = StartPostgresContainer(context.Background())
 	if err != nil {
 		fmt.Println("failed to start postgres container")
 		panic(err)
 	}
 
 	// load dynamic ports
-	postresPort, err := postgresContainer.MappedPort(context.Background(), "5432")
+	postgresPort, err := postgresCont.MappedPort(context.Background(), "5432")
 	if err != nil {
 		t.Error(err)
 	}
-	keycloakPort, err := keycloakContainer.MappedPort(context.Background(), "8080")
+	keycloakPort, err := keycloakCont.MappedPort(context.Background(), "8080")
 	if err != nil {
 		t.Error(err)
 	}
 
-	config := config.LoadConfig(context.Background(), "../../../.env.test.template")
-	config.DbPort = postresPort.Port()
-	config.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
+	// Load configuration
+	cfg := config.LoadConfig(context.Background(), "../../../.env.test.template")
+	cfg.DbPort = postgresPort.Port()
+	cfg.KcBaseUrl = fmt.Sprintf("http://localhost:%s", keycloakPort.Port())
 
 	// create environment
 	env := &IntegrationTestEnvironment{
-		KeycloakContainer: keycloakContainer,
-		PostgresContainer: postgresContainer,
-		Configuration:     config,
+		KeycloakContainer: keycloakCont,
+		PostgresContainer: postgresCont,
+		Configuration:     cfg,
 	}
 
 	// run migrations
 	err = env.MigrateDatabase(false)
-
 	if err != nil {
 		t.Error(err.Error())
 		panic(err)
 	}
+
+	// Initialize database
+	db := postgres.NewClient(context.Background(), cfg.DatabaseConfig())
+	env.DB = db
+
+	// Initialize keycloak service
+	keycloakClientProps := keycloakClient.KeycloakAdminClientProps{
+		BaseUrl:      cfg.KcBaseUrl,
+		Realm:        cfg.KcIssuer,
+		Username:     cfg.KcAdminUsername,
+		Password:     cfg.KcAdminPassword,
+		ClientId:     cfg.KcAdminClientID,
+		ClientSecret: cfg.KcAdminClientSecret,
+	}
+	keycloakAdminClient := keycloakClient.NewKeycloakAdminClient(keycloakClientProps)
+	keycloakService := keycloak.NewKeycloakService(keycloakAdminClient, cfg)
+
+	// Initialize all services
+	categoryService := category.NewService(db)
+	organizationService := organization.NewService(db)
+	requestService := request.NewService(db)
+	userService := user.NewService(db, keycloakService)
+
+	// Initialize REST server using humatest
+	_, testApi := humatest.New(t)
+
+	// Initialize routes using the public InitRoutes function
+	restConfig := rest.Config{
+		AppName:          "core",
+		Version:          "0.0.1",
+		ServerAddress:    cfg.Host,
+		OauthIssuerUrl:   cfg.OauthIssuerUrl(),
+		OauthClientID:    cfg.KcOauthClientID,
+		EnableStackTrace: false,
+		AllowOrigins:     []string{},
+	}
+
+	restServices := rest.Services{
+		UserService:         userService,
+		CategoryService:     categoryService,
+		OrganizationService: organizationService,
+		RequestService:      requestService,
+	}
+
+	// Use the public InitRoutes function
+	rest.InitRoutes(testApi, restConfig, restServices)
+
+	env.Api = testApi
 
 	t.Cleanup(func() {
 		ctx := context.Background()
@@ -77,6 +137,8 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 		if err != nil {
 			panic(err)
 		}
+
+		env.DB.Close()
 	})
 
 	return env
@@ -94,7 +156,7 @@ func (env *IntegrationTestEnvironment) MigrateDatabase(tearDown bool) error {
 		operation = "down"
 	}
 
-	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "db", "migrations"))
+	migrationsDir, _ := filepath.Abs(filepath.Join("..", "..", "..", "internal", "infra", "postgres", "migrations"))
 	cmd := exec.Command("goose", "-dir", migrationsDir, "postgres", fmt.Sprintf("postgres://planeo:planeo@127.0.0.1:%s/planeo?sslmode=disable",
 		env.Configuration.DbPort), operation)
 

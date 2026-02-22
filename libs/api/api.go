@@ -34,7 +34,7 @@ func NewHumaAPI(config ApiConfiguation, name string, version string, basePath st
 	router := chi.NewRouter()
 	router.Use(middlewares.LoggerMiddleware)
 	router.Use(middleware.Recoverer)
-	router.Use(middlewares.Cors())
+	router.Use(middlewares.Cors([]string{}))
 
 	humaConfig := huma.DefaultConfig(name, version)
 	humaConfig.Components.SecuritySchemes = getSecuritySchemes(config)

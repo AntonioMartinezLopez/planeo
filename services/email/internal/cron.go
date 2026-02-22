@@ -55,7 +55,7 @@ func (s *CronService) Start() {
 }
 
 func (s *CronService) Stop() {
-	s.scheduler.StopJobs()
+	_ = s.scheduler.StopJobs()
 }
 
 func (s *CronService) RemoveJob(id uuid.UUID) error {

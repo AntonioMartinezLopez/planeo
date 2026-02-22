@@ -64,19 +64,19 @@ func AuthMiddleware(api huma.API, jwksURL string, issuer string) func(ctx huma.C
 		verifiedAccessToken, err := verifyToken(token, keySet)
 
 		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, err.Error())
+			_ = huma.WriteErr(api, ctx, http.StatusUnauthorized, err.Error())
 			return
 		}
 
 		accessClaims, err := parseToken(verifiedAccessToken)
 
 		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())
+			_ = huma.WriteErr(api, ctx, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		if accessClaims.IsExpired() {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token expired")
+			_ = huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token expired")
 			return
 		}
 

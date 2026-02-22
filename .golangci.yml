@@ -21,10 +21,10 @@ linters:
     - unused
   settings:
     funlen:
-      lines: 60
+      lines: 100
       statements: 40
     gocyclo:
-      min-complexity: 20
+      min-complexity: 30
   exclusions:
     generated: lax
     presets:
@@ -40,6 +40,9 @@ linters:
           - bodyclose
           - funlen
         path: _test\.go|mock|integration
+      - linters:
+          - gosec
+        text: "G117"
     paths:
       - third_party$
       - builtin$

@@ -40,7 +40,7 @@ func NewApplicationFactory() *ApplicationFactory {
 	return &ApplicationFactory{}
 }
 
-func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService *events.EventService) *Application {
+func (f *ApplicationFactory) CreateApplication(config *config.ApplicationConfiguration, db *db.DBConnection, eventService events.EventServiceInterface) *Application {
 	// Initialize repositories
 	settingsRepository := settings.NewSettingsRepository(db.DB)
 

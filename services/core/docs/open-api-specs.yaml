@@ -1,55 +1,5 @@
 components:
   schemas:
-    BasicUserInformation:
-      additionalProperties: false
-      properties:
-        createdAt:
-          description: Timestamp when the user was created
-          format: date-time
-          type: string
-        email:
-          description: Email of the user
-          examples:
-            - John.Doe@planeo.de
-          type: string
-        firstName:
-          description: First name of the user
-          examples:
-            - John
-          type: string
-        iamUserId:
-          type: string
-        id:
-          format: int64
-          type: integer
-        lastName:
-          description: Last name of the user
-          examples:
-            - Doe
-          type: string
-        organization:
-          format: int64
-          type: integer
-        updatedAt:
-          description: Timestamp when the user was last updated
-          format: date-time
-          type: string
-        username:
-          description: User name
-          examples:
-            - user123
-          type: string
-      required:
-        - id
-        - username
-        - firstName
-        - lastName
-        - email
-        - iamUserId
-        - organization
-        - createdAt
-        - updatedAt
-      type: object
     Category:
       additionalProperties: false
       properties:
@@ -86,7 +36,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/CreateCategoryInputBody.json
+            - http://localhost/api/schemas/CreateCategoryInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -107,7 +57,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/CreateCategoryOutputBody.json
+            - http://localhost/api/schemas/CreateCategoryOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -124,7 +74,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/CreateRequestInputBody.json
+            - http://localhost/api/schemas/CreateRequestInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -185,7 +135,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/CreateRequestOutputBody.json
+            - http://localhost/api/schemas/CreateRequestOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -202,7 +152,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/CreateUserInputBody.json
+            - http://localhost/api/schemas/CreateUserInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -250,7 +200,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/ErrorModel.json
+            - http://localhost/api/schemas/ErrorModel.json
           format: uri
           readOnly: true
           type: string
@@ -297,7 +247,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/GetCategoriesOutputBody.json
+            - http://localhost/api/schemas/GetCategoriesOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -311,13 +261,49 @@ components:
       required:
         - categories
       type: object
+    GetIAMUserOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost/api/schemas/GetIAMUserOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        user:
+          $ref: "#/components/schemas/IAMUser"
+          description: Information about a user managed in given auth system
+      required:
+        - user
+      type: object
+    GetIAMUsersOutputBody:
+      additionalProperties: false
+      properties:
+        $schema:
+          description: A URL to the JSON Schema for this object.
+          examples:
+            - http://localhost/api/schemas/GetIAMUsersOutputBody.json
+          format: uri
+          readOnly: true
+          type: string
+        users:
+          description: Array of users managed in organization
+          items:
+            $ref: "#/components/schemas/IAMUser"
+          type:
+            - array
+            - "null"
+      required:
+        - users
+      type: object
     GetRequestsOutputBody:
       additionalProperties: false
       properties:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/GetRequestsOutputBody.json
+            - http://localhost/api/schemas/GetRequestsOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -347,7 +333,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/GetRolesOutputBody.json
+            - http://localhost/api/schemas/GetRolesOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -361,54 +347,18 @@ components:
       required:
         - roles
       type: object
-    GetUserInfoOutputBody:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          examples:
-            - http://localhost:8000/api/schemas/GetUserInfoOutputBody.json
-          format: uri
-          readOnly: true
-          type: string
-        users:
-          description: Array of users with basic informations
-          items:
-            $ref: "#/components/schemas/BasicUserInformation"
-          type:
-            - array
-            - "null"
-      required:
-        - users
-      type: object
-    GetUserOutputBody:
-      additionalProperties: false
-      properties:
-        $schema:
-          description: A URL to the JSON Schema for this object.
-          examples:
-            - http://localhost:8000/api/schemas/GetUserOutputBody.json
-          format: uri
-          readOnly: true
-          type: string
-        user:
-          $ref: "#/components/schemas/User"
-          description: Information about a user managed in given auth system
-      required:
-        - user
-      type: object
     GetUsersOutputBody:
       additionalProperties: false
       properties:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/GetUsersOutputBody.json
+            - http://localhost/api/schemas/GetUsersOutputBody.json
           format: uri
           readOnly: true
           type: string
         users:
-          description: Array of users managed in organization
+          description: Array of users with basic informations
           items:
             $ref: "#/components/schemas/User"
           type:
@@ -416,6 +366,68 @@ components:
             - "null"
       required:
         - users
+      type: object
+    IAMUser:
+      additionalProperties: false
+      properties:
+        email:
+          description: Email of the user
+          examples:
+            - John.Doe@planeo.de
+          type: string
+        emailVerified:
+          description: Flag describing whether user email is verified or not
+          type: boolean
+        enabled:
+          description: Flag describing whether user is active or not
+          type: boolean
+        firstName:
+          description: First name of the user
+          examples:
+            - John
+          type: string
+        lastName:
+          description: Last name of the user
+          examples:
+            - Doe
+          type: string
+        requiredActions:
+          description: Array of actions that will be conducted after login
+          items:
+            type: string
+          type:
+            - array
+            - "null"
+        roles:
+          description: Array of roles assigned to the user
+          items:
+            $ref: "#/components/schemas/Role"
+          type:
+            - array
+            - "null"
+        totp:
+          description: Flag describing whether TOTP was set or not
+          type: boolean
+        username:
+          description: User name
+          examples:
+            - user123
+          type: string
+        uuid:
+          description: User identifier within the authentication system
+          examples:
+            - "123456"
+          type: string
+      required:
+        - uuid
+        - username
+        - firstName
+        - lastName
+        - email
+        - totp
+        - enabled
+        - emailVerified
+        - requiredActions
       type: object
     Organization:
       additionalProperties: false
@@ -536,7 +548,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/StatusOutputBody.json
+            - http://localhost/api/schemas/StatusOutputBody.json
           format: uri
           readOnly: true
           type: string
@@ -552,7 +564,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/UpdateCategoryInputBody.json
+            - http://localhost/api/schemas/UpdateCategoryInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -573,7 +585,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/UpdateRequestInputBody.json
+            - http://localhost/api/schemas/UpdateRequestInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -635,7 +647,7 @@ components:
         $schema:
           description: A URL to the JSON Schema for this object.
           examples:
-            - http://localhost:8000/api/schemas/UpdateUserInputBody.json
+            - http://localhost/api/schemas/UpdateUserInputBody.json
           format: uri
           readOnly: true
           type: string
@@ -663,12 +675,6 @@ components:
         requiredActions:
           description: Array of actions that will be conducted after login
           items:
-            default: CONFIGURE_TOTP
-            enum:
-              - CONFIGURE_TOTP
-              - UPDATE_PASSWORD
-              - UPDATE_PROFILE
-              - VERIFY_EMAIL
             type: string
           type:
             - array
@@ -694,59 +700,42 @@ components:
     User:
       additionalProperties: false
       properties:
+        createdAt:
+          description: Timestamp when the user was created
+          format: date-time
+          type: string
         email:
           description: Email of the user
           examples:
             - John.Doe@planeo.de
           type: string
-        emailVerified:
-          description: Flag describing whether user email is verified or not
-          type: boolean
-        enabled:
-          description: Flag describing whether user is active or not
-          type: boolean
         firstName:
           description: First name of the user
           examples:
             - John
           type: string
         id:
-          description: User identifier within the authentication system
-          examples:
-            - "123456"
-          type: string
+          format: int64
+          type: integer
         lastName:
           description: Last name of the user
           examples:
             - Doe
           type: string
-        requiredActions:
-          description: Array of actions that will be conducted after login
-          items:
-            default: CONFIGURE_TOTP
-            enum:
-              - CONFIGURE_TOTP
-              - UPDATE_PASSWORD
-              - UPDATE_PROFILE
-              - VERIFY_EMAIL
-            type: string
-          type:
-            - array
-            - "null"
-        roles:
-          description: Array of roles assigned to the user
-          items:
-            $ref: "#/components/schemas/Role"
-          type:
-            - array
-            - "null"
-        totp:
-          description: Flag describing whether TOTP was set or not
-          type: boolean
+        organization:
+          format: int64
+          type: integer
+        updatedAt:
+          description: Timestamp when the user was last updated
+          format: date-time
+          type: string
         username:
           description: User name
           examples:
             - user123
+          type: string
+        uuid:
+          description: UUID of the user in the IAM system
           type: string
       required:
         - id
@@ -754,10 +743,10 @@ components:
         - firstName
         - lastName
         - email
-        - totp
-        - enabled
-        - emailVerified
-        - requiredActions
+        - uuid
+        - organization
+        - createdAt
+        - updatedAt
       type: object
   securitySchemes:
     bearer:
@@ -771,11 +760,28 @@ components:
           tokenUrl: http://localhost:8080/realms/local/protocol/openid-connect/token
       type: oauth2
 info:
-  title: Planeo Core
+  title: core
   version: 0.0.1
 openapi: 3.1.0
 paths:
-  /organizations:
+  /status:
+    get:
+      operationId: server-status
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusOutputBody"
+          description: OK
+        default:
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: Error
+      summary: Get the server status
+  /v1/organizations:
     get:
       description: Returns all organizations that the authenticated user belongs to, based on the sub claim from the JWT token.
       operationId: get-organizations
@@ -802,7 +808,7 @@ paths:
       summary: Get Organizations for Current User
       tags:
         - Organizations
-  /organizations/{organizationId}/categories:
+  /v1/organizations/{organizationId}/categories:
     get:
       operationId: get-categories
       parameters:
@@ -867,7 +873,7 @@ paths:
       summary: Create Category
       tags:
         - Categories
-  /organizations/{organizationId}/categories/{categoryId}:
+  /v1/organizations/{organizationId}/categories/{categoryId}:
     delete:
       operationId: delete-category
       parameters:
@@ -940,7 +946,7 @@ paths:
       summary: Update Category
       tags:
         - Categories
-  /organizations/{organizationId}/iam/roles:
+  /v1/organizations/{organizationId}/iam/roles:
     get:
       operationId: get-roles
       parameters:
@@ -970,7 +976,7 @@ paths:
       summary: "[Admin] Get roles"
       tags:
         - Roles
-  /organizations/{organizationId}/iam/users:
+  /v1/organizations/{organizationId}/iam/users:
     get:
       operationId: get-users
       parameters:
@@ -994,7 +1000,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetUsersOutputBody"
+                $ref: "#/components/schemas/GetIAMUsersOutputBody"
           description: OK
         default:
           content:
@@ -1043,7 +1049,7 @@ paths:
       summary: "[Admin] Create user"
       tags:
         - User
-  /organizations/{organizationId}/iam/users/{iamUserId}:
+  /v1/organizations/{organizationId}/iam/users/{uuid}:
     delete:
       operationId: delete-user
       parameters:
@@ -1055,12 +1061,12 @@ paths:
             description: ID of the organization
             format: int64
             type: integer
-        - description: IAM id of the user to be deleted
+        - description: IAM uuid of the user to be deleted
           in: path
-          name: iamUserId
+          name: uuid
           required: true
           schema:
-            description: IAM id of the user to be deleted
+            description: IAM uuid of the user to be deleted
             type: string
       responses:
         "204":
@@ -1087,19 +1093,19 @@ paths:
             description: ID of the organization
             format: int64
             type: integer
-        - description: IAM id of a user
+        - description: IAM uuid of a user
           in: path
-          name: iamUserId
+          name: uuid
           required: true
           schema:
-            description: IAM id of a user
+            description: IAM uuid of a user
             type: string
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetUserOutputBody"
+                $ref: "#/components/schemas/GetIAMUserOutputBody"
           description: OK
         default:
           content:
@@ -1123,12 +1129,12 @@ paths:
             description: ID of the organization
             format: int64
             type: integer
-        - description: IAM id of the user to be deleted
+        - description: IAM uuid of the user to be deleted
           in: path
-          name: iamUserId
+          name: uuid
           required: true
           schema:
-            description: IAM id of the user to be deleted
+            description: IAM uuid of the user to be deleted
             type: string
       requestBody:
         content:
@@ -1150,7 +1156,7 @@ paths:
       summary: "[Admin] Update user"
       tags:
         - User
-  /organizations/{organizationId}/iam/users/{iamUserId}/roles:
+  /v1/organizations/{organizationId}/iam/users/{uuid}/roles:
     put:
       operationId: Assign-user-roles
       parameters:
@@ -1164,7 +1170,7 @@ paths:
             type: integer
         - description: ID of the user to be deleted
           in: path
-          name: iamUserId
+          name: uuid
           required: true
           schema:
             description: ID of the user to be deleted
@@ -1194,7 +1200,7 @@ paths:
       summary: "[Admin] Assign roles to a user"
       tags:
         - User
-  /organizations/{organizationId}/requests:
+  /v1/organizations/{organizationId}/requests:
     get:
       operationId: get-requests
       parameters:
@@ -1295,7 +1301,7 @@ paths:
       summary: Create Request
       tags:
         - Requests
-  /organizations/{organizationId}/requests/{requestId}:
+  /v1/organizations/{organizationId}/requests/{requestId}:
     delete:
       operationId: delete-request
       parameters:
@@ -1368,7 +1374,7 @@ paths:
       summary: Update Request
       tags:
         - Requests
-  /organizations/{organizationId}/users:
+  /v1/organizations/{organizationId}/users:
     get:
       operationId: get-basic-user-information
       parameters:
@@ -1385,7 +1391,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetUserInfoOutputBody"
+                $ref: "#/components/schemas/GetUsersOutputBody"
           description: OK
         default:
           content:
@@ -1398,22 +1404,5 @@ paths:
       summary: Get basic information of users
       tags:
         - User
-  /status:
-    get:
-      operationId: server-status
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusOutputBody"
-          description: OK
-        default:
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/ErrorModel"
-          description: Error
-      summary: Get the server status
 servers:
-  - url: http://localhost:8000/api
+  - url: http://localhost/api

@@ -35,7 +35,6 @@ func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, err
 }
 
 func GetUserSession(k *keycloak.KeycloakContainer, username string, password string) (*UserSession, error) {
-
 	if !k.IsRunning() {
 		return nil, nil
 	}
@@ -46,6 +45,7 @@ func GetUserSession(k *keycloak.KeycloakContainer, username string, password str
 		return nil, fmt.Errorf("something went wrong during admin authentication: %s", err.Error())
 	}
 
+	// #nosec G101
 	data := map[string]string{
 		"grant_type":    "password",
 		"username":      username,

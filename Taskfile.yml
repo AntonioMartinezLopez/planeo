@@ -24,18 +24,18 @@ tasks:
       - cd dev && ./install.sh
       - echo "Setting up the dev environment variables..."
       - cp ./dev/.env.template ./dev/.env
-      - cp ./services/core/db/.envrc.template ./services/core/db/.envrc
+      - cp ./services/core/internal/infra/postgres/.envrc.template ./services/core/internal/infra/postgres/.envrc
       - cp ./services/core/.env.template ./services/core/.env
       - cp ./services/email/.env.template ./services/email/.env
     sources:
       - dev/install.sh
       - dev/.env.template
-      - services/core/db/.envrc.template
+      - services/core/internal/infra/postgres/.envrc.template
       - services/core/.env.template
       - services/email/.env.template
     generates:
       - dev/.env
-      - services/core/db/.envrc
+      - services/core/internal/infra/postgres/.envrc
       - services/core/.env
       - services/email/.env
 
@@ -75,7 +75,7 @@ tasks:
 
   migrate:core:
     desc: Run core service database migrations
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - echo "Running core database migrations..."
       - source .envrc && goose up
@@ -89,7 +89,7 @@ tasks:
 
   migrate:core:down:
     desc: Rollback core service database migration
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - source .envrc && goose down
 
@@ -101,7 +101,7 @@ tasks:
 
   migrate:core:status:
     desc: Show core database migration status
-    dir: services/core/db
+    dir: services/core/internal/infra/postgres
     cmds:
       - source .envrc && goose status
 
@@ -180,14 +180,14 @@ tasks:
     dir: services/core
     cmds:
       - echo "Running golangci-lint on core service..."
-      - golangci-lint-v2 run --config ../../.golangci.yml
+      - golangci-lint run --config ../../.golangci.yml
 
   lint:email:
     desc: Run golangci-lint on email service
     dir: services/email
     cmds:
       - echo "Running golangci-lint on email service..."
-      - golangci-lint-v2 run --config ../../.golangci.yml
+      - golangci-lint run --config ../../.golangci.yml
 
   lint:all:
     desc: Run linting on all services

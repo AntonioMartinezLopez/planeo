@@ -37,18 +37,19 @@ func (nc *EventService) PublishEmailReceived(ctx context.Context, payload EmailC
 }
 
 func (nc *EventService) SubscribeEmailReceived(ctx context.Context, handler func(EmailCreatedPayload) error) error {
-
 	err := nc.Subscribe(ctx, subscriptionName, subject, func(msg jetstream.Msg) {
 		var payload EmailCreatedPayload
 		if err := json.Unmarshal(msg.Data(), &payload); err != nil {
 			return
 		}
-		defer msg.Ack()
 
 		err := handler(payload)
 		if err != nil {
+			_ = msg.NakWithDelay(1 * time.Minute)
 			return
 		}
+
+		_ = msg.Ack()
 	})
 
 	if err != nil {
