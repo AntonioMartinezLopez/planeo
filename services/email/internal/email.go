@@ -24,6 +24,8 @@ type IMAPServiceInterface interface {
 
 type EventServiceInterface interface {
 	PublishEmailReceived(ctx context.Context, payload events.EmailCreatedPayload) error
+	PublishEmailCheckJob(ctx context.Context, payload events.EmailCheckJobPayload) error
+	SubscribeEmailCheckJob(ctx context.Context, handler func(payload events.EmailCheckJobPayload) error) error
 	IsConnected() bool
 }
 

@@ -16,6 +16,8 @@ type EventService struct {
 type EventServiceInterface interface {
 	SubscribeEmailReceived(ctx context.Context, callback func(payload EmailCreatedPayload) error) error
 	PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error
+	PublishEmailCheckJob(ctx context.Context, payload EmailCheckJobPayload) error
+	SubscribeEmailCheckJob(ctx context.Context, handler func(payload EmailCheckJobPayload) error) error
 	IsConnected() bool
 }
 

@@ -21,6 +21,18 @@ type ApplicationConfiguration struct {
 	KcBaseUrl       string
 	KcIssuer        string
 	KcOauthClientID string
+	// Mode: "publisher" (schedules jobs), "worker" (processes jobs), or "both" (deprecated for production)
+	Mode            string
+}
+
+// IsPublisher returns true if this instance should publish jobs
+func (config *ApplicationConfiguration) IsPublisher() bool {
+	return config.Mode == "publisher" || config.Mode == "both" || config.Mode == ""
+}
+
+// IsWorker returns true if this instance should process jobs
+func (config *ApplicationConfiguration) IsWorker() bool {
+	return config.Mode == "worker" || config.Mode == "both" || config.Mode == ""
 }
 
 func (config *ApplicationConfiguration) ServerConfig() string {
@@ -45,6 +57,12 @@ func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfigurat
 		logger.Warn().Err(err).Msg("Error loading .env file")
 	}
 
+	// Read MODE with default to "both" for backward compatibility
+	mode := os.Getenv("MODE")
+	if mode == "" {
+		mode = "both"
+	}
+
 	config := &ApplicationConfiguration{
 		Host:            readEnvVariable(ctx, "HOST"),
 		Port:            readEnvVariable(ctx, "PORT"),
@@ -57,6 +75,7 @@ func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfigurat
 		KcBaseUrl:       readEnvVariable(ctx, "KC_BASE_URL"),
 		KcIssuer:        readEnvVariable(ctx, "KC_ISSUER_REALM"),
 		KcOauthClientID: readEnvVariable(ctx, "KC_OAUTH_CLIENT_ID"),
+		Mode:            mode,
 	}
 
 	return config
