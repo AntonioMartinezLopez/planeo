@@ -19,7 +19,6 @@ type cronServiceInterface interface {
 type imapServiceInterface interface {
 	FetchAllUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error)
 	TestConnection(ctx context.Context, settings IMAPSettings) error
-	MarkMailsAsUnseen(ctx context.Context, settings IMAPSettings, emails []Email) error
 }
 
 type eventServiceInterface interface {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	appError "planeo/libs/errors"
 	"planeo/libs/logger"
 	"strings"
@@ -43,27 +42,6 @@ func (s *IMAPService) TestConnection(ctx context.Context, settings IMAPSettings)
 		return err
 	}
 	defer c.Logout()
-	return nil
-}
-
-func (s *IMAPService) MarkMailsAsUnseen(ctx context.Context, settings IMAPSettings, emails []Email) error {
-	l := logger.FromContext(ctx)
-	c, err := s.login(ctx, settings)
-	if err != nil {
-		return err
-	}
-	defer c.Logout()
-
-	seqSet := imap.SeqSet{}
-	for _, email := range emails {
-		seqSet.AddNum(email.SeqNum)
-	}
-
-	storeFlags := imap.StoreFlags{Op: imap.StoreFlagsDel, Flags: []imap.Flag{imap.FlagSeen}, Silent: true}
-	if err := c.Store(seqSet, &storeFlags, nil).Close(); err != nil {
-		l.Error().Err(err).Msg("failed to mark mails as unseen")
-		return err
-	}
 	return nil
 }
 
@@ -177,7 +155,7 @@ func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.Fetch
 		}
 	}
 	if !ok {
-		log.Fatalf("FETCH command did not return body section")
+		return Email{}, fmt.Errorf("FETCH command did not return body section")
 	}
 
 	mr, err := mail.CreateReader(bodySection.Literal)

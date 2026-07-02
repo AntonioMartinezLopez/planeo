@@ -7,6 +7,7 @@ import (
 	"planeo/libs/middlewares"
 	"planeo/services/email/internal/config"
 	"planeo/services/email/internal/domain/setting"
+	. "planeo/services/email/internal/infra/rest/api"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -39,7 +40,7 @@ func (h *SettingsHandler) InitializeRoutes() {
 	}), func(ctx context.Context, input *GetSettingsInput) (*GetSettingsOutput, error) {
 		settings, err := h.settingService.GetSettings(ctx, input.OrganizationId)
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		resp := &GetSettingsOutput{}
 		resp.Body.Settings = settings
@@ -63,7 +64,7 @@ func (h *SettingsHandler) InitializeRoutes() {
 			OrganizationID: input.OrganizationId,
 		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		return nil, nil
 	})
@@ -86,7 +87,7 @@ func (h *SettingsHandler) InitializeRoutes() {
 			OrganizationID: input.OrganizationId,
 		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		return nil, nil
 	})
@@ -102,7 +103,7 @@ func (h *SettingsHandler) InitializeRoutes() {
 	}), func(ctx context.Context, input *DeleteSettingInput) (*struct{}, error) {
 		err := h.settingService.DeleteSetting(ctx, input.OrganizationId, input.SettingId)
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		return nil, nil
 	})
@@ -123,7 +124,7 @@ func (h *SettingsHandler) InitializeRoutes() {
 			Password: input.Body.Password,
 		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		return nil, nil
 	})
