@@ -1,7 +1,22 @@
 package postgres
 
-import appError "planeo/libs/errors"
+import (
+	err "planeo/services/email/pkg/errors"
+)
 
-func NewDatabaseError(message string, underlyingErr error) *appError.Error {
-	return appError.New(appError.InternalError, message, underlyingErr)
+const (
+	ErrTypeDatabase = "database"
+)
+
+const (
+	ErrCodeInternal = iota + 6001000
+)
+
+func NewDatabaseError(message string, underlyingErr error) *err.Error {
+	return &err.Error{
+		Message: message,
+		Code:    ErrCodeInternal,
+		Type:    ErrTypeDatabase,
+		Err:     underlyingErr,
+	}
 }

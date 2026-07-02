@@ -84,7 +84,7 @@ func (c *Client) UpdateSetting(ctx context.Context, s setting.UpdateSetting) (se
 	updated, err := pgx.CollectExactlyOneRow(row, pgx.RowToStructByName[setting.Setting])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return setting.Setting{}, setting.ErrSettingNotFound
+			return setting.Setting{}, setting.SettingNotFoundError
 		}
 		return setting.Setting{}, NewDatabaseError("error collecting setting", err)
 	}
@@ -99,7 +99,7 @@ func (c *Client) DeleteSetting(ctx context.Context, organizationId int, settingI
 	}
 
 	if result.RowsAffected() == 0 {
-		return setting.ErrSettingNotFound
+		return setting.SettingNotFoundError
 	}
 	return nil
 }
