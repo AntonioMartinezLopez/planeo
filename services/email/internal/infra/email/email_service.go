@@ -23,14 +23,18 @@ type imapServiceInterface interface {
 	MarkMailsAsUnseen(ctx context.Context, settings IMAPSettings, emails []Email) error
 }
 
+type eventServiceInterface interface {
+	PublishEmailReceived(ctx context.Context, payload events.EmailCreatedPayload) error
+}
+
 type EmailService struct {
 	cronService  cronServiceInterface
 	imapService  imapServiceInterface
-	eventService events.EventServiceInterface
+	eventService eventServiceInterface
 	logger       zerolog.Logger
 }
 
-func NewEmailService(cron cronServiceInterface, imap imapServiceInterface, eventService events.EventServiceInterface) *EmailService {
+func NewEmailService(cron cronServiceInterface, imap imapServiceInterface, eventService eventServiceInterface) *EmailService {
 	return &EmailService{
 		cronService:  cron,
 		imapService:  imap,
