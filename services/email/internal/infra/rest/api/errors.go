@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	emailInfra "planeo/services/email/internal/infra/email"
 	"planeo/services/email/internal/domain/setting"
 	"planeo/services/email/internal/infra/postgres"
 	err "planeo/services/email/pkg/errors"
@@ -24,6 +25,8 @@ func NewHTTPError(unknownErr error) huma.StatusError {
 			}
 		case postgres.ErrTypeDatabase:
 			return huma.Error500InternalServerError(appError.Message, appError.Unwrap())
+		case emailInfra.ErrTypeIMAP:
+			return huma.Error400BadRequest(appError.Message, appError.Unwrap())
 		default:
 			return huma.Error500InternalServerError(appError.Message, appError.Unwrap())
 		}

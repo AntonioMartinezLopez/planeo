@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	appError "planeo/libs/errors"
 	"planeo/libs/logger"
 	"strings"
 	"time"
@@ -117,7 +116,7 @@ func (s *IMAPService) login(ctx context.Context, settings IMAPSettings) (*imapcl
 	case 3143:
 		c, err = imapclient.DialInsecure(address, nil)
 	default:
-		e := appError.New(appError.ValidationError, fmt.Sprintf("Invalid port: %v", settings.Port))
+		e := NewIMAPError(fmt.Sprintf("Invalid port: %v", settings.Port), nil)
 		l.Error().Err(e).Msg("can not connect to server")
 		return nil, e
 	}
