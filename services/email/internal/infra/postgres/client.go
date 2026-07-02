@@ -1,4 +1,3 @@
-// services/email/internal/infra/postgres/client.go
 package postgres
 
 import (

@@ -1,4 +1,3 @@
-// services/email/internal/domain/setting/model.go
 package setting
 
 import "time"

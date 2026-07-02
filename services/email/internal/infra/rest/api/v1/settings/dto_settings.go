@@ -1,4 +1,3 @@
-// services/email/internal/infra/rest/api/v1/settings/dto_settings.go
 package settings
 
 import "planeo/services/email/internal/domain/setting"

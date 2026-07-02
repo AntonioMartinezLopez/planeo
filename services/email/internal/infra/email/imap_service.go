@@ -1,4 +1,3 @@
-// services/email/internal/infra/email/imap_service.go
 package email
 
 import (

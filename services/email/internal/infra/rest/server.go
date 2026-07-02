@@ -1,4 +1,3 @@
-// services/email/internal/infra/rest/server.go
 package rest
 
 import (

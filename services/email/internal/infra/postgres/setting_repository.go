@@ -1,4 +1,3 @@
-// services/email/internal/infra/postgres/setting_repository.go
 package postgres
 
 import (

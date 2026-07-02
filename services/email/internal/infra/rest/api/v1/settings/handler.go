@@ -1,4 +1,3 @@
-// services/email/internal/infra/rest/api/v1/settings/handler.go
 package settings
 
 import (

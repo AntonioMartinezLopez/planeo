@@ -1,4 +1,3 @@
-// services/email/internal/domain/setting/service.go
 package setting
 
 import "context"

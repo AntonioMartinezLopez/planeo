@@ -1,4 +1,3 @@
-// services/email/internal/config/config.go
 package config
 
 import (

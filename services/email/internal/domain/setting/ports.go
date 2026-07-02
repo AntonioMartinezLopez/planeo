@@ -1,4 +1,3 @@
-// services/email/internal/domain/setting/ports.go
 package setting
 
 import "context"

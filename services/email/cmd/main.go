@@ -1,4 +1,3 @@
-// services/email/cmd/main.go
 package main
 
 import (
