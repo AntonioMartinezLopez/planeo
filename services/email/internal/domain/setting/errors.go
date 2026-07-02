@@ -1,5 +1,29 @@
 package setting
 
-import "errors"
+import (
+	err "planeo/services/email/pkg/errors"
+)
 
-var ErrSettingNotFound = errors.New("setting not found")
+const (
+	ErrTypeDomain = "domain"
+)
+
+const (
+	ErrCodeSettingNotFound = iota + 6000000
+	ErrCodeInternal
+)
+
+var SettingNotFoundError = &err.Error{
+	Message: "Setting not found",
+	Code:    ErrCodeSettingNotFound,
+	Type:    ErrTypeDomain,
+}
+
+func NewInternalError(msg string, underlyingErr error) *err.Error {
+	return &err.Error{
+		Message: msg,
+		Code:    ErrCodeInternal,
+		Type:    ErrTypeDomain,
+		Err:     underlyingErr,
+	}
+}
