@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # Go modules — single root go.mod covers both services
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      go-minor-patch:
+        update-types:
+          - minor
+          - patch
+        # v0.x deps have no stability contract; keep them out of auto-group
+        exclude-patterns:
+          - "github.com/tmc/langchaingo"
+          - "github.com/emersion/go-imap*"
+    ignore:
+      # Major bumps need manual migration (import path changes + API review)
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # Frontend (Nuxt / npm)
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions-minor-patch:
+        update-types:
+          - minor
+          - patch
