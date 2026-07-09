@@ -25,9 +25,9 @@ func main() {
 	db := postgres.NewClient(ctx, cfg.DatabaseConfig())
 	defer db.Close()
 
-	eventService, err := events.NewEventService(cfg.NatsUrl)
+	eventService, err := events.NewEventService(cfg.KafkaBrokers)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to NATS")
+		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 
 	cronService := emailInfra.NewCronService()
