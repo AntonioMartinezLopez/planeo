@@ -2,15 +2,17 @@ package events
 
 import (
 	"context"
+	"strings"
 	"time"
 
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
+	"planeo/libs/logger"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 type EventService struct {
-	Connection *nats.Conn
-	Stream     jetstream.Stream
+	Client  *kgo.Client
+	Brokers []string
 }
 
 type EventServiceInterface interface {
@@ -19,88 +21,88 @@ type EventServiceInterface interface {
 	IsConnected() bool
 }
 
-type EventMessage interface {
-	Subject() string
-	Data() []byte
-	Ack() error
-}
+func NewEventService(brokers string) (EventServiceInterface, error) {
+	seeds := strings.Split(brokers, ",")
 
-func NewEventService(url string) (EventServiceInterface, error) {
-	nc, err := nats.Connect(url)
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers(seeds...),
+	)
 	if err != nil {
 		return nil, err
-	}
-
-	js, err := jetstream.New(nc)
-	if err != nil {
-		nc.Close()
-
-		return nil, err
-	}
-
-	config := jetstream.StreamConfig{
-		Name:      "EVENTS",
-		Retention: jetstream.WorkQueuePolicy,
-		Subjects:  []string{"events.>"},
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	stream, err := js.CreateStream(ctx, config)
-	if err != nil {
-		nc.Close()
+	if err := client.Ping(ctx); err != nil {
+		client.Close()
 		return nil, err
 	}
 
-	return &EventService{Connection: nc, Stream: stream}, nil
+	return &EventService{Client: client, Brokers: seeds}, nil
 }
 
-func (nc *EventService) IsConnected() bool {
-	return nc.Connection.Status() == nats.CONNECTED
+func (es *EventService) IsConnected() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	return es.Client.Ping(ctx) == nil
 }
 
-func (nc *EventService) Publish(ctx context.Context, subject string, data []byte) error {
+func (es *EventService) Publish(ctx context.Context, topic string, data []byte) error {
+	record := &kgo.Record{Topic: topic, Value: data}
 
-	js, err := jetstream.New(nc.Connection)
+	results := es.Client.ProduceSync(ctx, record)
+
+	return results.FirstErr()
+}
+
+func (es *EventService) Subscribe(ctx context.Context, groupName string, topic string, handler func(data []byte) error) error {
+	consumer, err := kgo.NewClient(
+		kgo.SeedBrokers(es.Brokers...),
+		kgo.ConsumerGroup(groupName),
+		kgo.ConsumeTopics(topic),
+		kgo.DisableAutoCommit(),
+	)
 	if err != nil {
-		nc.Close()
 		return err
 	}
 
-	status := js.Conn().Status()
-	if status != nats.CONNECTED {
-		return nats.ErrConnectionClosed
-	}
+	log := logger.FromContext(ctx)
 
-	_, err = js.Publish(ctx, subject, data)
+	go func() {
+		defer consumer.Close()
 
-	if err != nil {
-		return err
-	}
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+
+			fetches := consumer.PollFetches(ctx)
+			if fetches.IsClientClosed() {
+				return
+			}
+
+			fetches.EachError(func(_ string, _ int32, err error) {
+				log.Error().Err(err).Msg("kafka fetch error")
+			})
+
+			fetches.EachRecord(func(record *kgo.Record) {
+				if err := handler(record.Value); err != nil {
+					log.Error().Err(err).Msg("failed to process kafka message, skipping commit")
+					return
+				}
+
+				if err := consumer.CommitRecords(ctx, record); err != nil {
+					log.Error().Err(err).Msg("failed to commit kafka offset")
+				}
+			})
+		}
+	}()
 
 	return nil
 }
 
-func (nc *EventService) Subscribe(ctx context.Context, subscriptionName string, subject string, handler jetstream.MessageHandler) error {
-	consumer, err := nc.Stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
-		FilterSubject: subject,
-		AckPolicy:     jetstream.AckExplicitPolicy,
-		Durable:       subscriptionName,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	_, err = consumer.Consume(handler)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (nc *EventService) Close() {
-	nc.Connection.Close()
+func (es *EventService) Close() {
+	es.Client.Close()
 }

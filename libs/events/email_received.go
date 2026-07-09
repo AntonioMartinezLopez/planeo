@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"time"
-
-	"github.com/nats-io/nats.go/jetstream"
 )
 
 type EmailCreatedPayload struct {
@@ -17,44 +15,25 @@ type EmailCreatedPayload struct {
 	OrganizationId int       `json:"organizationId"`
 }
 
-var subject = "events.email.received"
+var topic = "email-received"
 var subscriptionName = "email-receiver"
 
-func (nc *EventService) PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error {
-	json, err := json.Marshal(payload)
-
+func (es *EventService) PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error {
+	data, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	err = nc.Publish(ctx, subject, json)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return es.Publish(ctx, topic, data)
 }
 
-func (nc *EventService) SubscribeEmailReceived(ctx context.Context, handler func(EmailCreatedPayload) error) error {
-	err := nc.Subscribe(ctx, subscriptionName, subject, func(msg jetstream.Msg) {
+func (es *EventService) SubscribeEmailReceived(ctx context.Context, handler func(EmailCreatedPayload) error) error {
+	return es.Subscribe(ctx, subscriptionName, topic, func(data []byte) error {
 		var payload EmailCreatedPayload
-		if err := json.Unmarshal(msg.Data(), &payload); err != nil {
-			return
+		if err := json.Unmarshal(data, &payload); err != nil {
+			return err
 		}
 
-		err := handler(payload)
-		if err != nil {
-			_ = msg.NakWithDelay(1 * time.Minute)
-			return
-		}
-
-		_ = msg.Ack()
+		return handler(payload)
 	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
