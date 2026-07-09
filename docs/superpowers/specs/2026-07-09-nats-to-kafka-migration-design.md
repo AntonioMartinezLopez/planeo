@@ -76,3 +76,34 @@ No existing tests reference NATS, so there is nothing to migrate. No new integra
 - Real retry/dead-letter handling for failed message processing.
 - Explicit topic provisioning via OpenTofu-managed infrastructure.
 - Any multi-topic or multi-consumer-group support beyond the single `email-received` flow.
+
+## Kafka good practices not addressed by this migration
+
+This migration is intentionally minimal. The following are standard Kafka production practices that this pass does **not** implement — tracked here so they can be picked up deliberately in a later redesign rather than assumed to already be in place.
+
+**Delivery & correctness**
+- No message key on produced records — no per-entity (e.g. per-`OrganizationId`) ordering guarantee within a partition.
+- No consumer-side dedup — Kafka is at-least-once; a crash between processing and offset commit can redeliver a message the consumer already acted on. `MessageID` is available on the payload for this purpose but unused.
+- No dead-letter-topic / max-retry-count pattern — once real retry is added, a permanently failing message will block its partition indefinitely rather than being routed aside.
+- No idempotent-producer / durability tuning (`enable.idempotence`, `acks=all`) — running on client/broker defaults.
+
+**Topic & cluster design**
+- Single partition, single broker, replication factor 1 — no consumer parallelism, no fault tolerance.
+- No explicit topic config (`retention.ms`, `cleanup.policy`, `min.insync.replicas`) — broker defaults only.
+- Topic auto-creation relied on rather than explicit provisioning (tracked separately for the future OpenTofu-managed infra work).
+- Consumer group strategy is a known placeholder, not designed for multiple independent consumers of one topic.
+
+**Schema & contracts**
+- No schema registry or compatibility checks (Avro/Protobuf/JSON Schema) — raw JSON with no guardrail against producer/consumer version drift.
+
+**Operations & observability**
+- No consumer lag monitoring or alerting.
+- No metrics export (e.g. Prometheus) or trace-context propagation through message headers.
+- No graceful shutdown wiring for the poll loop (draining in-flight work, leaving the consumer group cleanly).
+- Single-threaded poll loop — sequential processing per consumer, no concurrency control.
+
+**Security**
+- No auth/encryption — plaintext, no SASL/TLS, no ACLs restricting which service may produce/consume which topics. Acceptable for local dev only.
+
+**Testing**
+- No integration tests for the messaging layer (matches today's NATS gap, but Kafka's broker/consumer-group failure modes make this more valuable to close going forward).
