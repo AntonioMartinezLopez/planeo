@@ -60,6 +60,8 @@ Same structure as today: package-level `topic = "email-received"` (renamed from 
 
 Replace the `nats` service with a single-node KRaft-mode Kafka broker (no Zookeeper), using the official `apache/kafka` image in combined broker+controller mode, exposing `9092`, with `auto.create.topics.enable=true`.
 
+Also add a `kafka-ui` service running **kafbat-ui** (community-maintained fork of `provectus/kafka-ui`), pointed at the broker's internal listener, exposed on a dev-friendly port (e.g. `8080`) for browsing topics, consumer groups/lag, and messages during local development.
+
 ### Dependencies (`go.mod`)
 
 Remove `github.com/nats-io/nats.go` and its indirect deps (`nats-io/nkeys`, `nats-io/nuid`). Add `github.com/twmb/franz-go` (`kgo` package).
