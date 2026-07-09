@@ -26,6 +26,7 @@ func NewEventService(brokers string) (EventServiceInterface, error) {
 
 	client, err := kgo.NewClient(
 		kgo.SeedBrokers(seeds...),
+		kgo.AllowAutoTopicCreation(),
 	)
 	if err != nil {
 		return nil, err
@@ -60,6 +61,7 @@ func (es *EventService) Publish(ctx context.Context, topic string, data []byte) 
 func (es *EventService) Subscribe(ctx context.Context, groupName string, topic string, handler func(data []byte) error) error {
 	consumer, err := kgo.NewClient(
 		kgo.SeedBrokers(es.Brokers...),
+		kgo.AllowAutoTopicCreation(),
 		kgo.ConsumerGroup(groupName),
 		kgo.ConsumeTopics(topic),
 		kgo.DisableAutoCommit(),
