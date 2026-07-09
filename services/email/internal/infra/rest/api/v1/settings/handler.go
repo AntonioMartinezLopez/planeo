@@ -5,51 +5,49 @@ import (
 	"net/http"
 	humaUtils "planeo/libs/huma_utils"
 	"planeo/libs/middlewares"
-	"planeo/services/email/config"
-	"planeo/services/email/internal/resources/settings/dto"
-	"planeo/services/email/internal/resources/settings/models"
+	"planeo/services/email/internal/config"
+	"planeo/services/email/internal/domain/setting"
+	. "planeo/services/email/internal/infra/rest/api"
 
 	"github.com/danielgtaylor/huma/v2"
 )
 
-type SettingsController struct {
-	api             huma.API
-	settingsService *SettingsService
-	config          *config.ApplicationConfiguration
+type SettingsHandler struct {
+	api            huma.API
+	settingService setting.Service
+	config         *config.ApplicationConfiguration
 }
 
-func NewSettingsController(api huma.API, config *config.ApplicationConfiguration, settingsService *SettingsService) *SettingsController {
-	return &SettingsController{
-		api:             api,
-		settingsService: settingsService,
-		config:          config,
+func NewSettingsHandler(api huma.API, cfg *config.ApplicationConfiguration, svc setting.Service) *SettingsHandler {
+	return &SettingsHandler{
+		api:            api,
+		settingService: svc,
+		config:         cfg,
 	}
 }
 
 //nolint:funlen
-func (s *SettingsController) InitializeRoutes() {
-	permissions := middlewares.NewPermissionMiddlewareConfig(s.api, s.config.OauthIssuerUrl(), s.config.KcOauthClientID)
+func (h *SettingsHandler) InitializeRoutes() {
+	permissions := middlewares.NewPermissionMiddlewareConfig(h.api, h.config.OauthIssuerUrl(), h.config.KcOauthClientID)
 
-	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+	huma.Register(h.api, humaUtils.WithAuth(huma.Operation{
 		OperationID: "get-settings",
 		Method:      http.MethodGet,
 		Path:        "/organizations/{organizationId}/settings",
 		Summary:     "Get email settings for an organization",
 		Tags:        []string{"Settings"},
 		Middlewares: huma.Middlewares{permissions.Apply("organization", "manage")},
-	}), func(ctx context.Context, input *dto.GetSettingsInput) (*dto.GetSettingsOutput, error) {
-
-		settings, err := s.settingsService.GetSettings(ctx, input.OrganizationId)
+	}), func(ctx context.Context, input *GetSettingsInput) (*GetSettingsOutput, error) {
+		settings, err := h.settingService.GetSettings(ctx, input.OrganizationId)
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
-
-		response := &dto.GetSettingsOutput{}
-		response.Body.Settings = settings
-		return response, nil
+		resp := &GetSettingsOutput{}
+		resp.Body.Settings = settings
+		return resp, nil
 	})
 
-	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+	huma.Register(h.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "create-setting",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusCreated,
@@ -57,24 +55,21 @@ func (s *SettingsController) InitializeRoutes() {
 		Summary:       "Create a new email setting",
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
-	}), func(ctx context.Context, input *dto.CreateSettingInput) (*struct{}, error) {
-		setting := models.NewSetting{
+	}), func(ctx context.Context, input *CreateSettingInput) (*struct{}, error) {
+		err := h.settingService.CreateSetting(ctx, setting.NewSetting{
 			Host:           input.Body.Host,
 			Port:           input.Body.Port,
 			Username:       input.Body.Username,
 			Password:       input.Body.Password,
 			OrganizationID: input.OrganizationId,
-		}
-
-		err := s.settingsService.CreateSetting(ctx, setting)
+		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
-
 		return nil, nil
 	})
 
-	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+	huma.Register(h.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "update-setting",
 		Method:        http.MethodPut,
 		DefaultStatus: http.StatusNoContent,
@@ -82,25 +77,22 @@ func (s *SettingsController) InitializeRoutes() {
 		Summary:       "Update an existing email setting",
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
-	}), func(ctx context.Context, input *dto.UpdateSettingInput) (*struct{}, error) {
-		setting := models.UpdateSetting{
+	}), func(ctx context.Context, input *UpdateSettingInput) (*struct{}, error) {
+		err := h.settingService.UpdateSetting(ctx, setting.UpdateSetting{
 			ID:             input.SettingId,
 			Host:           input.Body.Host,
 			Port:           input.Body.Port,
 			Username:       input.Body.Username,
 			Password:       input.Body.Password,
 			OrganizationID: input.OrganizationId,
-		}
-
-		err := s.settingsService.UpdateSetting(ctx, setting)
+		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
 		return nil, nil
 	})
 
-	// Delete a setting
-	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+	huma.Register(h.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "delete-setting",
 		Method:        http.MethodDelete,
 		DefaultStatus: http.StatusNoContent,
@@ -108,17 +100,15 @@ func (s *SettingsController) InitializeRoutes() {
 		Summary:       "Delete an email setting",
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
-	}), func(ctx context.Context, input *dto.DeleteSettingInput) (*struct{}, error) {
-		err := s.settingsService.DeleteSetting(ctx, input.OrganizationId, input.SettingId)
+	}), func(ctx context.Context, input *DeleteSettingInput) (*struct{}, error) {
+		err := h.settingService.DeleteSetting(ctx, input.OrganizationId, input.SettingId)
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
-
 		return nil, nil
 	})
 
-	// Test a setting
-	huma.Register(s.api, humaUtils.WithAuth(huma.Operation{
+	huma.Register(h.api, humaUtils.WithAuth(huma.Operation{
 		OperationID:   "test-setting",
 		Method:        http.MethodPost,
 		DefaultStatus: http.StatusOK,
@@ -126,18 +116,16 @@ func (s *SettingsController) InitializeRoutes() {
 		Summary:       "Test an email setting",
 		Tags:          []string{"Settings"},
 		Middlewares:   huma.Middlewares{permissions.Apply("organization", "manage")},
-	}), func(ctx context.Context, input *dto.TestSettingInput) (*struct{}, error) {
-		err := s.settingsService.TestConnection(ctx, models.Setting{
+	}), func(ctx context.Context, input *TestSettingInput) (*struct{}, error) {
+		err := h.settingService.TestConnection(ctx, setting.Setting{
 			Host:     input.Body.Host,
 			Port:     input.Body.Port,
 			Username: input.Body.Username,
 			Password: input.Body.Password,
 		})
 		if err != nil {
-			return nil, humaUtils.NewHumaError(err)
+			return nil, NewHTTPError(err)
 		}
-
 		return nil, nil
 	})
-
 }
