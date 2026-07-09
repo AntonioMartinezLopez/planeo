@@ -425,11 +425,11 @@ with:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://kafka:19092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
@@ -450,7 +450,9 @@ with:
       - 8082:8080
 ```
 
-`kafka` listens on two ports: `19092` for other containers on the compose network (used by `kafka-ui`, via the `PLAINTEXT` listener) and `9092` for the host machine (used by `core`/`email` running via Air outside Docker, via the `PLAINTEXT_HOST` listener). `kafka-ui` will be reachable at `http://localhost:8082`.
+`kafka` listens on two ports: `19092` for other containers on the compose network (used by `kafka-ui`, via the `PLAINTEXT` listener) and `9092` for the host machine (used by `core`/`email` running via Air outside Docker, via the `PLAINTEXT_HOST` listener). `KAFKA_LISTENERS` binds all listeners to `0.0.0.0` (the container's own interfaces); only `KAFKA_ADVERTISED_LISTENERS` and `KAFKA_CONTROLLER_QUORUM_VOTERS` reference hostnames, and the controller quorum voter uses `localhost:9093` since the single node talks to itself — this avoids depending on the container resolving its own service-name DNS alias at bind time. `kafka-ui` will be reachable at `http://localhost:8082`.
+
+Note: `CLUSTER_ID` may or may not be honored by the `apache/kafka` image (some images use a different env var name, e.g. `KAFKA_KRAFT_CLUSTER_ID`); if ignored, the image just auto-generates one on each start, which is harmless since no data volume is mounted (matches the old `nats` container's non-persistent behavior).
 
 - [ ] **Step 2: Validate the compose file syntax**
 
@@ -537,9 +539,11 @@ task run:email
 ```
 Expected: both start without `Failed to connect to Kafka` fatal errors in their logs.
 
-- [ ] **Step 4: Send a test email through greenmail/roundcube**
+- [ ] **Step 4: Confirm a pollable email setting exists, then send a test email**
 
-Using the existing dev email setup (roundcube at `http://localhost:8089`, configured against greenmail), send an email to an address the email service is configured to poll (per existing `setting` configuration — use whatever test settings already exist for local dev, unchanged by this migration).
+Before sending anything, confirm there's an actual `setting` row for the email service to poll (this migration doesn't seed one — check via the core/email API or DB directly). If none exists, create one pointing at the greenmail IMAP server first.
+
+Then, using the existing dev email setup (roundcube at `http://localhost:8089`, configured against greenmail), send an email to that address.
 
 - [ ] **Step 5: Confirm the message flowed through Kafka**
 
