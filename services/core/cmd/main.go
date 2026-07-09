@@ -74,10 +74,10 @@ func main() {
 	})
 
 	// initialize event service
-	err := coreEvents.InitializeEvents(ctx, config.NatsUrl, coreEvents.Services{RequestService: requestService, CategoryService: categoryService})
+	err := coreEvents.InitializeEvents(ctx, config.KafkaBrokers, coreEvents.Services{RequestService: requestService, CategoryService: categoryService})
 
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to NATS")
+		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 
 	server := http.Server{
