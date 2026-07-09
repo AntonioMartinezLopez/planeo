@@ -90,6 +90,7 @@ func (es *EventService) Subscribe(ctx context.Context, groupName string, topic s
 			})
 
 			fetches.EachRecord(func(record *kgo.Record) {
+				// Skipping the commit here does not guarantee redelivery: Kafka commits are cumulative per partition, so a later successful commit will skip past this record.
 				if err := handler(record.Value); err != nil {
 					log.Error().Err(err).Msg("failed to process kafka message, skipping commit")
 					return

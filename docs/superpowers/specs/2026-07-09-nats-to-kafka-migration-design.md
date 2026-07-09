@@ -40,7 +40,7 @@ Only `libs/events` changes internally. Call sites (`services/core/cmd/main.go`, 
 **`Subscribe(ctx, groupName, topic string, handler func([]byte) error) error`**: creates a second, call-scoped `kgo.Client` configured with `kgo.ConsumerGroup(groupName)`, `kgo.ConsumeTopics(topic)`, `kgo.DisableAutoCommit()`. This mirrors today's shape, where `CreateOrUpdateConsumer` + `Consume(handler)` both happen inside `Subscribe`. Spawns one goroutine running a `PollFetches(ctx)` loop for the lifetime of the passed context. For each fetched record:
   - call `handler(record.Value)`
   - on success (`nil` error): `client.CommitRecords(ctx, record)`
-  - on error: log the error and skip the commit — **no redelivery-with-delay loop, no blocking retry**. The record is simply not committed; if the process restarts, the consumer group will redeliver from the last committed offset. This is the closest low-effort match to today's ack/nak behavior without building real retry infrastructure, per explicit decision to keep this simple for now.
+  - on error: log the error and skip the commit — **no redelivery-with-delay loop, no blocking retry**. This does *not* work like a per-message ack: Kafka offset commits are a cumulative high-water mark per partition, not a per-message acknowledgment. A failed record is only truly "redelivered" if no later record in the same partition is ever committed afterward. In practice, once any subsequent record in that partition succeeds and commits, the failed record's offset is silently skipped past — it is never redelivered or retried. For a busy topic, the practical effect of skipping the commit is to **silently drop the failed message**, not to guarantee redelivery. This is an accepted simplification for this dev-only pass, not a substitute for real retry infrastructure.
 
 **`IsConnected() bool`**: `client.Ping(ctx)` with a short timeout, returns whether it errored.
 
@@ -84,7 +84,7 @@ This migration is intentionally minimal. The following are standard Kafka produc
 **Delivery & correctness**
 - No message key on produced records — no per-entity (e.g. per-`OrganizationId`) ordering guarantee within a partition.
 - No consumer-side dedup — Kafka is at-least-once; a crash between processing and offset commit can redeliver a message the consumer already acted on. `MessageID` is available on the payload for this purpose but unused.
-- No dead-letter-topic / max-retry-count pattern — once real retry is added, a permanently failing message will block its partition indefinitely rather than being routed aside.
+- No dead-letter-topic / max-retry-count pattern — under the current cumulative-commit design, a permanently failing message is not retried and does not block its partition; instead it is silently dropped as soon as a later record in the same partition is committed. Adding real retry/DLQ handling in a future pass would need to address this silent-drop behavior, not a blocking one.
 - No idempotent-producer / durability tuning (`enable.idempotence`, `acks=all`) — running on client/broker defaults.
 
 **Topic & cluster design**
