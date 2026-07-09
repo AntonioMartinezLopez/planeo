@@ -25,17 +25,20 @@ tasks:
       - echo "Setting up the dev environment variables..."
       - cp ./dev/.env.template ./dev/.env
       - cp ./services/core/internal/infra/postgres/.envrc.template ./services/core/internal/infra/postgres/.envrc
+      - cp ./services/email/internal/infra/postgres/.envrc.template ./services/email/internal/infra/postgres/.envrc
       - cp ./services/core/.env.template ./services/core/.env
       - cp ./services/email/.env.template ./services/email/.env
     sources:
       - dev/install.sh
       - dev/.env.template
       - services/core/internal/infra/postgres/.envrc.template
+      - services/email/internal/infra/postgres/.envrc.template
       - services/core/.env.template
       - services/email/.env.template
     generates:
       - dev/.env
       - services/core/internal/infra/postgres/.envrc
+      - services/email/internal/infra/postgres/.envrc
       - services/core/.env
       - services/email/.env
 
@@ -82,7 +85,7 @@ tasks:
 
   migrate:email:
     desc: Run email service database migrations
-    dir: services/email/db
+    dir: services/email/internal/infra/postgres
     cmds:
       - echo "Running email database migrations..."
       - source .envrc && goose up
@@ -95,7 +98,7 @@ tasks:
 
   migrate:email:down:
     desc: Rollback email service database migration
-    dir: services/email/db
+    dir: services/email/internal/infra/postgres
     cmds:
       - source .envrc && goose down
 
@@ -107,7 +110,7 @@ tasks:
 
   migrate:email:status:
     desc: Show email database migration status
-    dir: services/email/db
+    dir: services/email/internal/infra/postgres
     cmds:
       - source .envrc && goose status
 

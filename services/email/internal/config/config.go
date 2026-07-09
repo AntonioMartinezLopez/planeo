@@ -23,29 +23,27 @@ type ApplicationConfiguration struct {
 	KcOauthClientID string
 }
 
-func (config *ApplicationConfiguration) ServerConfig() string {
-	appServerUrl := fmt.Sprintf("%s:%s", config.Host, config.Port)
-	return appServerUrl
+func (c *ApplicationConfiguration) ServerConfig() string {
+	return fmt.Sprintf("%s:%s", c.Host, c.Port)
 }
 
-func (config *ApplicationConfiguration) DatabaseConfig() string {
-	dbConfig := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
-	return dbConfig
+func (c *ApplicationConfiguration) DatabaseConfig() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		c.DbUser, c.DbPassword, c.DbHost, c.DbPort, c.DbName)
 }
 
-func (config *ApplicationConfiguration) OauthIssuerUrl() string {
-	return fmt.Sprintf("%s/realms/%s", config.KcBaseUrl, config.KcIssuer)
+func (c *ApplicationConfiguration) OauthIssuerUrl() string {
+	return fmt.Sprintf("%s/realms/%s", c.KcBaseUrl, c.KcIssuer)
 }
 
 func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfiguration {
-
 	err := godotenv.Load(filenames...)
 	if err != nil {
 		logger := logger.FromContext(ctx)
 		logger.Warn().Err(err).Msg("Error loading .env file")
 	}
 
-	config := &ApplicationConfiguration{
+	return &ApplicationConfiguration{
 		Host:            readEnvVariable(ctx, "HOST"),
 		Port:            readEnvVariable(ctx, "PORT"),
 		NatsUrl:         readEnvVariable(ctx, "NATS_URL"),
@@ -58,16 +56,13 @@ func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfigurat
 		KcIssuer:        readEnvVariable(ctx, "KC_ISSUER_REALM"),
 		KcOauthClientID: readEnvVariable(ctx, "KC_OAUTH_CLIENT_ID"),
 	}
-
-	return config
 }
 
-func readEnvVariable(ctx context.Context, envName string) string {
-	envVariable, envExists := os.LookupEnv(envName)
-	if !envExists {
+func readEnvVariable(ctx context.Context, name string) string {
+	v, ok := os.LookupEnv(name)
+	if !ok {
 		logger := logger.FromContext(ctx)
-		logger.Fatal().Msgf("Missing env variable '%s'. Aborting...\n", envName)
+		logger.Fatal().Msgf("Missing env variable '%s'. Aborting...\n", name)
 	}
-
-	return envVariable
+	return v
 }

@@ -1,6 +1,6 @@
-package dto
+package settings
 
-import "planeo/services/email/internal/resources/settings/models"
+import "planeo/services/email/internal/domain/setting"
 
 // GET Settings
 type GetSettingsInput struct {
@@ -9,24 +9,14 @@ type GetSettingsInput struct {
 
 type GetSettingsOutput struct {
 	Body struct {
-		Settings []models.Setting `json:"settings" doc:"Array of email settings"`
+		Settings []setting.Setting `json:"settings" doc:"Array of email settings"`
 	}
-}
-
-// GET Single Setting
-type GetSettingInput struct {
-	OrganizationId int `path:"organizationId" doc:"ID of the organization"`
-	SettingId      int `path:"settingId" doc:"ID of the email setting"`
-}
-
-type GetSettingOutput struct {
-	Body models.Setting
 }
 
 // POST Setting
 type CreateSettingInputBody struct {
 	Host     string `json:"host" doc:"IMAP host" example:"imap.example.com" validate:"required"`
-	Port     int    `json:"port" doc:"IMAP port" example:"587" validate:"required"`
+	Port     int    `json:"port" doc:"IMAP port" example:"993" validate:"required"`
 	Username string `json:"username" doc:"IMAP username" example:"user@example.com"`
 	Password string `json:"password" doc:"IMAP password" example:"password123"`
 }
@@ -36,10 +26,10 @@ type CreateSettingInput struct {
 	Body           CreateSettingInputBody
 }
 
-// UPDATE Setting
+// PUT Setting
 type UpdateSettingInputBody struct {
 	Host     string `json:"host" doc:"IMAP host" example:"imap.example.com" validate:"required"`
-	Port     int    `json:"port" doc:"IMAP port" example:"587" validate:"required"`
+	Port     int    `json:"port" doc:"IMAP port" example:"993" validate:"required"`
 	Username string `json:"username" doc:"IMAP username" example:"user@example.com"`
 	Password string `json:"password" doc:"IMAP password" example:"password123"`
 }
