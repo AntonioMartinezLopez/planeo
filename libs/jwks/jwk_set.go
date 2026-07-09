@@ -4,27 +4,31 @@ import (
 	"context"
 	"time"
 
-	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/httprc/v3"
+	"github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 func NewJWKSet(jwkUrl string) jwk.Set {
-	jwkCache := jwk.NewCache(context.Background())
+	client := httprc.NewClient()
 
-	// register a minimum refresh interval for this URL.
-	// when not specified, defaults to Cache-Control and similar resp headers
-	err := jwkCache.Register(jwkUrl, jwk.WithMinRefreshInterval(10*time.Minute))
+	jwkCache, err := jwk.NewCache(context.Background(), client)
 	if err != nil {
-		panic("failed to register jwk location")
+		panic("failed to create jwk cache: " + err.Error())
 	}
 
+	// Register with a 10s startup timeout; WaitReady(true) is the default so
+	// this blocks until the first fetch completes, replacing the old Refresh call.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// fetch once on application startup
-	_, err = jwkCache.Refresh(ctx, jwkUrl)
-	if err != nil {
-		panic("failed to fetch JWKS on startup")
+	if err = jwkCache.Register(ctx, jwkUrl, jwk.WithMinInterval(10*time.Minute)); err != nil {
+		panic("failed to register jwk location: " + err.Error())
 	}
-	// create the cached key set
-	return jwk.NewCachedSet(jwkCache, jwkUrl)
+
+	cachedSet, err := jwkCache.CachedSet(jwkUrl)
+	if err != nil {
+		panic("failed to create cached jwk set: " + err.Error())
+	}
+
+	return cachedSet
 }
