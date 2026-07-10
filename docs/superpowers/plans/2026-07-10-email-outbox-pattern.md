@@ -1952,14 +1952,11 @@ git commit -m "feat(email): add outbox-relay sidecar binary"
 ```dockerfile
 # syntax=docker/dockerfile:1
 
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.26.5-alpine AS builder
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-# GOTOOLCHAIN=auto (Go's default since 1.21) transparently fetches the exact
-# toolchain version go.mod declares if it's newer than this image's Go,
-# so this build stays correct even as go.mod's `go` directive is bumped.
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/outbox-relay ./services/email/cmd/outbox-relay
 
 FROM gcr.io/distroless/static-debian12
