@@ -2,8 +2,10 @@ package email
 
 import (
 	"context"
+	"encoding/json"
 	"planeo/libs/events"
 	"planeo/libs/logger"
+	"planeo/services/email/internal/domain/mail"
 	"planeo/services/email/internal/domain/setting"
 	"strconv"
 	"time"
@@ -17,27 +19,28 @@ type cronServiceInterface interface {
 }
 
 type imapServiceInterface interface {
-	FetchAllUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error)
+	FetchUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error)
+	MarkSeen(ctx context.Context, settings IMAPSettings, uids []uint32) error
 	TestConnection(ctx context.Context, settings IMAPSettings) error
 }
 
-type eventServiceInterface interface {
-	PublishEmailReceived(ctx context.Context, payload events.EmailCreatedPayload) error
+type mailServiceInterface interface {
+	SaveFetchedMails(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error)
 }
 
 type EmailService struct {
-	cronService  cronServiceInterface
-	imapService  imapServiceInterface
-	eventService eventServiceInterface
-	logger       zerolog.Logger
+	cronService cronServiceInterface
+	imapService imapServiceInterface
+	mailService mailServiceInterface
+	logger      zerolog.Logger
 }
 
-func NewEmailService(cron cronServiceInterface, imap imapServiceInterface, eventService eventServiceInterface) *EmailService {
+func NewEmailService(cron cronServiceInterface, imap imapServiceInterface, mailService mailServiceInterface) *EmailService {
 	return &EmailService{
-		cronService:  cron,
-		imapService:  imap,
-		eventService: eventService,
-		logger:       logger.New("email-service"),
+		cronService: cron,
+		imapService: imap,
+		mailService: mailService,
+		logger:      logger.New("email-service"),
 	}
 }
 
@@ -75,11 +78,12 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 			Password: st.Password,
 		}
 
-		mails, err := s.imapService.FetchAllUnseenMails(ctx, imapSettings)
+		mails, err := s.imapService.FetchUnseenMails(ctx, imapSettings)
 		duration := time.Since(start)
 
 		if err != nil {
 			emailLogger.Error().Err(err).Dur("duration_ms", duration).Msg("Error fetching emails")
+			return
 		}
 
 		emailLogger.Info().
@@ -87,26 +91,61 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 			Dur("duration_ms", duration).
 			Msg("Email fetch completed")
 
-		for _, mail := range mails {
-			emailLogger.Info().
-				Str("message_id", mail.MessageID).
-				Int("organization_id", st.OrganizationID).
-				Msg("Processing email")
+		if len(mails) == 0 {
+			return
+		}
 
-			if err := s.eventService.PublishEmailReceived(ctx, events.EmailCreatedPayload{
-				Subject:        mail.Subject,
-				Body:           mail.Body,
-				From:           mail.From,
-				Date:           mail.Date,
-				MessageID:      mail.MessageID,
+		fetched := make([]mail.FetchedMail, 0, len(mails))
+		for _, m := range mails {
+			payload, err := json.Marshal(events.EmailCreatedPayload{
+				Subject:        m.Subject,
+				Body:           m.Body,
+				From:           m.From,
+				Date:           m.Date,
+				MessageID:      m.MessageID,
 				OrganizationId: st.OrganizationID,
-			}); err != nil {
-				emailLogger.Error().
-					Err(err).
-					Int("organization_id", st.OrganizationID).
-					Str("message_id", mail.MessageID).
-					Msg("Error publishing email received event")
+			})
+			if err != nil {
+				emailLogger.Error().Err(err).Str("message_id", m.MessageID).Msg("Error marshaling email event payload")
+				continue
 			}
+
+			fetched = append(fetched, mail.FetchedMail{
+				Mail: mail.NewMail{
+					MessageID:      m.MessageID,
+					SettingID:      st.ID,
+					OrganizationID: st.OrganizationID,
+					Subject:        m.Subject,
+					Sender:         m.From,
+					Body:           m.Body,
+					Date:           m.Date,
+				},
+				Event: mail.OutboxEvent{
+					Topic:   events.EmailReceivedTopic,
+					Key:     []byte(strconv.Itoa(st.OrganizationID)),
+					Payload: payload,
+				},
+				UID: m.UID,
+			})
+		}
+
+		if len(fetched) == 0 {
+			return
+		}
+
+		results, err := s.mailService.SaveFetchedMails(ctx, fetched)
+		if err != nil {
+			emailLogger.Error().Err(err).Msg("Error saving fetched mails to outbox")
+			return
+		}
+
+		uids := make([]uint32, 0, len(results))
+		for _, r := range results {
+			uids = append(uids, r.UID)
+		}
+
+		if err := s.imapService.MarkSeen(ctx, imapSettings, uids); err != nil {
+			emailLogger.Error().Err(err).Msg("Error marking emails as seen")
 		}
 	}
 }
