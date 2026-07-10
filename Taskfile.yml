@@ -130,6 +130,12 @@ tasks:
     cmds:
       - air -c air.toml
 
+  run:email:outbox-relay:
+    desc: Run email outbox-relay sidecar with Air hot-reload
+    dir: services/email
+    cmds:
+      - air -c air.outbox-relay.toml
+
   # ========================================
   # Testing
   # ========================================
@@ -214,11 +220,18 @@ tasks:
       - echo "Building Docker image for email with tag {{.VERSION}}..."
       - docker build -t {{.DOCKER_REGISTRY}}/email:{{.VERSION}} -f services/email/Dockerfile .
 
+  build:email:outbox-relay:
+    desc: Build Docker image for email outbox-relay sidecar
+    cmds:
+      - echo "Building Docker image for email-outbox-relay with tag {{.VERSION}}..."
+      - docker build -t {{.DOCKER_REGISTRY}}/email-outbox-relay:{{.VERSION}} -f services/email/Dockerfile.outbox-relay .
+
   build:all:
     desc: Build Docker images for all services
     cmds:
       - task: build:core
       - task: build:email
+      - task: build:email:outbox-relay
 
   # ========================================
   # Frontend

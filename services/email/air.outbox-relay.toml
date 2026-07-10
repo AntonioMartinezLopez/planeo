@@ -1,0 +1,18 @@
+root = "."
+tmp_dir = "tmp/outbox-relay"
+
+[build]
+cmd = "go build -o ./tmp/outbox-relay/app ./cmd/outbox-relay"
+bin = "./tmp/outbox-relay/app"
+full_bin = "./tmp/outbox-relay/app"
+log = "air_errors.log"
+include_ext = ["go", "yaml"]
+exclude_dir = ["tmp"]
+delay = 500
+
+[log]
+time = true
+[color]
+
+[misc]
+clean_on_exit = true
