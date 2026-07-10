@@ -1,0 +1,12 @@
+all: true
+dir: '{{.InterfaceDir}}/mocks'
+structname: Mock{{.InterfaceName}}
+filename: '{{.InterfaceName | snakecase}}_mock.go'
+pkgname: mocks
+template: testify
+template-data:
+  unroll-variadic: true
+packages:
+  planeo/services/email/internal/domain/mail:
+    interfaces:
+      Repository: {}
