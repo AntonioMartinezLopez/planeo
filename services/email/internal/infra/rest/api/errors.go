@@ -2,8 +2,8 @@ package server
 
 import (
 	"errors"
-	"planeo/services/email/internal/domain/setting"
 	emailInfra "planeo/services/email/internal/infra/email"
+	"planeo/services/email/internal/domain/setting"
 	"planeo/services/email/internal/infra/postgres"
 	err "planeo/services/email/pkg/errors"
 
