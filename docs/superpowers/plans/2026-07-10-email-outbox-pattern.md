@@ -1247,9 +1247,13 @@ type Store interface {
 	// FetchBatch atomically claims up to limit records that are either
 	// pending or whose previous claim has expired (claimed longer ago than
 	// claimTTL), and returns them for producing. This must be a single
-	// atomic statement (e.g. UPDATE ... WHERE ... RETURNING), not a
-	// separate SELECT followed later by a separate mark call — otherwise
-	// the claim provides no protection against a concurrent second poller.
+	// atomic statement (e.g. UPDATE ... WHERE id IN (SELECT ... FOR UPDATE
+	// SKIP LOCKED) RETURNING ...), not a separate SELECT followed later by
+	// a separate mark call — otherwise the claim provides no protection
+	// against a concurrent second poller. The FOR UPDATE SKIP LOCKED must
+	// live in the inner SELECT, not be assumed implicit from the outer
+	// UPDATE's WHERE id IN (...) alone — the latter does not reliably
+	// prevent two concurrent claims from selecting overlapping ids.
 	FetchBatch(ctx context.Context, limit int, claimTTL time.Duration) ([]Record, error)
 
 	// MarkProcessed marks a record as successfully sent.
@@ -1579,6 +1583,7 @@ func (c *Client) FetchBatch(ctx context.Context, limit int, claimTTL time.Durati
 			   OR (status = 'processing' AND claimed_at < @cutoff)
 			ORDER BY id
 			LIMIT @limit
+			FOR UPDATE SKIP LOCKED
 		)
 		RETURNING id, topic, key, payload`
 	args := pgx.NamedArgs{"cutoff": cutoff, "limit": limit}
@@ -2070,6 +2075,8 @@ Add this new service to `dev/docker-compose.yaml`'s `services:` block (after the
 
 Note the difference from `services/core`/`services/email`'s own `.env` files: this container runs *inside* the Docker network (unlike core/email, which run on the host via Air), so it reaches Postgres via the service name `postgres` (not `localhost`) and Kafka via the internal listener `kafka:19092` (not `localhost:9092`) — the same internal address `kafka-ui` already uses.
 
+Expected on first `task up`: this container starts before `task migrate:core`/`task migrate:email` run, so it will poll a Postgres database whose `outbox` table doesn't exist yet and log query errors for a few seconds until migrations land. This is expected, not a regression — the poll loop logs and continues (per `Relay.Run`'s error handling), and it self-recovers as soon as the `outbox` table exists.
+
 - [ ] **Step 2: Validate the compose file syntax**
 
 Run: `docker compose -f dev/docker-compose.yaml config --quiet`
@@ -2124,12 +2131,19 @@ Expected: no output (only `libs/outbox`, `services/email/cmd/outbox-relay`, and 
 Run: `task test:email:unit && task test:email:integration`
 Expected: both PASS (integration requires Docker running).
 
-- [ ] **Step 7: Run core unit tests to confirm nothing else broke**
+- [ ] **Step 7: Run `libs/outbox`'s tests explicitly**
+
+Neither `test:email:unit` (scoped to `./services/email/...`) nor `test:core:unit` (scoped to `./services/core/...`) covers `libs/`, so Task 7's tests are never re-run by the Taskfile targets — only this step catches a regression here going forward.
+
+Run: `go test ./libs/outbox/... -v -short -count=1`
+Expected: PASS.
+
+- [ ] **Step 8: Run core unit tests to confirm nothing else broke**
 
 Run: `task test:core:unit`
 Expected: PASS (this work doesn't touch `services/core`, so this is a no-op confirmation).
 
-- [ ] **Step 8: Commit (only if step 2 required fixes; otherwise skip — do not create an empty commit)**
+- [ ] **Step 9: Commit (only if step 2 required fixes; otherwise skip — do not create an empty commit)**
 
 ```bash
 git add -A
