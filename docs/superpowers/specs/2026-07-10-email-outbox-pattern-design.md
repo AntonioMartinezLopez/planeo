@@ -56,6 +56,8 @@ CREATE TABLE outbox (
     topic        TEXT NOT NULL,
     key          BYTEA,
     payload      BYTEA NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    claimed_at   TIMESTAMPTZ,
     attempts     INTEGER NOT NULL DEFAULT 0,
     last_error   TEXT,
     processed_at TIMESTAMPTZ,
@@ -63,16 +65,22 @@ CREATE TABLE outbox (
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX outbox_pending_idx ON outbox (id) WHERE processed_at IS NULL AND failed_at IS NULL;
+CREATE INDEX outbox_pending_idx ON outbox (id) WHERE status IN ('pending', 'processing');
 ```
 
 - `mail_id` is a concrete foreign key to `mails(id)` rather than a generic Debezium-style `aggregate_type`/`aggregate_id` text pair. Each service's outbox table is local to that service's own database anyway, and the reusable `libs/outbox` relay never queries `mails` directly — it only interacts via the `Store` interface. A real FK costs nothing here and gives referential integrity for free.
 - `payload` is `bytea`, holding the fully-serialized event bytes (JSON today, same `EmailCreatedPayload` shape as the current NATS/Kafka payload) written at insert time by the email service. The relay never deserializes or understands this payload — it only ships the bytes as the Kafka record value. This is deliberately modeled on Debezium's own outbox-router convention, which recommends `bytea` specifically once a service uses binary/schema-registry serialization (Avro/Protobuf's Confluent wire format is not valid JSON and cannot live in a `jsonb` column). Starting with `bytea` costs nothing now and avoids a future migration when schema-registry work begins.
 - `key` is `bytea`, holding the Kafka record key (`[]byte(strconv.Itoa(organizationId))`). This closes a gap explicitly deferred in the earlier NATS-to-Kafka migration spec (no message key existed there), giving per-organization partition ordering once the topic has more than one partition.
-- `attempts` / `last_error` / `failed_at` implement the poison-row quarantine: the relay increments `attempts` and records `last_error` on every failed send; once `attempts >= OUTBOX_MAX_ATTEMPTS`, it sets `failed_at` and the row is excluded from further polling (via the partial index and query predicate) but retained for operator inspection.
-- The partial index matches the relay's poll query exactly (`WHERE processed_at IS NULL AND failed_at IS NULL ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED`), keeping polling cheap as the table grows. `id` is a `BIGINT IDENTITY` so rows are polled in roughly the order they were committed.
+- **`status`** (`pending` / `processing` / `sent` / `failed`) is the authoritative field the relay queries and transitions — not a pair of nullable timestamps. `processed_at`/`failed_at` remain as "when did this happen" timestamps for observability, set alongside the corresponding status transition, but are never used in `WHERE` predicates themselves.
+- **`claimed_at`** records when a row was last moved to `processing`, and exists specifically to support the claim-with-TTL reclaim mechanism described below (crash recovery when a relay dies mid-send).
+- `attempts` / `last_error` implement the poison-row quarantine: the relay increments `attempts` and records `last_error` on every failed send attempt. If `attempts < OUTBOX_MAX_ATTEMPTS`, the row is reset to `status = 'pending'` (eligible for the next poll — this reset is explicit and required, since without it a failed-but-not-yet-exhausted row would otherwise stay stuck at `processing` and never be retried). Once `attempts >= OUTBOX_MAX_ATTEMPTS`, `status` moves to `failed` and `failed_at` is set — excluded from further polling via the query predicate, retained for operator inspection.
+- The partial index matches the relay's poll query's candidate set (`status IN ('pending', 'processing')`), keeping polling cheap as the table grows. `id` is a `BIGINT IDENTITY` so rows are polled in roughly the order they were committed.
 
-**Ordering guarantee, precisely stated:** this is *not* a strict global FIFO guarantee, for two independent reasons, and the design accepts both. First, `GENERATED ALWAYS AS IDENTITY` sequence values can become visible out of commit order (a higher `id` can commit and be polled before a lower, still-uncommitted `id` becomes visible) — at this service's volume this is a non-issue in practice, but it means "ordered" means "best-effort, per-key," not "guaranteed global sequence." Second, and more importantly, the poison-row quarantine *deliberately breaks order*: once a row hits `failed_at`, the relay skips past it and continues with later rows rather than blocking the whole queue on one broken message — so a message can be delivered to Kafka after a quarantined row that was fetched earlier. The actual guarantee this design provides is **best-effort per-organization ordering** (via the `key` column, once the topic has multiple partitions), not strict FIFO across the whole outbox.
+**Concurrency safety, precisely stated (single replica now, corrected from an earlier draft of this spec):** the relay's dequeue (`FetchBatch`) is a single atomic SQL statement — `UPDATE outbox SET status = 'processing', claimed_at = NOW() WHERE id IN (SELECT id FROM outbox WHERE status = 'pending' OR (status = 'processing' AND claimed_at < @cutoff) ORDER BY id LIMIT @limit) RETURNING ...` — rather than a separate `SELECT ... FOR UPDATE SKIP LOCKED` followed later by a separate mark-processed call. An earlier draft of this spec proposed `FOR UPDATE SKIP LOCKED` as "free" multi-replica safety; that claim was wrong, because a `SELECT`'s row lock is released the instant that query's (implicit, autocommitted) transaction ends — well before the Kafka produce call and the later `MarkProcessed`, which is exactly where a second replica could race in. The atomic single-statement `UPDATE ... WHERE ... RETURNING` form doesn't have this gap: Postgres's own row-level locking during the `UPDATE` naturally serializes two concurrent claims on the same row (whichever runs second simply finds `status` no longer matches its `WHERE` clause), with no held-open transaction spanning the Kafka round-trip. The `@cutoff` (`NOW() - OUTBOX_CLAIM_TTL`) clause handles the one gap this still leaves: a replica that claims a row and then crashes before ever calling `MarkProcessed`/`MarkFailed` would otherwise leave that row stuck at `processing` forever; after `OUTBOX_CLAIM_TTL` elapses, the row becomes reclaimable by any relay (itself on restart, or another live replica). This is genuinely safe for more than one replica running concurrently — the tradeoff accepted is that too short a TTL relative to a slow-but-eventually-successful send could cause a duplicate produce of the same message (mitigated, as elsewhere in this spec, by consumer-side idempotency on `message_id` — Kafka delivery here is at-least-once, never exactly-once, regardless of this mechanism).
+
+In-process throughput (multiple goroutines within one relay instance, rather than multiple relay instances) is a separate, much simpler concern deliberately not built in this pass: the poll loop processes one record at a time. If throughput ever needs to improve, fanning a polled batch out to a small worker pool is a Go-level change with no schema impact (each fetched record is only ever handed to one worker via an in-memory channel, so it needs none of the cross-process coordination `status`/`claimed_at` exist for).
+
+**Ordering guarantee, precisely stated:** this is *not* a strict global FIFO guarantee, for two independent reasons, and the design accepts both. First, `GENERATED ALWAYS AS IDENTITY` sequence values can become visible out of commit order (a higher `id` can commit and be polled before a lower, still-uncommitted `id` becomes visible) — at this service's volume this is a non-issue in practice, but it means "ordered" means "best-effort, per-key," not "guaranteed global sequence." Second, and more importantly, the poison-row quarantine *deliberately breaks order*: once a row's `status` becomes `failed`, the relay skips past it and continues with later rows rather than blocking the whole queue on one broken message — so a message can be delivered to Kafka after a quarantined row that was fetched earlier. The actual guarantee this design provides is **best-effort per-organization ordering** (via the `key` column, once the topic has multiple partitions), not strict FIFO across the whole outbox.
 
 ## Write Path (services/email)
 
@@ -105,27 +113,37 @@ type Record struct {
 // This is the customization point for future services — each service's
 // Postgres schema and business logic stay entirely its own.
 type Store interface {
-    FetchBatch(ctx context.Context, limit int) ([]Record, error) // WHERE processed_at IS NULL AND failed_at IS NULL, FOR UPDATE SKIP LOCKED, ORDER BY id
+    // FetchBatch atomically claims up to limit pending (or expired-claim)
+    // records — see the outbox table's concurrency-safety note above — and
+    // returns them for producing.
+    FetchBatch(ctx context.Context, limit int, claimTTL time.Duration) ([]Record, error)
     MarkProcessed(ctx context.Context, id int64) error
-    MarkFailed(ctx context.Context, id int64, sendErr error, maxAttempts int) error // increments attempts, sets last_error; sets failed_at once attempts >= maxAttempts
+    MarkFailed(ctx context.Context, id int64, sendErr error, maxAttempts int) error // increments attempts; resets to pending if attempts < maxAttempts, else quarantines (failed)
 }
 
-type Relay struct { /* store Store; client *kgo.Client; pollInterval time.Duration; batchSize, maxAttempts int */ }
+// Producer sends one record to Kafka. Implemented by a franz-go-backed type
+// in production; test code supplies a fake, so Relay's poll/mark logic is
+// unit-testable without a live broker or database.
+type Producer interface {
+    ProduceSync(ctx context.Context, topic string, key, value []byte) error
+}
 
-func NewRelay(store Store, client *kgo.Client, opts ...Option) *Relay
-func (r *Relay) Run(ctx context.Context) error // blocking poll loop
+type Relay struct { /* store Store; producer Producer; pollInterval time.Duration; batchSize, maxAttempts int; claimTTL time.Duration */ }
+
+func NewRelay(store Store, producer Producer, opts ...Option) *Relay
+func (r *Relay) Run(ctx context.Context) error // blocking poll loop, sequential (one record at a time — see below)
 ```
 
-`libs/outbox` also exports `NewProducerClient(brokers []string) (*kgo.Client, error)`, wrapping `kgo.NewClient(kgo.SeedBrokers(...), kgo.AllowAutoTopicCreation())` — baking in the auto-topic-creation lesson learned during the NATS-to-Kafka migration (franz-go disables broker-side auto-topic-creation client-side by default) so every future sidecar built on this library gets it for free instead of rediscovering that bug.
+`libs/outbox` also exports `NewProducer(brokers []string) (Producer, *kgo.Client, error)`, wrapping `kgo.NewClient(kgo.SeedBrokers(...), kgo.AllowAutoTopicCreation())` — baking in the auto-topic-creation lesson learned during the NATS-to-Kafka migration (franz-go disables broker-side auto-topic-creation client-side by default) so every future sidecar built on this library gets it for free instead of rediscovering that bug. The `*kgo.Client` is also returned so the caller can `Close()` it on shutdown; the `Producer` is what `Relay` actually depends on, keeping `Relay` decoupled from the concrete franz-go type for testability.
 
-`FOR UPDATE SKIP LOCKED` in `FetchBatch` is a deliberate concurrency-safety choice: it costs nothing when running a single relay replica (the current plan) and makes horizontal scaling of the sidecar safe later without any retrofit — two replicas polling concurrently will never claim the same row.
+Deliberately not built in this pass: in-process concurrency (fanning a polled batch out to multiple goroutines/workers within one relay instance). At this service's expected volume, sequential processing of a batch every `OUTBOX_POLL_INTERVAL` is not expected to be a bottleneck. If it becomes one later, a worker pool is a self-contained Go-level addition — each fetched record is handed to exactly one worker via an in-memory channel, so it needs none of the cross-process coordination (`status`/`claimed_at`) that exists specifically for multi-*replica* safety.
 
 "Custom processing logic" lives entirely in each service's `Store` implementation, never in `Relay` itself, which only ever moves opaque bytes — confirmed as the intended extension point: `Relay` has no pre-produce hook, since topic/key/payload are already fully decided at write time by the service that owns the data. This is what keeps the engine reusable across services with completely different table shapes and message formats, and keeps schema-registry serialization firmly the writing service's responsibility.
 
 ## Sidecar Deployment
 
 - **Binary:** `services/email/cmd/outbox-relay/main.go` — a separate `main` package, independent of the email service's own `cmd/main.go`, but living in the same module tree since it's tightly coupled to email's Postgres schema.
-- **Config:** its own minimal config struct (not the full `services/email/internal/config.ApplicationConfiguration`, which would force unrelated `KC_*` Keycloak env vars to be set just to run a process that never touches Keycloak or REST): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (same names/values the email service already uses), `KAFKA_BROKERS` (same name used by core/email), `OUTBOX_POLL_INTERVAL` (default `1s`), `OUTBOX_BATCH_SIZE` (default `100`), `OUTBOX_MAX_ATTEMPTS` (default `5`).
+- **Config:** its own minimal config struct (not the full `services/email/internal/config.ApplicationConfiguration`, which would force unrelated `KC_*` Keycloak env vars to be set just to run a process that never touches Keycloak or REST): `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` (same names/values the email service already uses), `KAFKA_BROKERS` (same name used by core/email), `OUTBOX_POLL_INTERVAL` (default `1s`), `OUTBOX_BATCH_SIZE` (default `100`), `OUTBOX_MAX_ATTEMPTS` (default `5`), `OUTBOX_CLAIM_TTL` (default `30s` — see the outbox table's concurrency-safety note above).
 - **Dockerfile:** `services/email/Dockerfile.outbox-relay` — at the root of the `services/email` folder (not nested under `cmd/`), a standard multi-stage Go build, built from the monorepo root as context (`docker build -f services/email/Dockerfile.outbox-relay .`), matching the CI convention already referenced by `Taskfile.yml`/`.github/workflows/`. The main service's own `services/email/Dockerfile` and `services/core/Dockerfile` do not exist in the repo today despite being referenced by the Taskfile and CI — a pre-existing gap, to be filled in a separate, future piece of work, not part of this spec.
 - **docker-compose:** a new `email-outbox-relay` service in `dev/docker-compose.yaml`, `depends_on: [postgres, kafka]`, env vars matching the local dev values already used by `postgres`/`kafka` in that file.
 - **Taskfile:** `run:email:outbox-relay` (Air hot-reload, mirroring `run:core`/`run:email`) and `build:email:outbox-relay` (docker build, mirroring `build:core`/`build:email`).
@@ -151,4 +169,6 @@ func (r *Relay) Run(ctx context.Context) error // blocking poll loop
 - Schema-registry integration (Avro/Protobuf serialization) — the `bytea` payload column is what makes this addable later without a further migration, but the registry work itself is not part of this spec.
 - Whether schema-registry serialization logic, once added, belongs in the writing service or in a shared library — an open question the team flagged for a later decision, not resolved here.
 - Reuse of `libs/outbox` by any service other than `services/email` — the library is designed for reuse, but no second consumer is being built in this pass.
+- In-process worker-pool concurrency within a single relay instance (see the `libs/outbox` section above) — a self-contained future addition, not needed at current expected volume.
+- Scaling the relay to multiple *replicas* while preserving per-key order across them. The `status`/`claimed_at`/TTL mechanism in this spec makes concurrent replicas safe against double-sends, but says nothing about which replica processes which key — today, any live replica can claim any row. A more promising direction than ad-hoc locking, when this is picked up: statically partition outbox rows across replicas by key hash (each replica only ever polls rows whose key falls in its assigned slice), which would give ordering *and* avoid inter-replica races at once, similar to how Kafka's own consumer groups split partitions. Not designed further here.
 - The pre-existing missing `services/core/Dockerfile` and `services/email/Dockerfile` — unrelated gap, separate future work.
