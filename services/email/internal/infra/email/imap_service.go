@@ -26,7 +26,7 @@ type Email struct {
 	From      string
 	Date      time.Time
 	MessageID string
-	SeqNum    uint32
+	UID       uint32
 }
 
 type IMAPService struct{}
@@ -44,7 +44,7 @@ func (s *IMAPService) TestConnection(ctx context.Context, settings IMAPSettings)
 	return nil
 }
 
-func (s *IMAPService) FetchAllUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error) {
+func (s *IMAPService) FetchUnseenMails(ctx context.Context, settings IMAPSettings) ([]Email, error) {
 	l := logger.FromContext(ctx)
 	c, err := s.login(ctx, settings)
 	if err != nil {
@@ -53,24 +53,26 @@ func (s *IMAPService) FetchAllUnseenMails(ctx context.Context, settings IMAPSett
 	defer c.Logout()
 
 	sc := imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}
-	e, err := c.Search(&sc, nil).Wait()
+	e, err := c.UIDSearch(&sc, nil).Wait()
 	if err != nil {
 		l.Error().Err(err).Msg("failed to search for unseen messages")
 		return nil, err
 	}
 
 	emails := []Email{}
-	if len(e.AllSeqNums()) == 0 {
+	uids := e.AllUIDs()
+	if len(uids) == 0 {
 		return emails, nil
 	}
 
-	seqSet := imap.SeqSet{}
-	seqSet.AddNum(e.AllSeqNums()...)
+	uidSet := imap.UIDSet{}
+	uidSet.AddNum(uids...)
 	fetchOptions := &imap.FetchOptions{
 		BodySection: []*imap.FetchItemBodySection{{}},
+		UID:         true,
 	}
 
-	fetchCmd := c.Fetch(seqSet, fetchOptions)
+	fetchCmd := c.Fetch(uidSet, fetchOptions)
 	defer fetchCmd.Close()
 
 	for {
@@ -91,13 +93,33 @@ func (s *IMAPService) FetchAllUnseenMails(ctx context.Context, settings IMAPSett
 		return nil, err
 	}
 
-	storeFlags := imap.StoreFlags{Op: imap.StoreFlagsAdd, Flags: []imap.Flag{imap.FlagSeen}, Silent: true}
-	if err := c.Store(seqSet, &storeFlags, nil).Close(); err != nil {
-		l.Error().Err(err).Msg("failed to mark fetched mails as seen")
-		return emails, err
+	return emails, nil
+}
+
+func (s *IMAPService) MarkSeen(ctx context.Context, settings IMAPSettings, uids []uint32) error {
+	if len(uids) == 0 {
+		return nil
 	}
 
-	return emails, nil
+	l := logger.FromContext(ctx)
+	c, err := s.login(ctx, settings)
+	if err != nil {
+		return err
+	}
+	defer c.Logout()
+
+	uidSet := imap.UIDSet{}
+	for _, u := range uids {
+		uidSet.AddNum(imap.UID(u))
+	}
+
+	storeFlags := imap.StoreFlags{Op: imap.StoreFlagsAdd, Flags: []imap.Flag{imap.FlagSeen}, Silent: true}
+	if err := c.Store(uidSet, &storeFlags, nil).Close(); err != nil {
+		l.Error().Err(err).Msg("failed to mark fetched mails as seen")
+		return err
+	}
+
+	return nil
 }
 
 func (s *IMAPService) login(ctx context.Context, settings IMAPSettings) (*imapclient.Client, error) {
@@ -142,18 +164,24 @@ func (s *IMAPService) login(ctx context.Context, settings IMAPSettings) (*imapcl
 func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.FetchMessageData) (Email, error) {
 	l := logger.FromContext(ctx)
 	var bodySection imapclient.FetchItemDataBodySection
-	ok := false
+	var uid imap.UID
+	hasBodySection := false
+
 	for {
 		item := msg.Next()
 		if item == nil {
 			break
 		}
-		bodySection, ok = item.(imapclient.FetchItemDataBodySection)
-		if ok {
-			break
+		switch data := item.(type) {
+		case imapclient.FetchItemDataBodySection:
+			bodySection = data
+			hasBodySection = true
+		case imapclient.FetchItemDataUID:
+			uid = data.UID
 		}
 	}
-	if !ok {
+
+	if !hasBodySection {
 		return Email{}, fmt.Errorf("FETCH command did not return body section")
 	}
 
@@ -175,7 +203,7 @@ func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.Fetch
 		return Email{}, err
 	}
 
-	email.SeqNum = msg.SeqNum
+	email.UID = uint32(uid)
 	return email, nil
 }
 
