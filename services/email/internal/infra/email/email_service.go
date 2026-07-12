@@ -130,22 +130,48 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 		}
 
 		if len(fetched) == 0 {
+			emailLogger.Warn().
+				Int("fetched_email_count", len(mails)).
+				Msg("No mails to save after building outbox batch (all skipped, likely marshal errors above)")
 			return
 		}
+
+		emailLogger.Info().Int("batch_size", len(fetched)).Msg("Saving fetched mails to outbox")
 
 		results, err := s.mailService.SaveFetchedMails(ctx, fetched)
 		if err != nil {
-			emailLogger.Error().Err(err).Msg("Error saving fetched mails to outbox")
+			emailLogger.Error().Err(err).Int("batch_size", len(fetched)).Msg("Error saving fetched mails to outbox")
 			return
 		}
 
+		inserted := 0
 		uids := make([]uint32, 0, len(results))
 		for _, r := range results {
 			uids = append(uids, r.UID)
+			if r.Inserted {
+				inserted++
+			}
 		}
+
+		emailLogger.Info().
+			Int("results_count", len(results)).
+			Int("inserted_count", inserted).
+			Ints("uids_to_mark_seen", uidsToInts(uids)).
+			Msg("SaveFetchedMails completed")
 
 		if err := s.imapService.MarkSeen(ctx, imapSettings, uids); err != nil {
 			emailLogger.Error().Err(err).Msg("Error marking emails as seen")
+			return
 		}
+
+		emailLogger.Info().Int("marked_seen_count", len(uids)).Msg("Marked mails as seen on IMAP")
 	}
+}
+
+func uidsToInts(uids []uint32) []int {
+	ints := make([]int, len(uids))
+	for i, u := range uids {
+		ints[i] = int(u)
+	}
+	return ints
 }

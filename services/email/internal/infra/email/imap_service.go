@@ -1,6 +1,7 @@
 package email
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -163,7 +164,7 @@ func (s *IMAPService) login(ctx context.Context, settings IMAPSettings) (*imapcl
 
 func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.FetchMessageData) (Email, error) {
 	l := logger.FromContext(ctx)
-	var bodySection imapclient.FetchItemDataBodySection
+	var bodyBytes []byte
 	var uid imap.UID
 	hasBodySection := false
 
@@ -174,7 +175,18 @@ func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.Fetch
 		}
 		switch data := item.(type) {
 		case imapclient.FetchItemDataBodySection:
-			bodySection = data
+			// The literal must be fully read here, before the next call to
+			// msg.Next(): FetchMessageData.Next() discards the previous
+			// item's unread data (see go-imap/v2's imapclient/fetch.go),
+			// so any bytes left unread in this streaming reader are lost
+			// the moment we loop back around to check for further items
+			// (e.g. the UID item, which this fetch also requests).
+			b, err := io.ReadAll(data.Literal)
+			if err != nil {
+				l.Error().Err(err).Msg("failed to read body section literal")
+				return Email{}, err
+			}
+			bodyBytes = b
 			hasBodySection = true
 		case imapclient.FetchItemDataUID:
 			uid = data.UID
@@ -185,7 +197,7 @@ func (s *IMAPService) extractMailData(ctx context.Context, msg *imapclient.Fetch
 		return Email{}, fmt.Errorf("FETCH command did not return body section")
 	}
 
-	mr, err := mail.CreateReader(bodySection.Literal)
+	mr, err := mail.CreateReader(bytes.NewReader(bodyBytes))
 	if err != nil {
 		l.Error().Err(err).Msg("failed to create mail reader")
 		return Email{}, err
