@@ -130,12 +130,6 @@ tasks:
     cmds:
       - air -c air.toml
 
-  run:email:outbox-relay:
-    desc: Run email outbox-relay sidecar with Air hot-reload
-    dir: services/email
-    cmds:
-      - air -c air.outbox-relay.toml
-
   # ========================================
   # Testing
   # ========================================
