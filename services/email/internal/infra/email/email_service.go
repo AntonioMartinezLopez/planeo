@@ -156,7 +156,6 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 		emailLogger.Info().
 			Int("results_count", len(results)).
 			Int("inserted_count", inserted).
-			Ints("uids_to_mark_seen", uidsToInts(uids)).
 			Msg("SaveFetchedMails completed")
 
 		if err := s.imapService.MarkSeen(ctx, imapSettings, uids); err != nil {
@@ -166,12 +165,4 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 
 		emailLogger.Info().Int("marked_seen_count", len(uids)).Msg("Marked mails as seen on IMAP")
 	}
-}
-
-func uidsToInts(uids []uint32) []int {
-	ints := make([]int, len(uids))
-	for i, u := range uids {
-		ints[i] = int(u)
-	}
-	return ints
 }
