@@ -222,7 +222,9 @@ func (s *IMAPService) extractHeaderFields(ctx context.Context, h mail.Header, em
 		l.Error().Err(err).Msg("failed to parse From header field")
 		return Email{}, err
 	}
-	email.From = from[0].Address
+	if len(from) > 0 {
+		email.From = from[0].Address
+	}
 
 	subject, err := h.Text("Subject")
 	if err != nil {
