@@ -25,9 +25,10 @@
 - Create: `libs/events/contracts/contracts.go`
 - Modify: `libs/events/email_received.go`
 - Modify: `services/core/internal/infra/events/email_received.go`
+- Modify: `services/email/internal/infra/email/email_service.go` (stopgap import swap only, superseded by Task 6's full rewrite)
 
 **Interfaces:**
-- Produces: `contracts.EmailCreatedPayload`, `contracts.EmailReceivedTopic` — consumed by Task 4 (`domain/mail`) and this task's own updates to `libs/events`/`services/core`.
+- Produces: `contracts.EmailCreatedPayload`, `contracts.EmailReceivedTopic` — consumed by Task 4 (`domain/mail`) and this task's own updates to `libs/events`/`services/core`/`services/email`.
 
 - [ ] **Step 1: Create the contracts package**
 
@@ -136,18 +137,41 @@ The rest of the function body is unchanged — it only reads fields off `payload
 
 `services/core/internal/infra/events/events.go` needs no changes — it never references the payload type by name, only `CreateEmailReceivedCallback(...)`'s return value, which still type-matches `SubscribeEmailReceived`'s parameter after this change.
 
-- [ ] **Step 4: Verify it compiles and core's existing tests still pass**
+- [ ] **Step 4: Stopgap-fix `services/email/internal/infra/email/email_service.go`'s two references**
 
-Run: `go build ./libs/events/... ./services/core/...`
-Expected: exit 0.
+This file also references `events.EmailCreatedPayload`/`events.EmailReceivedTopic` (lines 6, 100, 124) and would otherwise stop compiling the moment Task 1 lands — Task 6 doesn't rewrite this file until later. This is a temporary import swap only, superseded (import dropped entirely) by Task 6.
+
+In the import block, replace:
+```go
+	"planeo/libs/events"
+```
+with:
+```go
+	"planeo/libs/events/contracts"
+```
+
+Then change the two usages inside `createTask`'s loop:
+```go
+			payload, err := json.Marshal(contracts.EmailCreatedPayload{
+```
+and:
+```go
+				Event: mail.OutboxEvent{
+					Topic:   contracts.EmailReceivedTopic,
+```
+
+- [ ] **Step 5: Verify it compiles and core's existing tests still pass**
+
+Run: `go build ./libs/events/... ./services/core/... ./services/email/...`
+Expected: exit 0 (includes `services/email` because of the Step 4 stopgap fix).
 
 Run: `task test:core:unit`
 Expected: PASS (no test currently exercises `PublishEmailReceived`/`SubscribeEmailReceived`/`CreateEmailReceivedCallback` directly — this is a pre-existing gap, not something this task introduces — so this is a compile-correctness confirmation, not new behavioral coverage).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add libs/events/contracts/contracts.go libs/events/email_received.go services/core/internal/infra/events/email_received.go
+git add libs/events/contracts/contracts.go libs/events/email_received.go services/core/internal/infra/events/email_received.go services/email/internal/infra/email/email_service.go
 git commit -m "refactor(events): extract EmailCreatedPayload/EmailReceivedTopic into libs/events/contracts"
 ```
 
@@ -1036,7 +1060,7 @@ git commit -m "refactor(email): implement CreateMail/CreateOutboxEvent/WithTrans
 **Interfaces:**
 - Consumes: `mail.RawFetchedMail`, `mail.SaveResult` (Task 4).
 
-This is the task where the whole module finally compiles and passes end-to-end again — Tasks 4-5 deliberately left it broken.
+This is the task where the whole module finally compiles and passes end-to-end again — Tasks 4-5 deliberately left it broken. This rewrite also removes the `planeo/libs/events/contracts` import that Task 1, Step 4 added as a stopgap (that import's only purpose was to keep `services/email` compiling between Task 1 and this task) — the full rewrite below has no `contracts` import at all, since event construction no longer happens in this file.
 
 - [ ] **Step 1: Rewrite the file**
 
