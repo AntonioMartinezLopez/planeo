@@ -2,8 +2,6 @@ package email
 
 import (
 	"context"
-	"encoding/json"
-	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 	"planeo/services/email/internal/domain/mail"
 	"planeo/services/email/internal/domain/setting"
@@ -25,7 +23,7 @@ type imapServiceInterface interface {
 }
 
 type mailServiceInterface interface {
-	SaveFetchedMails(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error)
+	SaveFetchedMails(ctx context.Context, mails []mail.RawFetchedMail) ([]mail.SaveResult, error)
 }
 
 type EmailService struct {
@@ -95,52 +93,25 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 			return
 		}
 
-		fetched := make([]mail.FetchedMail, 0, len(mails))
+		raws := make([]mail.RawFetchedMail, 0, len(mails))
 		for _, m := range mails {
-			payload, err := json.Marshal(contracts.EmailCreatedPayload{
-				Subject:        m.Subject,
-				Body:           m.Body,
-				From:           m.From,
-				Date:           m.Date,
+			raws = append(raws, mail.RawFetchedMail{
 				MessageID:      m.MessageID,
-				OrganizationId: st.OrganizationID,
-			})
-			if err != nil {
-				emailLogger.Error().Err(err).Str("message_id", m.MessageID).Msg("Error marshaling email event payload")
-				continue
-			}
-
-			fetched = append(fetched, mail.FetchedMail{
-				Mail: mail.NewMail{
-					MessageID:      m.MessageID,
-					SettingID:      st.ID,
-					OrganizationID: st.OrganizationID,
-					Subject:        m.Subject,
-					Sender:         m.From,
-					Body:           m.Body,
-					Date:           m.Date,
-				},
-				Event: mail.OutboxEvent{
-					Topic:   contracts.EmailReceivedTopic,
-					Key:     []byte(strconv.Itoa(st.OrganizationID)),
-					Payload: payload,
-				},
-				UID: m.UID,
+				SettingID:      st.ID,
+				OrganizationID: st.OrganizationID,
+				Subject:        m.Subject,
+				Sender:         m.From,
+				Body:           m.Body,
+				Date:           m.Date,
+				UID:            m.UID,
 			})
 		}
 
-		if len(fetched) == 0 {
-			emailLogger.Warn().
-				Int("fetched_email_count", len(mails)).
-				Msg("No mails to save after building outbox batch (all skipped, likely marshal errors above)")
-			return
-		}
+		emailLogger.Info().Int("batch_size", len(raws)).Msg("Saving fetched mails to outbox")
 
-		emailLogger.Info().Int("batch_size", len(fetched)).Msg("Saving fetched mails to outbox")
-
-		results, err := s.mailService.SaveFetchedMails(ctx, fetched)
+		results, err := s.mailService.SaveFetchedMails(ctx, raws)
 		if err != nil {
-			emailLogger.Error().Err(err).Int("batch_size", len(fetched)).Msg("Error saving fetched mails to outbox")
+			emailLogger.Error().Err(err).Int("batch_size", len(raws)).Msg("Error saving fetched mails to outbox")
 			return
 		}
 
