@@ -3,7 +3,7 @@ package email
 import (
 	"context"
 	"encoding/json"
-	"planeo/libs/events"
+	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 	"planeo/services/email/internal/domain/mail"
 	"planeo/services/email/internal/domain/setting"
@@ -97,7 +97,7 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 
 		fetched := make([]mail.FetchedMail, 0, len(mails))
 		for _, m := range mails {
-			payload, err := json.Marshal(events.EmailCreatedPayload{
+			payload, err := json.Marshal(contracts.EmailCreatedPayload{
 				Subject:        m.Subject,
 				Body:           m.Body,
 				From:           m.From,
@@ -121,7 +121,7 @@ func (s *EmailService) createTask(st setting.Setting) func() {
 					Date:           m.Date,
 				},
 				Event: mail.OutboxEvent{
-					Topic:   events.EmailReceivedTopic,
+					Topic:   contracts.EmailReceivedTopic,
 					Key:     []byte(strconv.Itoa(st.OrganizationID)),
 					Payload: payload,
 				},
