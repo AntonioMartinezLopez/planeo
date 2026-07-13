@@ -1283,6 +1283,76 @@ git commit -m "chore: cleanup fixes from final verification"
 
 ---
 
+### Task 8: Integration test proving `CreateOutboxEvent` failure rolls back `CreateMail`
+
+**Files:**
+- Modify: `services/email/internal/test/mail/mail_test.go`
+
+**Interfaces:**
+- Consumes: `env.DB.WithTransaction`, `env.DB.CreateMail`, `env.DB.CreateOutboxEvent` (Task 5).
+
+Added after the final whole-branch review of Tasks 1-7 flagged a real coverage gap: the whole point of this cleanup's transaction work is that `CreateMail` and `CreateOutboxEvent` are atomic — yet no test forces the second write to fail and checks the first one is rolled back. `libs/db/db_test.go`'s `TestWithTx` proves rollback works against a scratch table; `domain/mail/service_test.go`'s mocked test proves the service propagates the error; neither proves the composition against the real `mails`/`outbox` schema. The `outbox` table's `mail_id` column has `REFERENCES mails(id)` (see `services/email/internal/infra/postgres/migrations/20260710120000_add_mails_and_outbox_tables.sql:19`), so passing a non-existent `mailID` to `CreateOutboxEvent` inside the same transaction as a real `CreateMail` call gives a real, natural failure (FK violation) to force — no error-injection scaffolding needed.
+
+- [ ] **Step 1: Add the rollback subtest to `mail_test.go`**
+
+Add this new `t.Run` block inside `TestMailRepository`'s existing `t.Run("CreateMail and CreateOutboxEvent within a transaction", ...)` group, after the existing two subtests (`"inserts a new mail and outbox event"` and `"is idempotent on a duplicate setting_id+message_id"`):
+
+```go
+		t.Run("rolls back the mail row when CreateOutboxEvent fails", func(t *testing.T) {
+			rollbackMail := mail.NewMail{
+				MessageID:      "rollback-test-1",
+				SettingID:      1,
+				OrganizationID: 1,
+				Subject:        "Rollback Test",
+				Sender:         "sender@example.com",
+				Body:           "Test body",
+				Date:           time.Now(),
+			}
+
+			err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+				mailID, inserted, err := env.DB.CreateMail(ctx, rollbackMail)
+				if err != nil {
+					return err
+				}
+				assert.True(t, inserted)
+
+				const nonExistentMailID = 999999999
+				_ = mailID
+				return env.DB.CreateOutboxEvent(ctx, nonExistentMailID, event)
+			})
+			assert.Error(t, err, "CreateOutboxEvent must fail on a foreign-key violation (mail_id references a non-existent mails row)")
+
+			// If the failed transaction had NOT rolled back, this row would already
+			// exist and CreateMail would report inserted == false (a duplicate on
+			// setting_id+message_id). Getting inserted == true here proves the
+			// earlier CreateMail was rolled back along with the failed CreateOutboxEvent.
+			_, insertedAfterRollback, err := env.DB.CreateMail(context.Background(), rollbackMail)
+			assert.Nil(t, err)
+			assert.True(t, insertedAfterRollback, "the mail row from the failed transaction must not have survived — this insert should succeed as if for the first time")
+		})
+```
+
+This reuses the existing top-level `event` variable already declared earlier in `TestMailRepository` (the same `mail.OutboxEvent{Topic: "email-received", Key: []byte("1"), Payload: []byte(`{"subject":"Test Subject"}`)}` used by the other subtests) — only the `mailID` passed to `CreateOutboxEvent` is deliberately wrong, not the event payload itself. The verification step deliberately reuses `CreateMail` itself (rather than a raw SQL query against the pool) since `services/email/internal/test/utils.IntegrationTestEnvironment` only exposes `DB *postgres.Client`, not the underlying `*pgxpool.Pool` — there is no need to add a new exported field just for this one assertion.
+
+- [ ] **Step 2: Run the test**
+
+Run: `go test ./services/email/internal/test/mail/... -v -count=1`
+Expected: PASS, all 3 subtests green (the two pre-existing ones plus the new rollback one). Requires Docker running locally, for testcontainers.
+
+- [ ] **Step 3: Run the full email test suite to confirm no regression**
+
+Run: `task test:email:unit && task test:email:integration`
+Expected: both PASS.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add services/email/internal/test/mail/mail_test.go
+git commit -m "test(email): prove CreateOutboxEvent failure rolls back CreateMail"
+```
+
+---
+
 ## Explicitly deferred (do not do in this plan)
 
 Per the approved spec: retrofitting `setting_repository.go` or any `services/core` repository onto `WithTx`/`FromContext`; routing `outbox_repository.go`'s `FetchBatch`/`MarkProcessed`/`MarkFailed` through `db.FromContext` for stylistic consistency; schema-registry serialization logic and where it lives.
