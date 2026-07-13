@@ -5,6 +5,8 @@ import (
 	"planeo/libs/logger"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool" // Standard library bindings for pgx
 )
 
@@ -60,4 +62,42 @@ func pingDatabase(ctx context.Context, pg *DBConnection) {
 		}()
 		time.Sleep(20 * time.Second)
 	}
+}
+
+// Querier is satisfied by both *pgxpool.Pool and pgx.Tx, letting
+// repository code run the same query methods whether or not it's
+// currently inside a transaction.
+type Querier interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+type txKey struct{}
+
+// WithTx runs fn inside a single database transaction on pool, committing
+// if fn returns nil and rolling back otherwise. Repository code that calls
+// FromContext(ctx, pool) using the ctx passed to fn transparently
+// participates in this same transaction.
+func WithTx(ctx context.Context, pool *pgxpool.Pool, fn func(ctx context.Context) error) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	txCtx := context.WithValue(ctx, txKey{}, tx)
+	if err := fn(txCtx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// FromContext returns the pgx.Tx stored in ctx by WithTx, or pool if ctx
+// carries no transaction.
+func FromContext(ctx context.Context, pool *pgxpool.Pool) Querier {
+	if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
+		return tx
+	}
+	return pool
 }
