@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"context"
-	"planeo/libs/logger"
+	"planeo/libs/db"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -12,12 +12,8 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context, connString string) *Client {
-	pool, err := pgxpool.New(ctx, connString)
-	if err != nil {
-		l := logger.FromContext(ctx)
-		l.Fatal().Err(err).Msg("unable to create connection pool")
-	}
-	return &Client{db: pool}
+	conn := db.InitializeDatabaseConnection(ctx, connString)
+	return &Client{db: conn.DB}
 }
 
 func (c *Client) Close() {
