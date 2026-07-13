@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"planeo/libs/db"
 	"planeo/libs/outbox"
+	"planeo/services/email/internal/domain/mail"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -64,6 +66,24 @@ func (c *Client) MarkFailed(ctx context.Context, id int64, sendErr error, maxAtt
 	_, err := c.db.Exec(ctx, query, args)
 	if err != nil {
 		return NewDatabaseError("error marking outbox record failed", err)
+	}
+	return nil
+}
+
+func (c *Client) CreateOutboxEvent(ctx context.Context, mailID int, event mail.OutboxEvent) error {
+	query := `
+		INSERT INTO outbox (mail_id, topic, key, payload)
+		VALUES (@mailId, @topic, @key, @payload)`
+	args := pgx.NamedArgs{
+		"mailId":  mailID,
+		"topic":   event.Topic,
+		"key":     event.Key,
+		"payload": event.Payload,
+	}
+
+	q := db.FromContext(ctx, c.db)
+	if _, err := q.Exec(ctx, query, args); err != nil {
+		return NewDatabaseError("error inserting outbox event", err)
 	}
 	return nil
 }

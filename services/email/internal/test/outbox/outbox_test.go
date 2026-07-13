@@ -11,30 +11,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func seedOutboxEvent(t *testing.T, env *utils.IntegrationTestEnvironment, messageID string) {
+	t.Helper()
+
+	newMail := mail.NewMail{
+		MessageID:      messageID,
+		SettingID:      1,
+		OrganizationID: 1,
+		Subject:        "Subject",
+		Sender:         "sender@example.com",
+		Body:           "Body",
+		Date:           time.Now(),
+	}
+	event := mail.OutboxEvent{
+		Topic:   "email-received",
+		Key:     []byte("1"),
+		Payload: []byte(`{"subject":"Subject"}`),
+	}
+
+	err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+		mailID, inserted, err := env.DB.CreateMail(ctx, newMail)
+		if err != nil {
+			return err
+		}
+		if !inserted {
+			return nil
+		}
+		return env.DB.CreateOutboxEvent(ctx, mailID, event)
+	})
+	assert.Nil(t, err)
+}
+
 func TestOutboxRepository(t *testing.T) {
 	env := utils.NewIntegrationTestEnvironment(t)
-
-	fetched := []mail.FetchedMail{{
-		Mail: mail.NewMail{
-			MessageID:      "outbox-test-1",
-			SettingID:      1,
-			OrganizationID: 1,
-			Subject:        "Subject",
-			Sender:         "sender@example.com",
-			Body:           "Body",
-			Date:           time.Now(),
-		},
-		Event: mail.OutboxEvent{
-			Topic:   "email-received",
-			Key:     []byte("1"),
-			Payload: []byte(`{"subject":"Subject"}`),
-		},
-		UID: 1,
-	}}
-
-	results, err := env.DB.SaveFetchedMails(context.Background(), fetched)
-	assert.Nil(t, err)
-	assert.True(t, results[0].Inserted)
+	seedOutboxEvent(t, env, "outbox-test-1")
 
 	t.Run("FetchBatch", func(t *testing.T) {
 		t.Run("claims a pending record", func(t *testing.T) {
@@ -71,26 +81,7 @@ func TestOutboxRepository(t *testing.T) {
 
 func TestOutboxRepositoryMarkFailed(t *testing.T) {
 	env := utils.NewIntegrationTestEnvironment(t)
-
-	fetched := []mail.FetchedMail{{
-		Mail: mail.NewMail{
-			MessageID:      "outbox-test-2",
-			SettingID:      1,
-			OrganizationID: 1,
-			Subject:        "Subject",
-			Sender:         "sender@example.com",
-			Body:           "Body",
-			Date:           time.Now(),
-		},
-		Event: mail.OutboxEvent{
-			Topic:   "email-received",
-			Key:     []byte("1"),
-			Payload: []byte(`{"subject":"Subject"}`),
-		},
-		UID: 2,
-	}}
-	_, err := env.DB.SaveFetchedMails(context.Background(), fetched)
-	assert.Nil(t, err)
+	seedOutboxEvent(t, env, "outbox-test-2")
 
 	records, err := env.DB.FetchBatch(context.Background(), 10, 30*time.Second)
 	assert.Nil(t, err)

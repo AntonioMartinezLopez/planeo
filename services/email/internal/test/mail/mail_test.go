@@ -28,25 +28,33 @@ func TestMailRepository(t *testing.T) {
 		Payload: []byte(`{"subject":"Test Subject"}`),
 	}
 
-	t.Run("SaveFetchedMails", func(t *testing.T) {
-		t.Run("inserts a new mail and outbox event", func(t *testing.T) {
-			fetched := []mail.FetchedMail{{Mail: newMail, Event: event, UID: 1}}
+	saveOnce := func(t *testing.T) (mailID int, inserted bool) {
+		t.Helper()
+		err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+			var err error
+			mailID, inserted, err = env.DB.CreateMail(ctx, newMail)
+			if err != nil {
+				return err
+			}
+			if inserted {
+				return env.DB.CreateOutboxEvent(ctx, mailID, event)
+			}
+			return nil
+		})
+		assert.Nil(t, err)
+		return mailID, inserted
+	}
 
-			results, err := env.DB.SaveFetchedMails(context.Background(), fetched)
-			assert.Nil(t, err)
-			assert.Equal(t, 1, len(results))
-			assert.True(t, results[0].Inserted)
-			assert.Equal(t, uint32(1), results[0].UID)
+	t.Run("CreateMail and CreateOutboxEvent within a transaction", func(t *testing.T) {
+		t.Run("inserts a new mail and outbox event", func(t *testing.T) {
+			mailID, inserted := saveOnce(t)
+			assert.True(t, inserted)
+			assert.NotZero(t, mailID)
 		})
 
 		t.Run("is idempotent on a duplicate setting_id+message_id", func(t *testing.T) {
-			fetched := []mail.FetchedMail{{Mail: newMail, Event: event, UID: 2}}
-
-			results, err := env.DB.SaveFetchedMails(context.Background(), fetched)
-			assert.Nil(t, err)
-			assert.Equal(t, 1, len(results))
-			assert.False(t, results[0].Inserted, "a conflicting mail must not create a second row, and must be reported as not-newly-inserted")
-			assert.Equal(t, uint32(2), results[0].UID, "the UID from THIS fetch must still be returned so the caller can mark it seen")
+			_, inserted := saveOnce(t)
+			assert.False(t, inserted, "a conflicting mail must not create a second row, and must be reported as not-newly-inserted")
 		})
 	})
 }
