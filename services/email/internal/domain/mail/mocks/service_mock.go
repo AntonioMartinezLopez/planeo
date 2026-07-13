@@ -39,8 +39,8 @@ func (_m *MockService) EXPECT() *MockService_Expecter {
 }
 
 // SaveFetchedMails provides a mock function for the type MockService
-func (_mock *MockService) SaveFetchedMails(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error) {
-	ret := _mock.Called(ctx, mails)
+func (_mock *MockService) SaveFetchedMails(ctx context.Context, raws []mail.RawFetchedMail) ([]mail.SaveResult, error) {
+	ret := _mock.Called(ctx, raws)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SaveFetchedMails")
@@ -48,18 +48,18 @@ func (_mock *MockService) SaveFetchedMails(ctx context.Context, mails []mail.Fet
 
 	var r0 []mail.SaveResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.FetchedMail) ([]mail.SaveResult, error)); ok {
-		return returnFunc(ctx, mails)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.RawFetchedMail) ([]mail.SaveResult, error)); ok {
+		return returnFunc(ctx, raws)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.FetchedMail) []mail.SaveResult); ok {
-		r0 = returnFunc(ctx, mails)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.RawFetchedMail) []mail.SaveResult); ok {
+		r0 = returnFunc(ctx, raws)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]mail.SaveResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []mail.FetchedMail) error); ok {
-		r1 = returnFunc(ctx, mails)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []mail.RawFetchedMail) error); ok {
+		r1 = returnFunc(ctx, raws)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -73,20 +73,20 @@ type MockService_SaveFetchedMails_Call struct {
 
 // SaveFetchedMails is a helper method to define mock.On call
 //   - ctx context.Context
-//   - mails []mail.FetchedMail
-func (_e *MockService_Expecter) SaveFetchedMails(ctx interface{}, mails interface{}) *MockService_SaveFetchedMails_Call {
-	return &MockService_SaveFetchedMails_Call{Call: _e.mock.On("SaveFetchedMails", ctx, mails)}
+//   - raws []mail.RawFetchedMail
+func (_e *MockService_Expecter) SaveFetchedMails(ctx interface{}, raws interface{}) *MockService_SaveFetchedMails_Call {
+	return &MockService_SaveFetchedMails_Call{Call: _e.mock.On("SaveFetchedMails", ctx, raws)}
 }
 
-func (_c *MockService_SaveFetchedMails_Call) Run(run func(ctx context.Context, mails []mail.FetchedMail)) *MockService_SaveFetchedMails_Call {
+func (_c *MockService_SaveFetchedMails_Call) Run(run func(ctx context.Context, raws []mail.RawFetchedMail)) *MockService_SaveFetchedMails_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []mail.FetchedMail
+		var arg1 []mail.RawFetchedMail
 		if args[1] != nil {
-			arg1 = args[1].([]mail.FetchedMail)
+			arg1 = args[1].([]mail.RawFetchedMail)
 		}
 		run(
 			arg0,
@@ -101,7 +101,7 @@ func (_c *MockService_SaveFetchedMails_Call) Return(saveResults []mail.SaveResul
 	return _c
 }
 
-func (_c *MockService_SaveFetchedMails_Call) RunAndReturn(run func(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error)) *MockService_SaveFetchedMails_Call {
+func (_c *MockService_SaveFetchedMails_Call) RunAndReturn(run func(ctx context.Context, raws []mail.RawFetchedMail) ([]mail.SaveResult, error)) *MockService_SaveFetchedMails_Call {
 	_c.Call.Return(run)
 	return _c
 }

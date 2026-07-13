@@ -32,12 +32,18 @@ type OutboxEvent struct {
 	Payload []byte
 }
 
-// FetchedMail pairs a mail fetched from IMAP with the outbox event it
-// should produce, and the IMAP UID needed to mark it seen afterward.
-type FetchedMail struct {
-	Mail  NewMail
-	Event OutboxEvent
-	UID   uint32
+// RawFetchedMail is the raw data a fetch-side adapter (e.g. IMAP) hands to
+// this domain — it carries no knowledge of Kafka, topics, or event
+// payloads; SaveFetchedMails builds those internally.
+type RawFetchedMail struct {
+	MessageID      string
+	SettingID      int
+	OrganizationID int
+	Subject        string
+	Sender         string
+	Body           string
+	Date           time.Time
+	UID            uint32
 }
 
 // SaveResult reports, per fetched mail, its IMAP UID (so the caller can

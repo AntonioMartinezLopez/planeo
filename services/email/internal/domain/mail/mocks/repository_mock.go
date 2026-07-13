@@ -38,55 +38,59 @@ func (_m *MockRepository) EXPECT() *MockRepository_Expecter {
 	return &MockRepository_Expecter{mock: &_m.Mock}
 }
 
-// SaveFetchedMails provides a mock function for the type MockRepository
-func (_mock *MockRepository) SaveFetchedMails(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error) {
-	ret := _mock.Called(ctx, mails)
+// CreateMail provides a mock function for the type MockRepository
+func (_mock *MockRepository) CreateMail(ctx context.Context, m mail.NewMail) (int, bool, error) {
+	ret := _mock.Called(ctx, m)
 
 	if len(ret) == 0 {
-		panic("no return value specified for SaveFetchedMails")
+		panic("no return value specified for CreateMail")
 	}
 
-	var r0 []mail.SaveResult
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.FetchedMail) ([]mail.SaveResult, error)); ok {
-		return returnFunc(ctx, mails)
+	var r0 int
+	var r1 bool
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mail.NewMail) (int, bool, error)); ok {
+		return returnFunc(ctx, m)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []mail.FetchedMail) []mail.SaveResult); ok {
-		r0 = returnFunc(ctx, mails)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, mail.NewMail) int); ok {
+		r0 = returnFunc(ctx, m)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]mail.SaveResult)
-		}
+		r0 = ret.Get(0).(int)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []mail.FetchedMail) error); ok {
-		r1 = returnFunc(ctx, mails)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, mail.NewMail) bool); ok {
+		r1 = returnFunc(ctx, m)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(bool)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, mail.NewMail) error); ok {
+		r2 = returnFunc(ctx, m)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
-// MockRepository_SaveFetchedMails_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SaveFetchedMails'
-type MockRepository_SaveFetchedMails_Call struct {
+// MockRepository_CreateMail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateMail'
+type MockRepository_CreateMail_Call struct {
 	*mock.Call
 }
 
-// SaveFetchedMails is a helper method to define mock.On call
+// CreateMail is a helper method to define mock.On call
 //   - ctx context.Context
-//   - mails []mail.FetchedMail
-func (_e *MockRepository_Expecter) SaveFetchedMails(ctx interface{}, mails interface{}) *MockRepository_SaveFetchedMails_Call {
-	return &MockRepository_SaveFetchedMails_Call{Call: _e.mock.On("SaveFetchedMails", ctx, mails)}
+//   - m mail.NewMail
+func (_e *MockRepository_Expecter) CreateMail(ctx interface{}, m interface{}) *MockRepository_CreateMail_Call {
+	return &MockRepository_CreateMail_Call{Call: _e.mock.On("CreateMail", ctx, m)}
 }
 
-func (_c *MockRepository_SaveFetchedMails_Call) Run(run func(ctx context.Context, mails []mail.FetchedMail)) *MockRepository_SaveFetchedMails_Call {
+func (_c *MockRepository_CreateMail_Call) Run(run func(ctx context.Context, m mail.NewMail)) *MockRepository_CreateMail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []mail.FetchedMail
+		var arg1 mail.NewMail
 		if args[1] != nil {
-			arg1 = args[1].([]mail.FetchedMail)
+			arg1 = args[1].(mail.NewMail)
 		}
 		run(
 			arg0,
@@ -96,12 +100,132 @@ func (_c *MockRepository_SaveFetchedMails_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockRepository_SaveFetchedMails_Call) Return(saveResults []mail.SaveResult, err error) *MockRepository_SaveFetchedMails_Call {
-	_c.Call.Return(saveResults, err)
+func (_c *MockRepository_CreateMail_Call) Return(mailID int, inserted bool, err error) *MockRepository_CreateMail_Call {
+	_c.Call.Return(mailID, inserted, err)
 	return _c
 }
 
-func (_c *MockRepository_SaveFetchedMails_Call) RunAndReturn(run func(ctx context.Context, mails []mail.FetchedMail) ([]mail.SaveResult, error)) *MockRepository_SaveFetchedMails_Call {
+func (_c *MockRepository_CreateMail_Call) RunAndReturn(run func(ctx context.Context, m mail.NewMail) (int, bool, error)) *MockRepository_CreateMail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateOutboxEvent provides a mock function for the type MockRepository
+func (_mock *MockRepository) CreateOutboxEvent(ctx context.Context, mailID int, event mail.OutboxEvent) error {
+	ret := _mock.Called(ctx, mailID, event)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateOutboxEvent")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int, mail.OutboxEvent) error); ok {
+		r0 = returnFunc(ctx, mailID, event)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRepository_CreateOutboxEvent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateOutboxEvent'
+type MockRepository_CreateOutboxEvent_Call struct {
+	*mock.Call
+}
+
+// CreateOutboxEvent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - mailID int
+//   - event mail.OutboxEvent
+func (_e *MockRepository_Expecter) CreateOutboxEvent(ctx interface{}, mailID interface{}, event interface{}) *MockRepository_CreateOutboxEvent_Call {
+	return &MockRepository_CreateOutboxEvent_Call{Call: _e.mock.On("CreateOutboxEvent", ctx, mailID, event)}
+}
+
+func (_c *MockRepository_CreateOutboxEvent_Call) Run(run func(ctx context.Context, mailID int, event mail.OutboxEvent)) *MockRepository_CreateOutboxEvent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int
+		if args[1] != nil {
+			arg1 = args[1].(int)
+		}
+		var arg2 mail.OutboxEvent
+		if args[2] != nil {
+			arg2 = args[2].(mail.OutboxEvent)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_CreateOutboxEvent_Call) Return(err error) *MockRepository_CreateOutboxEvent_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRepository_CreateOutboxEvent_Call) RunAndReturn(run func(ctx context.Context, mailID int, event mail.OutboxEvent) error) *MockRepository_CreateOutboxEvent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// WithTransaction provides a mock function for the type MockRepository
+func (_mock *MockRepository) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	ret := _mock.Called(ctx, fn)
+
+	if len(ret) == 0 {
+		panic("no return value specified for WithTransaction")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, func(ctx context.Context) error) error); ok {
+		r0 = returnFunc(ctx, fn)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockRepository_WithTransaction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WithTransaction'
+type MockRepository_WithTransaction_Call struct {
+	*mock.Call
+}
+
+// WithTransaction is a helper method to define mock.On call
+//   - ctx context.Context
+//   - fn func(ctx context.Context) error
+func (_e *MockRepository_Expecter) WithTransaction(ctx interface{}, fn interface{}) *MockRepository_WithTransaction_Call {
+	return &MockRepository_WithTransaction_Call{Call: _e.mock.On("WithTransaction", ctx, fn)}
+}
+
+func (_c *MockRepository_WithTransaction_Call) Run(run func(ctx context.Context, fn func(ctx context.Context) error)) *MockRepository_WithTransaction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 func(ctx context.Context) error
+		if args[1] != nil {
+			arg1 = args[1].(func(ctx context.Context) error)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRepository_WithTransaction_Call) Return(err error) *MockRepository_WithTransaction_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockRepository_WithTransaction_Call) RunAndReturn(run func(ctx context.Context, fn func(ctx context.Context) error) error) *MockRepository_WithTransaction_Call {
 	_c.Call.Return(run)
 	return _c
 }
