@@ -14,7 +14,7 @@ This spec addresses all three. It does not add new functionality — it restruct
 
 - No behavior change to the actual outbox semantics (claim/TTL, poison-row quarantine, ordering guarantees) — all of that is unchanged and already covered by existing tests.
 - No retrofit of `setting_repository.go` or any of `services/core`'s repositories onto the new `WithTx`/`Querier` pattern — scoped to `services/email`'s mail+outbox repositories only. The utility is designed generically enough to be adopted elsewhere later, on an as-needed basis.
-- No change to `outbox_repository.go`'s relay-facing methods (`FetchBatch`, `MarkProcessed`, `MarkFailed`) — they remain single-statement operations calling `c.db` directly; only the new `CreateOutboxEvent` method (used by the transactional write path) goes through the new `db.Q` accessor.
+- No change to `outbox_repository.go`'s relay-facing methods (`FetchBatch`, `MarkProcessed`, `MarkFailed`) — they remain single-statement operations calling `c.db` directly; only the new `CreateOutboxEvent` method (used by the transactional write path) goes through the new `db.FromContext` accessor.
 - No change to `services/core`'s subscribe side, or to `libs/events`'s public API — `PublishEmailReceived`/`SubscribeEmailReceived` keep their exact signatures.
 
 ## 1. `libs/events/contracts` extraction
@@ -74,7 +74,7 @@ func WithTx(ctx context.Context, pool *pgxpool.Pool, fn func(ctx context.Context
     return tx.Commit(ctx)
 }
 
-func Q(ctx context.Context, pool *pgxpool.Pool) Querier {
+func FromContext(ctx context.Context, pool *pgxpool.Pool) Querier {
     if tx, ok := ctx.Value(txKey{}).(pgx.Tx); ok {
         return tx
     }
@@ -127,7 +127,7 @@ func (c *Client) WithTransaction(ctx context.Context, fn func(ctx context.Contex
 }
 
 func (c *Client) CreateMail(ctx context.Context, m mail.NewMail) (int, bool, error) {
-    q := db.Q(ctx, c.db)
+    q := db.FromContext(ctx, c.db)
     // ... same INSERT ... ON CONFLICT (setting_id, message_id) DO NOTHING ... RETURNING id, using q instead of tx
 }
 ```
@@ -135,24 +135,24 @@ func (c *Client) CreateMail(ctx context.Context, m mail.NewMail) (int, bool, err
 ```go
 // infra/postgres/outbox_repository.go
 func (c *Client) CreateOutboxEvent(ctx context.Context, mailID int, event mail.OutboxEvent) error {
-    q := db.Q(ctx, c.db)
+    q := db.FromContext(ctx, c.db)
     // ... same INSERT INTO outbox ..., using q instead of tx
 }
 ```
 
 This is the corrected hexagonal shape: the domain layer never imports a Postgres or pgx type — `WithTransaction`'s signature is a plain `func(ctx context.Context) error` callback, defined entirely in terms of the port's own vocabulary. The repository provides the transaction *mechanism* (via `libs/db.WithTx` internally) without hiding the orchestration of *which writes happen together* — that decision lives in the service, where business logic belongs.
 
-`FetchBatch`/`MarkProcessed`/`MarkFailed` (the relay-facing side of `outbox_repository.go`, used by `libs/outbox.Store` — unrelated to this transactional write path) are unchanged: each remains a single atomic SQL statement calling `c.db` directly, with no need for `db.Q`.
+`FetchBatch`/`MarkProcessed`/`MarkFailed` (the relay-facing side of `outbox_repository.go`, used by `libs/outbox.Store` — unrelated to this transactional write path) are unchanged: each remains a single atomic SQL statement calling `c.db` directly, with no need for `db.FromContext`.
 
 ## Testing implications
 
 - `domain/mail/service_test.go` is restructured: `Repository`'s mock now has three methods instead of one. `WithTransaction`'s mock expectation uses mockery's `RunAndReturn` to actually invoke the passed callback (so the nested `CreateMail`/`CreateOutboxEvent` expectations fire within it), rather than a bare `Return(nil)`. Test cases: successful save (mail inserted, outbox event created), duplicate mail (mail not inserted, outbox event NOT created, no error), repository error at each of the three call points (propagates correctly, and does not call subsequent steps).
 - `services/email/internal/test/mail/mail_test.go`'s integration test is updated to call the new repository methods directly — `env.DB.WithTransaction(ctx, func(ctx) error { ...call CreateMail, then CreateOutboxEvent if inserted... })` — matching how the existing test already exercises the repository layer directly (not through the domain service or its mocks). Same dedup/transactional-atomicity behavior under test (a duplicate mail's transaction is a safe no-op for both tables), just expressed against the new, split method shape instead of the old single `SaveFetchedMails` repository method.
 - `services/email/internal/test/outbox/outbox_test.go` (Task 8's integration test) is unaffected — it tests `FetchBatch`/`MarkProcessed`/`MarkFailed`, none of which change.
-- `libs/db` gets a new unit test for `WithTx`/`Q` — given these need a real Postgres connection to meaningfully test (a fake won't exercise real transaction semantics), this is an integration-style test using the existing testcontainer pattern, verifying: a transaction that returns an error from `fn` rolls back (no rows persisted), a transaction that succeeds commits, and `Q(ctx, pool)` returns the pool when no transaction is in the context vs. the tx when one is.
+- `libs/db` gets a new unit test for `WithTx`/`FromContext` — given these need a real Postgres connection to meaningfully test (a fake won't exercise real transaction semantics), this is an integration-style test using the existing testcontainer pattern, verifying: a transaction that returns an error from `fn` rolls back (no rows persisted), a transaction that succeeds commits, and `FromContext(ctx, pool)` returns the pool when no transaction is in the context vs. the tx when one is.
 
 ## Explicitly deferred / out of scope for this spec
 
-- Retrofitting `setting_repository.go` or any `services/core` repository onto `WithTx`/`Q`.
-- Routing `outbox_repository.go`'s `FetchBatch`/`MarkProcessed`/`MarkFailed` through `db.Q` for stylistic consistency — they don't need it.
+- Retrofitting `setting_repository.go` or any `services/core` repository onto `WithTx`/`FromContext`.
+- Routing `outbox_repository.go`'s `FetchBatch`/`MarkProcessed`/`MarkFailed` through `db.FromContext` for stylistic consistency — they don't need it.
 - Schema-registry serialization logic and where it lives (writing service vs. shared library) — still an open question from the original outbox-pattern spec, unaffected by this cleanup.
