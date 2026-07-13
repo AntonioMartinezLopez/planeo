@@ -56,5 +56,38 @@ func TestMailRepository(t *testing.T) {
 			_, inserted := saveOnce(t)
 			assert.False(t, inserted, "a conflicting mail must not create a second row, and must be reported as not-newly-inserted")
 		})
+
+		t.Run("rolls back the mail row when CreateOutboxEvent fails", func(t *testing.T) {
+			rollbackMail := mail.NewMail{
+				MessageID:      "rollback-test-1",
+				SettingID:      1,
+				OrganizationID: 1,
+				Subject:        "Rollback Test",
+				Sender:         "sender@example.com",
+				Body:           "Test body",
+				Date:           time.Now(),
+			}
+
+			err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+				mailID, inserted, err := env.DB.CreateMail(ctx, rollbackMail)
+				if err != nil {
+					return err
+				}
+				assert.True(t, inserted)
+
+				const nonExistentMailID = 999999999
+				_ = mailID
+				return env.DB.CreateOutboxEvent(ctx, nonExistentMailID, event)
+			})
+			assert.Error(t, err, "CreateOutboxEvent must fail on a foreign-key violation (mail_id references a non-existent mails row)")
+
+			// If the failed transaction had NOT rolled back, this row would already
+			// exist and CreateMail would report inserted == false (a duplicate on
+			// setting_id+message_id). Getting inserted == true here proves the
+			// earlier CreateMail was rolled back along with the failed CreateOutboxEvent.
+			_, insertedAfterRollback, err := env.DB.CreateMail(context.Background(), rollbackMail)
+			assert.Nil(t, err)
+			assert.True(t, insertedAfterRollback, "the mail row from the failed transaction must not have survived — this insert should succeed as if for the first time")
+		})
 	})
 }
