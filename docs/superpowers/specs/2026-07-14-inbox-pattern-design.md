@@ -200,13 +200,25 @@ func (c *Consumer) Run(ctx context.Context) error {
             fetches.EachError(func(_ string, _ int32, err error) {
                 log.Error().Err(err).Msg("kafka fetch error")
             })
+            // Kafka offset commits are one cumulative per-partition marker,
+            // not a per-record ack: if record N's Save fails but N+1's
+            // succeeds and commits, the offset would advance past N,
+            // permanently losing it. Once a partition fails, stop
+            // committing on it for the rest of this poll — Save's dedup on
+            // (topic, partition, offset) makes redelivery safe.
+            failedPartitions := map[int32]bool{}
             fetches.EachRecord(func(record *kgo.Record) {
+                if failedPartitions[record.Partition] {
+                    return
+                }
                 if _, err := c.store.Save(ctx, c.topic, record.Partition, record.Offset, record.Value); err != nil {
-                    log.Error().Err(err).Msg("failed to persist inbox record, skipping commit")
+                    log.Error().Err(err).Msg("failed to persist inbox record, halting commits on this partition")
+                    failedPartitions[record.Partition] = true
                     return
                 }
                 if err := client.CommitRecords(ctx, record); err != nil {
                     log.Error().Err(err).Msg("failed to commit kafka offset")
+                    failedPartitions[record.Partition] = true
                 }
             })
         }

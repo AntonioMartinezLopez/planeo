@@ -465,15 +465,31 @@ func (c *Consumer) Run(ctx context.Context) error {
 				log.Error().Err(err).Msg("kafka fetch error")
 			})
 
+			// Kafka offset commits are a single cumulative per-partition
+			// marker, not a per-record acknowledgement: if record N's Save
+			// fails but record N+1's Save (and commit) succeeds, the
+			// committed offset would advance past N, and N would never be
+			// redelivered — a silent, permanent loss of exactly the message
+			// this pattern exists to protect. To prevent that, once a
+			// partition has a failure in this poll, stop committing further
+			// records on that partition for the rest of the poll (Save's
+			// (topic, partition, offset) dedup makes it safe to reprocess
+			// already-saved records on the next poll/redelivery).
+			failedPartitions := map[int32]bool{}
 			fetches.EachRecord(func(record *kgo.Record) {
-				// Skipping the commit here does not guarantee redelivery: Kafka commits are cumulative per partition, so a later successful commit will skip past this record.
+				if failedPartitions[record.Partition] {
+					return
+				}
+
 				if _, err := c.store.Save(ctx, c.topic, record.Partition, record.Offset, record.Value); err != nil {
-					log.Error().Err(err).Msg("failed to persist inbox record, skipping commit")
+					log.Error().Err(err).Int32("partition", record.Partition).Int64("offset", record.Offset).Msg("failed to persist inbox record, halting commits on this partition until next poll")
+					failedPartitions[record.Partition] = true
 					return
 				}
 
 				if err := client.CommitRecords(ctx, record); err != nil {
-					log.Error().Err(err).Msg("failed to commit kafka offset")
+					log.Error().Err(err).Int32("partition", record.Partition).Int64("offset", record.Offset).Msg("failed to commit kafka offset, halting further commits on this partition")
+					failedPartitions[record.Partition] = true
 				}
 			})
 		}
