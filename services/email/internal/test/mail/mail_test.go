@@ -55,6 +55,14 @@ func TestMailRepository(t *testing.T) {
 		t.Run("is idempotent on a duplicate setting_id+message_id", func(t *testing.T) {
 			_, inserted := saveOnce(t)
 			assert.False(t, inserted, "a conflicting mail must not create a second row, and must be reported as not-newly-inserted")
+
+			var outboxCount int
+			err := env.Pool.QueryRow(context.Background(),
+				`SELECT COUNT(*) FROM outbox o JOIN mails m ON o.mail_id = m.id WHERE m.setting_id = $1 AND m.message_id = $2`,
+				newMail.SettingID, newMail.MessageID,
+			).Scan(&outboxCount)
+			assert.Nil(t, err)
+			assert.Equal(t, 1, outboxCount, "a duplicate save must not create a second outbox row for the same mail — checked directly against the database, not just inferred from saveOnce's control flow")
 		})
 
 		t.Run("rolls back the mail row when CreateOutboxEvent fails", func(t *testing.T) {

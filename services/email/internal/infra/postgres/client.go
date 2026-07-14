@@ -19,3 +19,10 @@ func NewClient(ctx context.Context, connString string) *Client {
 func (c *Client) Close() {
 	c.db.Close()
 }
+
+// Pool exposes the underlying connection pool for callers that need to run
+// queries outside the Repository port (e.g. integration tests asserting on
+// database state directly).
+func (c *Client) Pool() *pgxpool.Pool {
+	return c.db
+}

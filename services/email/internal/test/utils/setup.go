@@ -10,6 +10,7 @@ import (
 	"planeo/services/email/internal/infra/postgres"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	postgresContainer "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
@@ -17,6 +18,11 @@ type IntegrationTestEnvironment struct {
 	PostgresContainer *postgresContainer.PostgresContainer
 	Configuration     *config.ApplicationConfiguration
 	DB                *postgres.Client
+	// Pool is the same underlying connection pool as DB, exposed directly
+	// for tests that need to assert on database state outside the
+	// Repository port (e.g. counting rows a repository method doesn't
+	// itself report back).
+	Pool *pgxpool.Pool
 }
 
 func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
@@ -45,6 +51,7 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 	db := postgres.NewClient(context.Background(), cfg.DatabaseConfig())
 	env.DB = db
+	env.Pool = db.Pool()
 
 	t.Cleanup(func() {
 		ctx := context.Background()
