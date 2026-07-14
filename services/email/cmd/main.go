@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"net/http"
-	"planeo/libs/events"
 	"planeo/libs/logger"
 	"planeo/services/email/internal/config"
+	"planeo/services/email/internal/domain/mail"
 	"planeo/services/email/internal/domain/setting"
 	emailInfra "planeo/services/email/internal/infra/email"
 	"planeo/services/email/internal/infra/postgres"
@@ -25,16 +25,13 @@ func main() {
 	db := postgres.NewClient(ctx, cfg.DatabaseConfig())
 	defer db.Close()
 
-	eventService, err := events.NewEventService(cfg.KafkaBrokers)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
-	}
+	mailService := mail.NewService(db)
 
 	cronService := emailInfra.NewCronService()
 	cronService.Start()
 
 	imapService := emailInfra.NewIMAPService()
-	emailService := emailInfra.NewEmailService(cronService, imapService, eventService)
+	emailService := emailInfra.NewEmailService(cronService, imapService, mailService)
 
 	settingService, err := setting.NewService(db, emailService)
 	if err != nil {

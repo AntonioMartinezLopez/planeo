@@ -3,7 +3,7 @@ package core_events
 import (
 	"context"
 	"fmt"
-	"planeo/libs/events"
+	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 
 	"planeo/services/core/internal/domain/request"
@@ -12,10 +12,10 @@ import (
 )
 
 //nolint:funlen
-func CreateEmailReceivedCallback(ctx context.Context, services Services) func(payload events.EmailCreatedPayload) error {
+func CreateEmailReceivedCallback(ctx context.Context, services Services) func(payload contracts.EmailCreatedPayload) error {
 	logger := logger.FromContext(ctx)
 
-	return func(payload events.EmailCreatedPayload) error {
+	return func(payload contracts.EmailCreatedPayload) error {
 		logger.Info().Str("message_id", payload.MessageID).Int("organization_id", payload.OrganizationId).Msg("Received email")
 
 		raw := fmt.Sprintf("Subject: %s\nFrom: %s\nDate: %s\nMessage-ID: %s\nBody: %s",

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -16,8 +17,8 @@ type EventService struct {
 }
 
 type EventServiceInterface interface {
-	SubscribeEmailReceived(ctx context.Context, callback func(payload EmailCreatedPayload) error) error
-	PublishEmailReceived(ctx context.Context, payload EmailCreatedPayload) error
+	SubscribeEmailReceived(ctx context.Context, callback func(payload contracts.EmailCreatedPayload) error) error
+	PublishEmailReceived(ctx context.Context, payload contracts.EmailCreatedPayload) error
 	IsConnected() bool
 }
 

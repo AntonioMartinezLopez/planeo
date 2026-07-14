@@ -96,6 +96,30 @@ services:
     ports:
       - 8082:8080
 
+  # email outbox relay sidecar - drains services/email's outbox table to Kafka
+  # NOTE: On first `task up`, this container will log query errors for a few seconds
+  # while waiting for the outbox table to be created by migrations. This is expected
+  # and not a regression — the poll loop continues and self-recovers once the table exists.
+  email-outbox-relay:
+    container_name: email-outbox-relay
+    build:
+      context: ..
+      dockerfile: services/email/Dockerfile.outbox-relay
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: planeo
+      DB_PASSWORD: planeo
+      DB_NAME: mail
+      KAFKA_BROKERS: kafka:19092
+      OUTBOX_POLL_INTERVAL: 1s
+      OUTBOX_BATCH_SIZE: "100"
+      OUTBOX_MAX_ATTEMPTS: "5"
+      OUTBOX_CLAIM_TTL: 30s
+
 networks:
   default:
     driver: bridge
