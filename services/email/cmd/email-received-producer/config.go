@@ -42,10 +42,10 @@ func LoadConfig(ctx context.Context, filenames ...string) *Config {
 		DbPassword:   readEnvVariable(ctx, "DB_PASSWORD"),
 		DbName:       readEnvVariable(ctx, "DB_NAME"),
 		KafkaBrokers: readEnvVariable(ctx, "KAFKA_BROKERS"),
-		PollInterval: readDurationEnvVariable(ctx, "OUTBOX_POLL_INTERVAL", 1*time.Second),
-		BatchSize:    readIntEnvVariable(ctx, "OUTBOX_BATCH_SIZE", 100),
-		MaxAttempts:  readIntEnvVariable(ctx, "OUTBOX_MAX_ATTEMPTS", 5),
-		ClaimTTL:     readDurationEnvVariable(ctx, "OUTBOX_CLAIM_TTL", 30*time.Second),
+		PollInterval: readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL", 1*time.Second),
+		BatchSize:    readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_BATCH_SIZE", 100),
+		MaxAttempts:  readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS", 5),
+		ClaimTTL:     readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_CLAIM_TTL", 30*time.Second),
 	}
 }
 

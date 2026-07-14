@@ -13,7 +13,7 @@ import (
 func main() {
 	logConfig := logger.DefaultConfig()
 	logger.Setup(logConfig)
-	log := logger.New("outbox-relay")
+	log := logger.New("email-received-producer")
 	ctx := logger.WithContext(context.Background(), log)
 
 	log.Info().Msg("Loading environment variables")

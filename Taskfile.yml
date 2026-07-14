@@ -232,18 +232,18 @@ tasks:
       - echo "Building Docker image for email with tag {{.VERSION}}..."
       - docker build -t {{.DOCKER_REGISTRY}}/email:{{.VERSION}} -f services/email/Dockerfile .
 
-  build:email:outbox-relay:
-    desc: Build Docker image for email outbox-relay sidecar
+  build:email:email-received-producer:
+    desc: Build Docker image for email-received-producer sidecar
     cmds:
-      - echo "Building Docker image for email-outbox-relay with tag {{.VERSION}}..."
-      - docker build -t {{.DOCKER_REGISTRY}}/email-outbox-relay:{{.VERSION}} -f services/email/Dockerfile.outbox-relay .
+      - echo "Building Docker image for email-received-producer with tag {{.VERSION}}..."
+      - docker build -t {{.DOCKER_REGISTRY}}/email-received-producer:{{.VERSION}} -f services/email/Dockerfile.email-received-producer .
 
   build:all:
     desc: Build Docker images for all services
     cmds:
       - task: build:core
       - task: build:email
-      - task: build:email:outbox-relay
+      - task: build:email:email-received-producer
 
   # ========================================
   # Frontend
