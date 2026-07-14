@@ -170,6 +170,11 @@ Mirrors `outbox`'s schema (same status state machine, same claim/TTL/quarantine 
 Small, additive change to `libs/events/service.go` so `Consumer` can build on it instead of duplicating Kafka consumer-group plumbing:
 
 ```go
+type EventServiceInterface interface {
+    Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error
+    IsConnected() bool
+}
+
 func (es *EventService) Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error {
     // ... unchanged setup ...
     fetches.EachRecord(func(record *kgo.Record) {
@@ -183,7 +188,9 @@ func (es *EventService) Subscribe(ctx context.Context, groupName string, topic s
 
 `inbox.Consumer` becomes a thin adapter: construct with an `EventServiceInterface`, call `Subscribe(groupName, topic, func(partition int32, offset int64, data []byte) error { return store.Save(ctx, topic, partition, offset, data) })`.
 
-**Cleanup as part of this same change:** `libs/events.SubscribeEmailReceived` and its hardcoded `subscriptionName = "email-receiver"` package var (in `libs/events/email_received.go`) are removed — `services/core` (their only caller) migrates entirely to the new consumer binary and stops calling them. `PublishEmailReceived` and the low-level `Subscribe` are unaffected and remain in use (`Consumer` builds on `Subscribe`; `services/email`'s outbox relay is unaffected, it only ever called `Publish`, never `Subscribe`).
+**Cleanup as part of this same change:** `libs/events.SubscribeEmailReceived` and its hardcoded `subscriptionName = "email-receiver"` package var (in `libs/events/email_received.go`) are removed — `services/core` (their only caller) migrates entirely to the new consumer binary and stops calling them.
+
+**Correction from an earlier draft of this section, caught during implementation planning:** `PublishEmailReceived` and the generic `Publish` are *not* still in use elsewhere — `services/email`'s outbox relay (`outbox.NewProducer`) creates its own raw `kgo.Client` directly and never touches `libs/events` at all. So `Publish`/`PublishEmailReceived` already have zero callers anywhere in the repo, independent of this plan. Since this file is already being edited here, they're removed too in the same task — `EventServiceInterface` shrinks to just `Subscribe`/`IsConnected` as shown above.
 
 ## 6. Sidecar wiring — `services/core/cmd/email-received-consumer`
 
