@@ -17,7 +17,7 @@
 - No generic multi-topic router — `email-received-consumer` consumes exactly one topic. A future service consuming a different topic gets its own dedicated binary.
 - No shared claim/retry engine, and no shared `Record` type, between `libs/outbox` and `libs/inbox` — kept as two independently-implemented packages.
 - Section 9 of the spec (per-key ordering in `Worker`) is explicitly out of scope for this plan — not designed, not implemented here.
-- `libs/events.Publish`/`PublishEmailReceived` are removed as dead code in Task 2 (verified zero callers anywhere in the repo — `services/email`'s outbox relay never used `libs/events`).
+- `libs/events` (the `service.go`/`email_received.go` pair — not the separate `libs/events/contracts` subpackage) is deleted wholesale in Task 2 as dead code (verified zero callers anywhere in the repo once Task 5 lands — `services/email`'s outbox relay never used it, and `services/core` is its only other caller). `inbox.Consumer` (Task 3) owns its own `kgo` consumer-group client directly, mirroring `outbox.Producer`'s existing independence from `libs/events`.
 - `services/core`'s `ApplicationConfiguration.KafkaBrokers` field is removed as dead code in Task 5 (its only caller, `cmd/main.go`'s `InitializeEvents` call, is removed in that same task).
 
 ---
@@ -304,154 +304,44 @@ git commit -m "refactor(email): rename outbox-relay to email-received-producer"
 
 ---
 
-### Task 2: `libs/events` cleanup — extend `Subscribe`, remove dead `Publish`/`SubscribeEmailReceived`
+### Task 2: Delete `libs/events` wholesale (dead code)
 
 **Files:**
-- Modify: `libs/events/service.go`
+- Delete: `libs/events/service.go`
 - Delete: `libs/events/email_received.go`
 
 **Interfaces:**
-- Produces: `events.EventServiceInterface{Subscribe(ctx, groupName, topic string, handler func(partition int32, offset int64, data []byte) error) error, IsConnected() bool}` — consumed by Task 3 (`inbox.Consumer`).
-- **This task deliberately breaks `services/core/internal/infra/events/events.go`**, which calls the now-removed `eventService.SubscribeEmailReceived(...)`. That break is expected and resolved by Task 5 — do not attempt to fix `services/core` here.
+- Produces: nothing — this task only removes code. `libs/events/contracts` (a separate subpackage) is untouched and unaffected.
+- **This task deliberately breaks `services/core/internal/infra/events/events.go`**, which calls `events.NewEventService(...)` and `eventService.SubscribeEmailReceived(...)` — both now gone. That break is expected and resolved by Task 5 — do not attempt to fix `services/core` here.
 
-- [ ] **Step 1: Rewrite `libs/events/service.go`**
+`libs/events.Publish`/`PublishEmailReceived` already have zero callers anywhere in the repo (`services/email`'s outbox relay never used `libs/events` — `outbox.NewProducer` owns its own `kgo.Client` directly). Once Task 5 removes `services/core`'s only remaining call into this package (`InitializeEvents`/`SubscribeEmailReceived`), `Subscribe`/`IsConnected`/`NewEventService`/`Close` lose their last caller too. Rather than trim dead functions and leave an empty-purpose package behind, the whole package is deleted here — `inbox.Consumer` (Task 3) implements its own Kafka consumer-group client directly, the same way `outbox.Producer` already does for producing.
 
-```go
-package events
-
-import (
-	"context"
-	"strings"
-	"time"
-
-	"planeo/libs/logger"
-
-	"github.com/twmb/franz-go/pkg/kgo"
-)
-
-type EventService struct {
-	Client  *kgo.Client
-	Brokers []string
-}
-
-type EventServiceInterface interface {
-	Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error
-	IsConnected() bool
-}
-
-func NewEventService(brokers string) (EventServiceInterface, error) {
-	seeds := strings.Split(brokers, ",")
-
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(seeds...),
-		kgo.AllowAutoTopicCreation(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx); err != nil {
-		client.Close()
-		return nil, err
-	}
-
-	return &EventService{Client: client, Brokers: seeds}, nil
-}
-
-func (es *EventService) IsConnected() bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	return es.Client.Ping(ctx) == nil
-}
-
-func (es *EventService) Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error {
-	consumer, err := kgo.NewClient(
-		kgo.SeedBrokers(es.Brokers...),
-		kgo.AllowAutoTopicCreation(),
-		kgo.ConsumerGroup(groupName),
-		kgo.ConsumeTopics(topic),
-		kgo.DisableAutoCommit(),
-	)
-	if err != nil {
-		return err
-	}
-
-	log := logger.FromContext(ctx)
-
-	go func() {
-		defer consumer.Close()
-
-		for {
-			if ctx.Err() != nil {
-				return
-			}
-
-			fetches := consumer.PollFetches(ctx)
-			if fetches.IsClientClosed() {
-				return
-			}
-
-			fetches.EachError(func(_ string, _ int32, err error) {
-				log.Error().Err(err).Msg("kafka fetch error")
-			})
-
-			fetches.EachRecord(func(record *kgo.Record) {
-				// Skipping the commit here does not guarantee redelivery: Kafka commits are cumulative per partition, so a later successful commit will skip past this record.
-				if err := handler(record.Partition, record.Offset, record.Value); err != nil {
-					log.Error().Err(err).Msg("failed to process kafka message, skipping commit")
-					return
-				}
-
-				if err := consumer.CommitRecords(ctx, record); err != nil {
-					log.Error().Err(err).Msg("failed to commit kafka offset")
-				}
-			})
-		}
-	}()
-
-	return nil
-}
-
-func (es *EventService) Close() {
-	es.Client.Close()
-}
-```
-
-This removes the `Publish` method, the `contracts` import (no longer referenced anywhere in this file), and shrinks `EventServiceInterface` to `Subscribe`/`IsConnected`. `Subscribe`'s handler signature gains `partition int32, offset int64` ahead of `data []byte`; its body is otherwise unchanged except passing those two fields through from `record.Partition`/`record.Offset`.
-
-- [ ] **Step 2: Delete `libs/events/email_received.go`**
+- [ ] **Step 1: Delete both files**
 
 ```bash
-git rm libs/events/email_received.go
+git rm libs/events/service.go libs/events/email_received.go
 ```
 
-(This file only contained `PublishEmailReceived` and `SubscribeEmailReceived`, both now removed — nothing is left in it.)
-
-- [ ] **Step 3: Verify the expected, isolated compile break**
+- [ ] **Step 2: Verify the expected, isolated compile break**
 
 Run: `go build ./libs/events/...`
-Expected: exit 0 — `libs/events` compiles standalone.
+Expected: exit 0 — only `libs/events/contracts` remains, and it has no dependency on the deleted files, so it compiles standalone. (Verify with `ls libs/events/` — only the `contracts/` subdirectory should remain at this level.)
 
 Run: `go build ./services/core/...`
 Expected: exit 1, with the error confined to `services/core/internal/infra/events`:
 ```
-services/core/internal/infra/events/events.go:XX: eventService.SubscribeEmailReceived undefined
+services/core/internal/infra/events/events.go:XX: package planeo/libs/events is not in std
 ```
-This is the deliberate break described above — resolved by Task 5. Do not modify any file in `services/core` to work around it in this task.
+(or similar — the import no longer resolves to anything, since no `.go` files remain directly in `libs/events/`). This is the deliberate break described above — resolved by Task 5. Do not modify any file in `services/core` to work around it in this task.
 
 Run: `go build ./services/email/...`
 Expected: exit 0 — `services/email` never imported `libs/events` (confirmed: only `services/core/internal/infra/events/events.go` imports `planeo/libs/events` anywhere in the repo), so it's unaffected by this task.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add libs/events/service.go
-git rm libs/events/email_received.go
-git commit -m "refactor(events): extend Subscribe for partition/offset, remove dead Publish/SubscribeEmailReceived"
+git rm libs/events/service.go libs/events/email_received.go
+git commit -m "refactor(events): delete libs/events - dead code, inbox.Consumer owns its own kgo client"
 ```
 
 ---
@@ -465,9 +355,9 @@ git commit -m "refactor(events): extend Subscribe for partition/offset, remove d
 - Create: `libs/inbox/worker_test.go`
 
 **Interfaces:**
-- Consumes: `events.EventServiceInterface.Subscribe` (Task 2).
-- Produces: `inbox.Record{ID int64, Topic string, Payload []byte}`, `inbox.Store{Save, FetchBatch, MarkProcessed, MarkFailed}`, `inbox.Handler func(ctx context.Context, record Record) error`, `inbox.NewConsumer(eventService events.EventServiceInterface, groupName, topic string, store Store) *Consumer`, `inbox.NewWorker(store Store, handler Handler, opts ...Option) *Worker` — consumed by Task 4 (`services/core`'s `Store` implementation) and Task 6 (`email-received-consumer`'s wiring).
-- This task is self-contained and independently testable — it does not depend on Task 4's Postgres implementation, and its own unit tests use a fake `Store`.
+- Consumes: nothing from earlier tasks — this task is fully self-contained (Task 2 only deletes code, it doesn't produce anything `libs/inbox` needs).
+- Produces: `inbox.Record{ID int64, Topic string, Payload []byte}`, `inbox.Store{Save, FetchBatch, MarkProcessed, MarkFailed}`, `inbox.Handler func(ctx context.Context, record Record) error`, `inbox.NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer`, `inbox.NewWorker(store Store, handler Handler, opts ...Option) *Worker` — consumed by Task 4 (`services/core`'s `Store` implementation) and Task 6 (`email-received-consumer`'s wiring).
+- This task is self-contained and independently testable — it does not depend on Task 4's Postgres implementation, and its own unit tests use a fake `Store`. `Consumer` owns its own `kgo.Client` directly (mirroring `outbox.Producer`'s independence from `libs/events`), so this package has no dependency on any other `planeo`-internal package besides `libs/logger`.
 
 - [ ] **Step 1: Create `libs/inbox/store.go`**
 
@@ -514,38 +404,82 @@ package inbox
 import (
 	"context"
 
-	"planeo/libs/events"
+	"planeo/libs/logger"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 // Consumer reads from Kafka and persists into the inbox, committing the
-// offset only after Save succeeds. No Handler is invoked here — this is
-// a thin adapter over events.EventServiceInterface.Subscribe.
+// offset only after Save succeeds. No Handler is invoked here. Owns its
+// own kgo consumer-group client directly — mirrors outbox.Producer's
+// independence from any other planeo-internal package.
 type Consumer struct {
-	eventService events.EventServiceInterface
-	groupName    string
-	topic        string
-	store        Store
+	brokers   []string
+	groupName string
+	topic     string
+	store     Store
 }
 
-func NewConsumer(eventService events.EventServiceInterface, groupName, topic string, store Store) *Consumer {
+func NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer {
 	return &Consumer{
-		eventService: eventService,
-		groupName:    groupName,
-		topic:        topic,
-		store:        store,
+		brokers:   brokers,
+		groupName: groupName,
+		topic:     topic,
+		store:     store,
 	}
 }
 
 // Run subscribes to the configured topic and persists each fetched record
-// into the inbox, deduped on the Kafka coordinate. Non-blocking — like
-// events.EventServiceInterface.Subscribe, it starts its own background
+// into the inbox, deduped on the Kafka coordinate, committing the offset
+// only after a successful Save. Non-blocking — starts its own background
 // goroutine and returns once the subscription is established (or fails to
 // start).
 func (c *Consumer) Run(ctx context.Context) error {
-	return c.eventService.Subscribe(ctx, c.groupName, c.topic, func(partition int32, offset int64, data []byte) error {
-		_, err := c.store.Save(ctx, c.topic, partition, offset, data)
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers(c.brokers...),
+		kgo.AllowAutoTopicCreation(),
+		kgo.ConsumerGroup(c.groupName),
+		kgo.ConsumeTopics(c.topic),
+		kgo.DisableAutoCommit(),
+	)
+	if err != nil {
 		return err
-	})
+	}
+
+	log := logger.FromContext(ctx)
+
+	go func() {
+		defer client.Close()
+
+		for {
+			if ctx.Err() != nil {
+				return
+			}
+
+			fetches := client.PollFetches(ctx)
+			if fetches.IsClientClosed() {
+				return
+			}
+
+			fetches.EachError(func(_ string, _ int32, err error) {
+				log.Error().Err(err).Msg("kafka fetch error")
+			})
+
+			fetches.EachRecord(func(record *kgo.Record) {
+				// Skipping the commit here does not guarantee redelivery: Kafka commits are cumulative per partition, so a later successful commit will skip past this record.
+				if _, err := c.store.Save(ctx, c.topic, record.Partition, record.Offset, record.Value); err != nil {
+					log.Error().Err(err).Msg("failed to persist inbox record, skipping commit")
+					return
+				}
+
+				if err := client.CommitRecords(ctx, record); err != nil {
+					log.Error().Err(err).Msg("failed to commit kafka offset")
+				}
+			})
+		}
+	}()
+
+	return nil
 }
 ```
 
@@ -1378,7 +1312,6 @@ package main
 import (
 	"context"
 	"os/signal"
-	"planeo/libs/events"
 	"planeo/libs/events/contracts"
 	"planeo/libs/inbox"
 	"planeo/libs/logger"
@@ -1386,6 +1319,7 @@ import (
 	"planeo/services/core/internal/domain/request"
 	coreEvents "planeo/services/core/internal/infra/events"
 	"planeo/services/core/internal/infra/postgres"
+	"strings"
 	"syscall"
 )
 
@@ -1404,11 +1338,6 @@ func main() {
 	categoryService := category.NewService(db)
 	requestService := request.NewService(db)
 
-	eventService, err := events.NewEventService(cfg.KafkaBrokers)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
-	}
-
 	handler := coreEvents.CreateInboxHandler(coreEvents.Services{
 		RequestService:  requestService,
 		CategoryService: categoryService,
@@ -1417,7 +1346,8 @@ func main() {
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	consumer := inbox.NewConsumer(eventService, cfg.GroupName, contracts.EmailReceivedTopic, db)
+	brokers := strings.Split(cfg.KafkaBrokers, ",")
+	consumer := inbox.NewConsumer(brokers, cfg.GroupName, contracts.EmailReceivedTopic, db)
 	if err := consumer.Run(runCtx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
 	}
@@ -1436,7 +1366,7 @@ func main() {
 }
 ```
 
-`consumer.Run(runCtx)` is called before `worker.Run(runCtx)` and is non-blocking (it starts its own background goroutine via `Subscribe`, matching how the old `InitializeEvents`/`SubscribeEmailReceived` call worked — it returns immediately once the subscription is established, only erroring on setup failure). `worker.Run(runCtx)` is the blocking call that keeps this process alive, exactly mirroring `email-received-producer/main.go`'s `relay.Run(runCtx)`.
+`consumer.Run(runCtx)` is called before `worker.Run(runCtx)` and is non-blocking (it starts its own background goroutine and returns immediately once the Kafka consumer-group client connects, only erroring on setup failure — matching how the old `InitializeEvents`/`SubscribeEmailReceived` call worked). `worker.Run(runCtx)` is the blocking call that keeps this process alive, exactly mirroring `email-received-producer/main.go`'s `relay.Run(runCtx)`.
 
 `db` (a `*postgres.Client`) is passed as the `Store` argument to both `inbox.NewConsumer` and `inbox.NewWorker` — it satisfies `inbox.Store` via Task 4's `inbox_repository.go`.
 
@@ -1586,6 +1516,18 @@ Run:
 grep -rn "config\.KafkaBrokers\|KafkaBrokers ..*string" services/core/internal/config/
 ```
 Expected: no output (field removed from `ApplicationConfiguration`).
+
+Run:
+```bash
+ls libs/events/
+```
+Expected: only `contracts` listed (`service.go`/`email_received.go` deleted in Task 2; `libs/events/contracts` is unaffected and still used by `services/email/internal/domain/mail` and `services/core/internal/infra/events/email_received.go`).
+
+Run:
+```bash
+grep -rln "planeo/libs/events\"" --include="*.go" .
+```
+Expected: no output (nothing imports the bare `libs/events` package anymore — only `planeo/libs/events/contracts`, a different import path, is still imported).
 
 - [ ] **Step 4: Run every affected test suite**
 
