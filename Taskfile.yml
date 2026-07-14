@@ -168,11 +168,29 @@ tasks:
     cmds:
       - task: test:email:integration
 
+  test:libs:unit:
+    desc: Run shared libs unit tests only
+    cmds:
+      - echo "Running unit tests for shared libs..."
+      - go test ./libs/... -v -short -count=1
+
+  test:libs:integration:
+    desc: Run shared libs integration tests
+    cmds:
+      - echo "Running integration tests for shared libs..."
+      - go test ./libs/... -p 1 -v -count=1
+
+  test:libs:all:
+    desc: Run all shared libs tests
+    cmds:
+      - task: test:libs:integration
+
   test:all:
     desc: Run all tests for all services
     cmds:
       - task: test:core:all
       - task: test:email:all
+      - task: test:libs:all
 
   # ========================================
   # Linting
