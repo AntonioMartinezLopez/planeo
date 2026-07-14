@@ -1014,6 +1014,7 @@ git commit -m "feat(core): add inbox table migration and Postgres Store implemen
 ### Task 5: Make `CreateRequest` idempotent on `(organization_id, reference_id)`
 
 **Files:**
+- Modify: `services/core/internal/infra/postgres/migrations/20241101135140_initialize_database.sql` (fix pre-existing colliding seed data — see Step 1)
 - Create: `services/core/internal/infra/postgres/migrations/20260714130000_add_requests_reference_id_unique_index.sql`
 - Modify: `services/core/internal/infra/postgres/request_repository.go`
 - Modify: `services/core/internal/test/request/request_test.go`
@@ -1025,7 +1026,32 @@ git commit -m "feat(core): add inbox table migration and Postgres Store implemen
 
 `reference_id` is set exactly once, in `services/core/internal/infra/events/email_received.go` (`ReferenceId: payload.MessageID` — the source email's RFC822 Message-ID). Requests created via the REST API never set it (verified: `CreateRequestInputBody` — `services/core/internal/infra/rest/api/v1/requests/dto_create_request.go` — has no `ReferenceId` field at all, and the handler's `request.NewRequest{...}` construction — `services/core/internal/infra/rest/api/v1/requests/handler.go:44-53` — never sets it either), so it defaults to Go's zero value `""` for every manually-created request. **The fix must not constrain those** — a naive `UNIQUE (organization_id, reference_id)` would allow at most one manually-created request per organization, a severe regression. The constraint is scoped with a partial index (`WHERE reference_id <> ''`) so only rows with a real reference_id are deduplicated; empty-reference-id rows are completely unconstrained.
 
-- [ ] **Step 1: Create the migration**
+- [ ] **Step 1: Fix pre-existing seed data that would collide with the new constraint**
+
+`services/core/internal/infra/postgres/migrations/20241101135140_initialize_database.sql:96-101` seeds 5 `requests` rows, all with `organization_id = 1` and all with the identical placeholder `reference_id = '1234'` — this predates this task entirely and is unrelated demo/fixture data (untouched since the file was created), but it collides with the new unique index Step 2 adds: Postgres cannot build a unique index over data that already violates it. Confirmed (per project decision) there is no real deployed environment where this migration has already run against real data — this is dev/testcontainers-only so far, so fixing the seed fixture file directly is sufficient; no separate data-migration/cleanup step is needed.
+
+Change:
+```sql
+INSERT INTO requests (text, subject, name, email, address, telephone, category_id, organization_id, reference_id, raw) VALUES
+('Install new electrical outlets in the conference room', 'Installation electrics in conference room', 'Emily Clark', 'emily.clark@example.com', '123 Main St, Springfield', '555-1234', 1, 1, '1234', ''),
+('Routine maintenance of the electrical wiring in the main office', 'Request: Maintenance electrical wiring' ,'Michael Scott', 'michael.scott@example.com', '456 Elm St, Scranton', '555-5678', 2, 1, '1234', ''),
+('Repair the broken light fixtures in the hallway', 'Request for fixing broken light fixtures in hallway' ,'Sarah Lee', 'sarah.lee@example.com', '789 Oak St, Metropolis', '555-8765', 3, 1, '1234', ''),
+('Order new circuit breakers for the electrical panel', 'Order: Circuit breakers No.PW-44021' ,'David Wilson', 'david.wilson@example.com', '101 Pine St, Gotham', '555-4321', 4, 1, '1234', ''),
+('Customer support for troubleshooting a power outage issue', 'Customer support needed for outage problem' ,'Laura Martinez', 'laura.martinez@example.com', '202 Maple St, Star City', '555-6789', 5, 1, '1234', '');
+```
+to (each row gets its own distinct `reference_id`, preserving the "came from an email" semantics the field implies, per project decision):
+```sql
+INSERT INTO requests (text, subject, name, email, address, telephone, category_id, organization_id, reference_id, raw) VALUES
+('Install new electrical outlets in the conference room', 'Installation electrics in conference room', 'Emily Clark', 'emily.clark@example.com', '123 Main St, Springfield', '555-1234', 1, 1, '1234-1', ''),
+('Routine maintenance of the electrical wiring in the main office', 'Request: Maintenance electrical wiring' ,'Michael Scott', 'michael.scott@example.com', '456 Elm St, Scranton', '555-5678', 2, 1, '1234-2', ''),
+('Repair the broken light fixtures in the hallway', 'Request for fixing broken light fixtures in hallway' ,'Sarah Lee', 'sarah.lee@example.com', '789 Oak St, Metropolis', '555-8765', 3, 1, '1234-3', ''),
+('Order new circuit breakers for the electrical panel', 'Order: Circuit breakers No.PW-44021' ,'David Wilson', 'david.wilson@example.com', '101 Pine St, Gotham', '555-4321', 4, 1, '1234-4', ''),
+('Customer support for troubleshooting a power outage issue', 'Customer support needed for outage problem' ,'Laura Martinez', 'laura.martinez@example.com', '202 Maple St, Star City', '555-6789', 5, 1, '1234-5', '');
+```
+
+This is an edit to an already-existing migration file, not a new one — safe here specifically because it's dev/testcontainer-only fixture data that has never run against a real environment (confirmed above). Do not use this as precedent for editing other already-applied migrations in general.
+
+- [ ] **Step 2: Create the new migration**
 
 ```sql
 -- +goose Up
@@ -1048,7 +1074,7 @@ DROP INDEX IF EXISTS requests_org_reference_id_idx;
 -- +goose StatementEnd
 ```
 
-- [ ] **Step 2: Update `CreateRequest` in `services/core/internal/infra/postgres/request_repository.go`**
+- [ ] **Step 3: Update `CreateRequest` in `services/core/internal/infra/postgres/request_repository.go`**
 
 Change the query (and only the query — nothing else in this function changes) from:
 ```go
@@ -1066,9 +1092,9 @@ to:
 		RETURNING id`
 ```
 
-`ON CONFLICT (...) WHERE reference_id <> '' DO UPDATE SET id = requests.id` targets the partial index from Step 1 exactly (Postgres requires the `ON CONFLICT` clause's predicate to match the partial index's predicate for conflict detection to use it). The `DO UPDATE SET id = requests.id` is a no-op update — its only purpose is to make `RETURNING id` fire on the conflicting row too, so callers always get an id back regardless of whether this call inserted a new row or matched an existing one. For rows where `reference_id = ''` (manual creation), the partial index doesn't cover them at all, so no conflict is ever detected and the insert always succeeds as a fresh row, exactly as today.
+`ON CONFLICT (...) WHERE reference_id <> '' DO UPDATE SET id = requests.id` targets the partial index from Step 2 exactly (Postgres requires the `ON CONFLICT` clause's predicate to match the partial index's predicate for conflict detection to use it). The `DO UPDATE SET id = requests.id` is a no-op update — its only purpose is to make `RETURNING id` fire on the conflicting row too, so callers always get an id back regardless of whether this call inserted a new row or matched an existing one. For rows where `reference_id = ''` (manual creation), the partial index doesn't cover them at all, so no conflict is ever detected and the insert always succeeds as a fresh row, exactly as today.
 
-- [ ] **Step 3: Add the idempotency test to `services/core/internal/test/request/request_test.go`**
+- [ ] **Step 4: Add the idempotency test to `services/core/internal/test/request/request_test.go`**
 
 Add `"context"` to the file's existing import block (not currently imported), then add this new top-level test function (its own `NewIntegrationTestEnvironment(t)`, matching the existing file's one-container-per-top-level-test convention):
 
@@ -1117,10 +1143,13 @@ func TestCreateRequestIdempotency(t *testing.T) {
 }
 ```
 
-- [ ] **Step 4: Verify it compiles and run the tests**
+- [ ] **Step 5: Verify it compiles and run the tests**
 
 Run: `go build ./services/core/...`
-Expected: exit 0.
+Expected: exit 1, with the error confined to `services/core/internal/infra/events` (`package planeo/libs/events is not in std`) — this is Task 2's already-deliberate, still-unresolved break (fixed by Task 6, not this task). Confirm the failure is confined to that one package (e.g. via `git stash` and re-running the same build on the unmodified tip, to verify the failure is identical/pre-existing, not something this task's changes caused).
+
+Run: `go vet ./services/core/internal/test/request/...`
+Expected: exit 0 — this compiles the test files themselves (unlike `go build`, which skips `_test.go` files) without needing Docker, and confirms `internal/test/utils` doesn't transitively import the still-broken `internal/infra/events` package, so this task's actual changes are unaffected by Task 2's break.
 
 Run: `go test ./services/core/internal/test/request/... -v -count=1 -run TestCreateRequestIdempotency`
 Expected: PASS, both subtests green. (Requires Docker running locally, for testcontainers.)
@@ -1128,10 +1157,10 @@ Expected: PASS, both subtests green. (Requires Docker running locally, for testc
 Run: `go test ./services/core/internal/test/request/... -v -count=1`
 Expected: PASS — the existing `TestRequestIntegration` suite (unrelated to this change) still passes, confirming no regression.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add services/core/internal/infra/postgres/migrations/20260714130000_add_requests_reference_id_unique_index.sql services/core/internal/infra/postgres/request_repository.go services/core/internal/test/request/request_test.go
+git add services/core/internal/infra/postgres/migrations/20241101135140_initialize_database.sql services/core/internal/infra/postgres/migrations/20260714130000_add_requests_reference_id_unique_index.sql services/core/internal/infra/postgres/request_repository.go services/core/internal/test/request/request_test.go
 git commit -m "fix(core): make CreateRequest idempotent on (organization_id, reference_id)"
 ```
 
