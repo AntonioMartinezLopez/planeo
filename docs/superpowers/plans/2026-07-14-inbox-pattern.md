@@ -1088,11 +1088,11 @@ to:
 	query := `
 		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
 		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)
-		ON CONFLICT (organization_id, reference_id) WHERE reference_id <> '' DO UPDATE SET id = requests.id
+		ON CONFLICT (organization_id, reference_id) WHERE reference_id <> '' DO UPDATE SET reference_id = requests.reference_id
 		RETURNING id`
 ```
 
-`ON CONFLICT (...) WHERE reference_id <> '' DO UPDATE SET id = requests.id` targets the partial index from Step 2 exactly (Postgres requires the `ON CONFLICT` clause's predicate to match the partial index's predicate for conflict detection to use it). The `DO UPDATE SET id = requests.id` is a no-op update — its only purpose is to make `RETURNING id` fire on the conflicting row too, so callers always get an id back regardless of whether this call inserted a new row or matched an existing one. For rows where `reference_id = ''` (manual creation), the partial index doesn't cover them at all, so no conflict is ever detected and the insert always succeeds as a fresh row, exactly as today.
+`ON CONFLICT (...) WHERE reference_id <> '' DO UPDATE SET reference_id = requests.reference_id` targets the partial index from Step 2 exactly (Postgres requires the `ON CONFLICT` clause's predicate to match the partial index's predicate for conflict detection to use it). The `DO UPDATE SET reference_id = requests.reference_id` is a no-op update — its only purpose is to make `RETURNING id` fire on the conflicting row too, so callers always get an id back regardless of whether this call inserted a new row or matched an existing one. **The self-assignment must target `reference_id` (or any plain column), not `id`** — `requests.id` is `GENERATED ALWAYS AS IDENTITY` (`services/core/internal/infra/postgres/migrations/20241101135140_initialize_database.sql:39`), and Postgres categorically rejects any `SET` targeting a `GENERATED ALWAYS` identity column, even a true no-op self-assignment (`column "id" can only be updated to DEFAULT`) — this was caught and verified empirically during implementation (reproduced in isolation against a throwaway Postgres container) before being corrected here. For rows where `reference_id = ''` (manual creation), the partial index doesn't cover them at all, so no conflict is ever detected and the insert always succeeds as a fresh row, exactly as today.
 
 - [ ] **Step 4: Add the idempotency test to `services/core/internal/test/request/request_test.go`**
 
