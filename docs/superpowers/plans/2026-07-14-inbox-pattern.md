@@ -13,12 +13,13 @@
 - Reference spec: `docs/superpowers/specs/2026-07-14-inbox-pattern-design.md`.
 - Branch: `feature/migrate-nats-to-kafka` (already checked out). Do not commit to `main`.
 - Task 1's rename is naming/identity only — no functional change to `services/email`'s outbox pattern, schema, or relay logic.
-- No redesign of Kafka consumer-group semantics beyond per-binary configurable, collision-safe-by-default group names (see Task 6).
+- No redesign of Kafka consumer-group semantics beyond per-binary configurable, collision-safe-by-default group names (see Task 7).
 - No generic multi-topic router — `email-received-consumer` consumes exactly one topic. A future service consuming a different topic gets its own dedicated binary.
 - No shared claim/retry engine, and no shared `Record` type, between `libs/outbox` and `libs/inbox` — kept as two independently-implemented packages.
 - Section 9 of the spec (per-key ordering in `Worker`) is explicitly out of scope for this plan — not designed, not implemented here.
-- `libs/events` (the `service.go`/`email_received.go` pair — not the separate `libs/events/contracts` subpackage) is deleted wholesale in Task 2 as dead code (verified zero callers anywhere in the repo once Task 5 lands — `services/email`'s outbox relay never used it, and `services/core` is its only other caller). `inbox.Consumer` (Task 3) owns its own `kgo` consumer-group client directly, mirroring `outbox.Producer`'s existing independence from `libs/events`.
-- `services/core`'s `ApplicationConfiguration.KafkaBrokers` field is removed as dead code in Task 5 (its only caller, `cmd/main.go`'s `InitializeEvents` call, is removed in that same task).
+- `libs/events` (the `service.go`/`email_received.go` pair — not the separate `libs/events/contracts` subpackage) is deleted wholesale in Task 2 as dead code (verified zero callers anywhere in the repo once Task 6 lands — `services/email`'s outbox relay never used it, and `services/core` is its only other caller). `inbox.Consumer` (Task 3) owns its own `kgo` consumer-group client directly, mirroring `outbox.Producer`'s existing independence from `libs/events`.
+- `services/core`'s `ApplicationConfiguration.KafkaBrokers` field is removed as dead code in Task 6 (its only caller, `cmd/main.go`'s `InitializeEvents` call, is removed in that same task).
+- `requests.reference_id` gets a partial unique index in Task 5 (`WHERE reference_id <> ''`), and `CreateRequest` becomes idempotent on `(organization_id, reference_id)` — closing a duplicate-`Request` risk if `MarkProcessed` fails after a successful handler run and the record gets reprocessed after `claimTTL` expires. Requests without a `reference_id` (created via the REST API) are unaffected.
 
 ---
 
@@ -312,9 +313,9 @@ git commit -m "refactor(email): rename outbox-relay to email-received-producer"
 
 **Interfaces:**
 - Produces: nothing — this task only removes code. `libs/events/contracts` (a separate subpackage) is untouched and unaffected.
-- **This task deliberately breaks `services/core/internal/infra/events/events.go`**, which calls `events.NewEventService(...)` and `eventService.SubscribeEmailReceived(...)` — both now gone. That break is expected and resolved by Task 5 — do not attempt to fix `services/core` here.
+- **This task deliberately breaks `services/core/internal/infra/events/events.go`**, which calls `events.NewEventService(...)` and `eventService.SubscribeEmailReceived(...)` — both now gone. That break is expected and resolved by Task 6 — do not attempt to fix `services/core` here.
 
-`libs/events.Publish`/`PublishEmailReceived` already have zero callers anywhere in the repo (`services/email`'s outbox relay never used `libs/events` — `outbox.NewProducer` owns its own `kgo.Client` directly). Once Task 5 removes `services/core`'s only remaining call into this package (`InitializeEvents`/`SubscribeEmailReceived`), `Subscribe`/`IsConnected`/`NewEventService`/`Close` lose their last caller too. Rather than trim dead functions and leave an empty-purpose package behind, the whole package is deleted here — `inbox.Consumer` (Task 3) implements its own Kafka consumer-group client directly, the same way `outbox.Producer` already does for producing.
+`libs/events.Publish`/`PublishEmailReceived` already have zero callers anywhere in the repo (`services/email`'s outbox relay never used `libs/events` — `outbox.NewProducer` owns its own `kgo.Client` directly). Once Task 6 removes `services/core`'s only remaining call into this package (`InitializeEvents`/`SubscribeEmailReceived`), `Subscribe`/`IsConnected`/`NewEventService`/`Close` lose their last caller too. Rather than trim dead functions and leave an empty-purpose package behind, the whole package is deleted here — `inbox.Consumer` (Task 3) implements its own Kafka consumer-group client directly, the same way `outbox.Producer` already does for producing.
 
 - [ ] **Step 1: Delete both files**
 
@@ -332,7 +333,7 @@ Expected: exit 1, with the error confined to `services/core/internal/infra/event
 ```
 services/core/internal/infra/events/events.go:XX: package planeo/libs/events is not in std
 ```
-(or similar — the import no longer resolves to anything, since no `.go` files remain directly in `libs/events/`). This is the deliberate break described above — resolved by Task 5. Do not modify any file in `services/core` to work around it in this task.
+(or similar — the import no longer resolves to anything, since no `.go` files remain directly in `libs/events/`). This is the deliberate break described above — resolved by Task 6. Do not modify any file in `services/core` to work around it in this task.
 
 Run: `go build ./services/email/...`
 Expected: exit 0 — `services/email` never imported `libs/events` (confirmed: only `services/core/internal/infra/events/events.go` imports `planeo/libs/events` anywhere in the repo), so it's unaffected by this task.
@@ -356,7 +357,7 @@ git commit -m "refactor(events): delete libs/events - dead code, inbox.Consumer 
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks — this task is fully self-contained (Task 2 only deletes code, it doesn't produce anything `libs/inbox` needs).
-- Produces: `inbox.Record{ID int64, Topic string, Payload []byte}`, `inbox.Store{Save, FetchBatch, MarkProcessed, MarkFailed}`, `inbox.Handler func(ctx context.Context, record Record) error`, `inbox.NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer`, `inbox.NewWorker(store Store, handler Handler, opts ...Option) *Worker` — consumed by Task 4 (`services/core`'s `Store` implementation) and Task 6 (`email-received-consumer`'s wiring).
+- Produces: `inbox.Record{ID int64, Topic string, Payload []byte}`, `inbox.Store{Save, FetchBatch, MarkProcessed, MarkFailed}`, `inbox.Handler func(ctx context.Context, record Record) error`, `inbox.NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer`, `inbox.NewWorker(store Store, handler Handler, opts ...Option) *Worker` — consumed by Task 4 (`services/core`'s `Store` implementation) and Task 7 (`email-received-consumer`'s wiring).
 - This task is self-contained and independently testable — it does not depend on Task 4's Postgres implementation, and its own unit tests use a fake `Store`. `Consumer` owns its own `kgo.Client` directly (mirroring `outbox.Producer`'s independence from `libs/events`), so this package has no dependency on any other `planeo`-internal package besides `libs/logger`.
 
 - [ ] **Step 1: Create `libs/inbox/store.go`**
@@ -743,8 +744,8 @@ git commit -m "feat(inbox): add libs/inbox package - Store, Consumer, Worker"
 
 **Interfaces:**
 - Consumes: `inbox.Record`, `inbox.Store` (Task 3).
-- Produces: `(*postgres.Client)` satisfying `inbox.Store` via `Save`, `FetchBatch`, `MarkProcessed`, `MarkFailed` — consumed by Task 6's `email-received-consumer` wiring.
-- This task is independently testable — it does not depend on Task 2's or Task 5's changes (this package doesn't import `libs/events` or `services/core/internal/infra/events` at all).
+- Produces: `(*postgres.Client)` satisfying `inbox.Store` via `Save`, `FetchBatch`, `MarkProcessed`, `MarkFailed` — consumed by Task 7's `email-received-consumer` wiring.
+- This task is independently testable — it does not depend on Task 2's, Task 5's, or Task 6's changes (this package doesn't import `libs/events`, `services/core/internal/infra/events`, or touch the `requests` table at all).
 
 - [ ] **Step 1: Create the migration**
 
@@ -1010,7 +1011,133 @@ git commit -m "feat(core): add inbox table migration and Postgres Store implemen
 
 ---
 
-### Task 5: Rewire `services/core`'s event handling — `CreateInboxHandler`, drop `InitializeEvents`
+### Task 5: Make `CreateRequest` idempotent on `(organization_id, reference_id)`
+
+**Files:**
+- Create: `services/core/internal/infra/postgres/migrations/20260714130000_add_requests_reference_id_unique_index.sql`
+- Modify: `services/core/internal/infra/postgres/request_repository.go`
+- Modify: `services/core/internal/test/request/request_test.go`
+
+**Interfaces:**
+- No signature changes — `CreateRequest(ctx context.Context, request request.NewRequest) (int, error)` keeps its exact shape; only its internal SQL changes. Consumed identically by Task 6's `CreateInboxHandler`.
+
+**Why this task exists:** `Worker.pollOnce` (Task 3) marks a row `'processed'` only *after* the handler succeeds. If `MarkProcessed` itself then fails (e.g. a transient Postgres blip right after the handler completed), the row is left at status `'processing'` with nothing to retry the mark — once `claimTTL` elapses, `FetchBatch` reclaims it as an expired-processing row and the handler runs again. Today, `CreateRequest` is a bare `INSERT ... RETURNING id` with no conflict handling, and `requests.reference_id` (verified: `services/core/internal/infra/postgres/migrations/20241101135140_initialize_database.sql:38-53`) has no uniqueness constraint at all — so that re-run creates a second, duplicate `Request` row for the same source email. This closes that gap the same way the outbox's `CreateMail` already closes the equivalent gap on the producer side (`ON CONFLICT (setting_id, message_id) DO NOTHING`).
+
+`reference_id` is set exactly once, in `services/core/internal/infra/events/email_received.go` (`ReferenceId: payload.MessageID` — the source email's RFC822 Message-ID). Requests created via the REST API never set it (verified: `CreateRequestInputBody` — `services/core/internal/infra/rest/api/v1/requests/dto_create_request.go` — has no `ReferenceId` field at all, and the handler's `request.NewRequest{...}` construction — `services/core/internal/infra/rest/api/v1/requests/handler.go:44-53` — never sets it either), so it defaults to Go's zero value `""` for every manually-created request. **The fix must not constrain those** — a naive `UNIQUE (organization_id, reference_id)` would allow at most one manually-created request per organization, a severe regression. The constraint is scoped with a partial index (`WHERE reference_id <> ''`) so only rows with a real reference_id are deduplicated; empty-reference-id rows are completely unconstrained.
+
+- [ ] **Step 1: Create the migration**
+
+```sql
+-- +goose Up
+-- +goose StatementBegin
+
+-- Two requests in the same organization must not share the same
+-- reference_id (the source email's Message-ID) — this is what makes
+-- re-processing an inbox record after a failed MarkProcessed safe:
+-- CreateRequest resolves to the existing row instead of creating a
+-- duplicate. Requests without a reference_id (e.g. created manually via
+-- the REST API, where it's never set and defaults to '') are excluded
+-- by the WHERE clause and remain completely unconstrained.
+CREATE UNIQUE INDEX requests_org_reference_id_idx ON requests (organization_id, reference_id) WHERE reference_id <> '';
+
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP INDEX IF EXISTS requests_org_reference_id_idx;
+-- +goose StatementEnd
+```
+
+- [ ] **Step 2: Update `CreateRequest` in `services/core/internal/infra/postgres/request_repository.go`**
+
+Change the query (and only the query — nothing else in this function changes) from:
+```go
+	query := `
+		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
+		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)
+		RETURNING id`
+```
+to:
+```go
+	query := `
+		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
+		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)
+		ON CONFLICT (organization_id, reference_id) WHERE reference_id <> '' DO UPDATE SET id = requests.id
+		RETURNING id`
+```
+
+`ON CONFLICT (...) WHERE reference_id <> '' DO UPDATE SET id = requests.id` targets the partial index from Step 1 exactly (Postgres requires the `ON CONFLICT` clause's predicate to match the partial index's predicate for conflict detection to use it). The `DO UPDATE SET id = requests.id` is a no-op update — its only purpose is to make `RETURNING id` fire on the conflicting row too, so callers always get an id back regardless of whether this call inserted a new row or matched an existing one. For rows where `reference_id = ''` (manual creation), the partial index doesn't cover them at all, so no conflict is ever detected and the insert always succeeds as a fresh row, exactly as today.
+
+- [ ] **Step 3: Add the idempotency test to `services/core/internal/test/request/request_test.go`**
+
+Add `"context"` to the file's existing import block (not currently imported), then add this new top-level test function (its own `NewIntegrationTestEnvironment(t)`, matching the existing file's one-container-per-top-level-test convention):
+
+```go
+func TestCreateRequestIdempotency(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("creating a request twice with the same organization+referenceId returns the same id", func(t *testing.T) {
+		newRequest := request.NewRequest{
+			Subject:        "Idempotency test",
+			Text:           "body",
+			Email:          "sender@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "duplicate-message-id",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.NotZero(t, firstId)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.Equal(t, firstId, secondId, "reprocessing the same source email must resolve to the same Request row, not create a duplicate")
+	})
+
+	t.Run("requests without a referenceId remain unconstrained", func(t *testing.T) {
+		manualRequest := request.NewRequest{
+			Subject:        "Manually created",
+			Text:           "body",
+			Email:          "operator@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+		assert.NotEqual(t, firstId, secondId, "requests with an empty referenceId (e.g. created manually) must not be deduplicated")
+	})
+}
+```
+
+- [ ] **Step 4: Verify it compiles and run the tests**
+
+Run: `go build ./services/core/...`
+Expected: exit 0.
+
+Run: `go test ./services/core/internal/test/request/... -v -count=1 -run TestCreateRequestIdempotency`
+Expected: PASS, both subtests green. (Requires Docker running locally, for testcontainers.)
+
+Run: `go test ./services/core/internal/test/request/... -v -count=1`
+Expected: PASS — the existing `TestRequestIntegration` suite (unrelated to this change) still passes, confirming no regression.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add services/core/internal/infra/postgres/migrations/20260714130000_add_requests_reference_id_unique_index.sql services/core/internal/infra/postgres/request_repository.go services/core/internal/test/request/request_test.go
+git commit -m "fix(core): make CreateRequest idempotent on (organization_id, reference_id)"
+```
+
+---
+
+### Task 6: Rewire `services/core`'s event handling — `CreateInboxHandler`, drop `InitializeEvents`
 
 **Files:**
 - Modify: `services/core/internal/infra/events/email_received.go`
@@ -1020,7 +1147,7 @@ git commit -m "feat(core): add inbox table migration and Postgres Store implemen
 
 **Interfaces:**
 - Consumes: `inbox.Handler`, `inbox.Record` (Task 3).
-- Produces: `coreEvents.CreateInboxHandler(services Services) inbox.Handler`, `coreEvents.Services{RequestService, CategoryService}` (unchanged shape) — consumed by Task 6.
+- Produces: `coreEvents.CreateInboxHandler(services Services) inbox.Handler`, `coreEvents.Services{RequestService, CategoryService}` (unchanged shape) — consumed by Task 7.
 - **This task resolves Task 2's deliberate compile break** in `services/core/internal/infra/events/events.go`.
 
 - [ ] **Step 1: Rewrite `services/core/internal/infra/events/email_received.go`**
@@ -1137,7 +1264,7 @@ type Services struct {
 }
 ```
 
-`InitializeEvents` is removed entirely — `services/core` no longer subscribes to Kafka itself; that responsibility moves to `email-received-consumer` (Task 6). The `Services` struct is unchanged and still used by `CreateInboxHandler`.
+`InitializeEvents` is removed entirely — `services/core` no longer subscribes to Kafka itself; that responsibility moves to `email-received-consumer` (Task 7). The `Services` struct is unchanged and still used by `CreateInboxHandler`.
 
 - [ ] **Step 3: Remove the now-dead `KafkaBrokers` field from `services/core/internal/config/config.go`**
 
@@ -1204,7 +1331,7 @@ git commit -m "refactor(core): replace inline Kafka subscription with CreateInbo
 
 ---
 
-### Task 6: `services/core/cmd/email-received-consumer` binary + deployment wiring
+### Task 7: `services/core/cmd/email-received-consumer` binary + deployment wiring
 
 **Files:**
 - Create: `services/core/cmd/email-received-consumer/main.go`
@@ -1215,8 +1342,8 @@ git commit -m "refactor(core): replace inline Kafka subscription with CreateInbo
 - Modify: `dev/.env.template`
 
 **Interfaces:**
-- Consumes: `inbox.NewConsumer`, `inbox.NewWorker` (Task 3); `(*postgres.Client)` satisfying `inbox.Store` (Task 4); `coreEvents.CreateInboxHandler`, `coreEvents.Services` (Task 5).
-- This is the final integration point — it depends on Tasks 2, 3, 4, and 5 all being complete.
+- Consumes: `inbox.NewConsumer`, `inbox.NewWorker` (Task 3); `(*postgres.Client)` satisfying `inbox.Store` (Task 4); `coreEvents.CreateInboxHandler`, `coreEvents.Services` (Task 6).
+- This is the final integration point — it depends on Tasks 2, 3, 4, 5, and 6 all being complete.
 
 - [ ] **Step 1: Create `services/core/cmd/email-received-consumer/config.go`**
 
@@ -1490,7 +1617,7 @@ git commit -m "feat(core): add email-received-consumer binary and deployment wir
 
 ---
 
-### Task 7: Full workspace verification
+### Task 8: Full workspace verification
 
 **Files:** none (verification only)
 
@@ -1544,6 +1671,12 @@ Run:
 grep -rln "planeo/libs/events\"" --include="*.go" .
 ```
 Expected: no output (nothing imports the bare `libs/events` package anymore — only `planeo/libs/events/contracts`, a different import path, is still imported).
+
+Run:
+```bash
+grep -n "ON CONFLICT (organization_id, reference_id)" services/core/internal/infra/postgres/request_repository.go
+```
+Expected: one match (`CreateRequest`'s idempotency fix from Task 5 is in place).
 
 - [ ] **Step 4: Run every affected test suite**
 
