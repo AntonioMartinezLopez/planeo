@@ -12,7 +12,6 @@ import (
 	"planeo/services/core/internal/domain/organization"
 	"planeo/services/core/internal/domain/request"
 	"planeo/services/core/internal/domain/user"
-	coreEvents "planeo/services/core/internal/infra/events"
 	"planeo/services/core/internal/infra/keycloak"
 	"planeo/services/core/internal/infra/postgres"
 	"planeo/services/core/internal/infra/rest"
@@ -72,13 +71,6 @@ func main() {
 		OrganizationService: organizationService,
 		RequestService:      requestService,
 	})
-
-	// initialize event service
-	err := coreEvents.InitializeEvents(ctx, config.KafkaBrokers, coreEvents.Services{RequestService: requestService, CategoryService: categoryService})
-
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
-	}
 
 	server := http.Server{
 		Addr:              serverConfig,

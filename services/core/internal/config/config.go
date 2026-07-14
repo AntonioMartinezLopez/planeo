@@ -12,7 +12,6 @@ import (
 type ApplicationConfiguration struct {
 	Host                string
 	Port                string
-	KafkaBrokers        string
 	DbHost              string
 	DbPort              string
 	DbUser              string
@@ -52,7 +51,6 @@ func LoadConfig(ctx context.Context, filenames ...string) *ApplicationConfigurat
 	config := &ApplicationConfiguration{
 		Host:                readEnvVariable(ctx, "HOST"),
 		Port:                readEnvVariable(ctx, "PORT"),
-		KafkaBrokers:        readEnvVariable(ctx, "KAFKA_BROKERS"),
 		DbHost:              readEnvVariable(ctx, "DB_HOST"),
 		DbPort:              readEnvVariable(ctx, "DB_PORT"),
 		DbUser:              readEnvVariable(ctx, "DB_USER"),
