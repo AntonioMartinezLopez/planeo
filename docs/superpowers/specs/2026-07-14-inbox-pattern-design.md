@@ -117,11 +117,12 @@ type Store interface {
 type Handler func(ctx context.Context, record Record) error
 
 // Consumer reads from Kafka and persists into the inbox, committing the
-// offset only after Save succeeds. No Handler is invoked here. Built on
-// top of libs/events.EventService.Subscribe (see section 5) rather than
-// wrapping its own kgo consumer-group client.
-type Consumer struct { /* wraps an *events.EventService + groupName + topic + Store */ }
-func NewConsumer(eventService events.EventServiceInterface, groupName, topic string, store Store) *Consumer
+// offset only after Save succeeds. No Handler is invoked here. Owns its
+// own kgo consumer-group client directly — mirrors outbox.Producer's
+// independence from libs/events (see section 5), rather than depending
+// on a planeo-internal package for Kafka mechanics.
+type Consumer struct { /* brokers []string, groupName, topic string, store Store */ }
+func NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer
 func (c *Consumer) Run(ctx context.Context) error
 
 // Worker polls the inbox and invokes Handler for each claimed record,
@@ -165,32 +166,57 @@ Mirrors `outbox`'s schema (same status state machine, same claim/TTL/quarantine 
 - `Save`: `INSERT INTO inbox (topic, partition, "offset", payload) VALUES (...) ON CONFLICT (topic, partition, "offset") DO NOTHING RETURNING id` — same `pgx.ErrNoRows` → `(false, nil)` pattern as `services/email`'s `mail_repository.go`'s `CreateMail`.
 - `FetchBatch`/`MarkProcessed`/`MarkFailed`: same atomic-claim/quarantine SQL shape as `services/email`'s `outbox_repository.go`, reversed direction (claims `pending`/expired-`processing` rows, ordered by `id`).
 
-## 5. `libs/events.Subscribe` extension
+## 5. `libs/events` is deleted wholesale
 
-Small, additive change to `libs/events/service.go` so `Consumer` can build on it instead of duplicating Kafka consumer-group plumbing:
+**Corrected from an earlier draft of this section.** The first draft had `inbox.Consumer` build on `libs/events.EventService.Subscribe` (extended to expose partition/offset), to avoid re-implementing the Kafka consumer-group polling loop. That broke symmetry with the already-shipped `libs/outbox.Producer`, which faced the identical situation on the producing side — `libs/events.Publish` already existed and did what a producer needs — and deliberately did **not** reuse it: `outbox.NewProducer` creates its own independent `kgo.Client` directly, with zero dependency on `libs/events`. There's no strong reason for `inbox.Consumer` to behave differently; the modest amount of duplicated `kgo` boilerplate (`kgo.NewClient` with `ConsumerGroup`/`ConsumeTopics`/`DisableAutoCommit`, the `PollFetches` loop, `EachRecord`, `CommitRecords`) is the same tradeoff `outbox` already accepted on the other side.
+
+`inbox.Consumer.Run` (Section 3) now owns this logic directly — it's a straight port of `libs/events.Subscribe`'s existing implementation, with the callback replaced by `store.Save`:
 
 ```go
-type EventServiceInterface interface {
-    Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error
-    IsConnected() bool
-}
+func (c *Consumer) Run(ctx context.Context) error {
+    client, err := kgo.NewClient(
+        kgo.SeedBrokers(c.brokers...),
+        kgo.AllowAutoTopicCreation(),
+        kgo.ConsumerGroup(c.groupName),
+        kgo.ConsumeTopics(c.topic),
+        kgo.DisableAutoCommit(),
+    )
+    if err != nil {
+        return err
+    }
 
-func (es *EventService) Subscribe(ctx context.Context, groupName string, topic string, handler func(partition int32, offset int64, data []byte) error) error {
-    // ... unchanged setup ...
-    fetches.EachRecord(func(record *kgo.Record) {
-        if err := handler(record.Partition, record.Offset, record.Value); err != nil {
-            // ... unchanged error handling ...
+    log := logger.FromContext(ctx)
+
+    go func() {
+        defer client.Close()
+        for {
+            if ctx.Err() != nil {
+                return
+            }
+            fetches := client.PollFetches(ctx)
+            if fetches.IsClientClosed() {
+                return
+            }
+            fetches.EachError(func(_ string, _ int32, err error) {
+                log.Error().Err(err).Msg("kafka fetch error")
+            })
+            fetches.EachRecord(func(record *kgo.Record) {
+                if _, err := c.store.Save(ctx, c.topic, record.Partition, record.Offset, record.Value); err != nil {
+                    log.Error().Err(err).Msg("failed to persist inbox record, skipping commit")
+                    return
+                }
+                if err := client.CommitRecords(ctx, record); err != nil {
+                    log.Error().Err(err).Msg("failed to commit kafka offset")
+                }
+            })
         }
-        // ... unchanged commit ...
-    })
+    }()
+
+    return nil
 }
 ```
 
-`inbox.Consumer` becomes a thin adapter: construct with an `EventServiceInterface`, call `Subscribe(groupName, topic, func(partition int32, offset int64, data []byte) error { return store.Save(ctx, topic, partition, offset, data) })`.
-
-**Cleanup as part of this same change:** `libs/events.SubscribeEmailReceived` and its hardcoded `subscriptionName = "email-receiver"` package var (in `libs/events/email_received.go`) are removed — `services/core` (their only caller) migrates entirely to the new consumer binary and stops calling them.
-
-**Correction from an earlier draft of this section, caught during implementation planning:** `PublishEmailReceived` and the generic `Publish` are *not* still in use elsewhere — `services/email`'s outbox relay (`outbox.NewProducer`) creates its own raw `kgo.Client` directly and never touches `libs/events` at all. So `Publish`/`PublishEmailReceived` already have zero callers anywhere in the repo, independent of this plan. Since this file is already being edited here, they're removed too in the same task — `EventServiceInterface` shrinks to just `Subscribe`/`IsConnected` as shown above.
+**This means `libs/events` (the `service.go`/`email_received.go` files — not the separate `libs/events/contracts` subpackage, which stays and is unaffected) has zero remaining callers anywhere in the repo once this plan lands.** `Publish`/`PublishEmailReceived` were already confirmed dead (`outbox.NewProducer` never used them). `Subscribe`/`SubscribeEmailReceived`/`IsConnected`/`NewEventService`/`Close` lose their only remaining caller once Section 6's rewrite removes `services/core`'s `InitializeEvents` call. Rather than trim two functions and leave a package alive that nothing depends on, `libs/events/service.go` and `libs/events/email_received.go` are deleted wholesale — `libs/events/contracts` is unaffected and continues to be imported directly by both `services/email`'s `domain/mail` (producer side) and `services/core`'s `CreateInboxHandler`/`email-received-consumer` (consumer side).
 
 ## 6. Sidecar wiring — `services/core/cmd/email-received-consumer`
 
@@ -208,15 +234,13 @@ func main() {
     categoryService := category.NewService(db)
     requestService := request.NewService(db)
 
-    eventService, err := events.NewEventService(cfg.KafkaBrokers)
-    // ...
-
-    handler := coreEvents.CreateInboxHandler(ctx, coreEvents.Services{
+    handler := coreEvents.CreateInboxHandler(coreEvents.Services{
         RequestService:  requestService,
         CategoryService: categoryService,
     })
 
-    consumer := inbox.NewConsumer(eventService, cfg.GroupName, "email-received", db)
+    brokers := strings.Split(cfg.KafkaBrokers, ",")
+    consumer := inbox.NewConsumer(brokers, cfg.GroupName, contracts.EmailReceivedTopic, db)
     worker := inbox.NewWorker(db, handler,
         inbox.WithPollInterval(cfg.PollInterval),
         inbox.WithBatchSize(cfg.BatchSize),
@@ -237,7 +261,7 @@ Deployment: new `services/core/Dockerfile.email-received-consumer`, `task build:
 
 ## 7. Consumer group naming
 
-`inbox.NewConsumer(eventService, groupName, topic, store)` takes `groupName` as an explicit caller-supplied parameter — never hardcoded inside `libs/inbox`. `services/core/cmd/email-received-consumer/config.go` loads it from a new `EMAIL_RECEIVED_CONSUMER_GROUP_NAME` env var, defaulting to `"core-email-received-consumer"` but overridable.
+`inbox.NewConsumer(brokers, groupName, topic, store)` takes `groupName` as an explicit caller-supplied parameter — never hardcoded inside `libs/inbox`. `services/core/cmd/email-received-consumer/config.go` loads it from a new `EMAIL_RECEIVED_CONSUMER_GROUP_NAME` env var, defaulting to `"core-email-received-consumer"` but overridable.
 
 The default is prefixed with the owning service name (`core-`), not just the topic, because Kafka's consumer-group semantics load-balance partitions *within* a group (competing consumers) but broadcast independently *across* distinct groups. If a future service also wants the full `email-received` stream, defaulting both to a bare `"email-received-consumer"` group name would silently collide them into one group and split the stream between them instead of each getting all of it. Prefixing by service name keeps the default collision-free across services in this monorepo, while still being fully overridable per deployment if ever needed.
 
@@ -245,7 +269,7 @@ The default is prefixed with the owning service name (`core-`), not just the top
 
 - `libs/inbox`: unit tests using a fake `Store` (mirrors `libs/outbox/relay_test.go`'s `newFakeStore`), covering `Worker`'s claim/handle/mark-processed/mark-failed/quarantine logic without a real DB or Kafka.
 - `services/core/internal/test/inbox/inbox_test.go` (new): integration test via testcontainer, mirroring `services/email`'s `mail_test.go`/`outbox_test.go` style — covers `Save`'s dedup on `(topic, partition, offset)`, and `FetchBatch`/`MarkProcessed`/`MarkFailed`'s claim/TTL/quarantine behavior against real Postgres.
-- No test for `Consumer` against a real Kafka broker — mirrors `libs/outbox`'s `Producer`, the concrete Kafka-touching type isn't unit-tested, only the pieces around it (and `Consumer` itself is now a thin adapter over the already-used `Subscribe`).
+- No test for `Consumer` against a real Kafka broker — mirrors `libs/outbox`'s `Producer`: the concrete Kafka-touching type isn't unit-tested, only the pieces around it (`Worker`, `Store`).
 - Section 1's rename is a pure identifier/identity change with no logic touched — existing outbox tests aren't expected to need any changes beyond what the rename itself mechanically requires (e.g. any test referencing the old binary path, if one exists).
 
 ## 9. Optional: per-key ordering in `Worker` (not designed, not scheduled — ideas only)
