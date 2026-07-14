@@ -57,6 +57,7 @@ func (c *Client) CreateRequest(ctx context.Context, request request.NewRequest) 
 	query := `
 		INSERT INTO requests (text, name, subject, email, address, telephone, raw, closed, reference_id, organization_id, category_id)
 		VALUES (@text, @name, @subject, @email, @address, @telephone, @raw, @closed, @referenceId, @organizationId, @categoryId)
+		ON CONFLICT (organization_id, reference_id) WHERE reference_id <> '' DO UPDATE SET reference_id = requests.reference_id
 		RETURNING id`
 
 	args := pgx.NamedArgs{

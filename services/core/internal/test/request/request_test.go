@@ -1,6 +1,7 @@
 package request
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -613,5 +614,48 @@ func TestRequestIntegration(t *testing.T) {
 			response := testApi.Delete("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 204, response.Code)
 		})
+	})
+}
+
+func TestCreateRequestIdempotency(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("creating a request twice with the same organization+referenceId returns the same id", func(t *testing.T) {
+		newRequest := request.NewRequest{
+			Subject:        "Idempotency test",
+			Text:           "body",
+			Email:          "sender@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "duplicate-message-id",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.NotZero(t, firstId)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.Equal(t, firstId, secondId, "reprocessing the same source email must resolve to the same Request row, not create a duplicate")
+	})
+
+	t.Run("requests without a referenceId remain unconstrained", func(t *testing.T) {
+		manualRequest := request.NewRequest{
+			Subject:        "Manually created",
+			Text:           "body",
+			Email:          "operator@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+		assert.NotEqual(t, firstId, secondId, "requests with an empty referenceId (e.g. created manually) must not be deduplicated")
 	})
 }
