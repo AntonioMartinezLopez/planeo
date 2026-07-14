@@ -16,7 +16,10 @@ This fully replaces `services/core`'s current inline Kafka subscription. As a pr
 ## Non-goals
 
 - No functional change to `services/email`'s outbox pattern, its schema, or its relay logic — Section 1's changes are naming/identity only (folder, image, container, task, logger tag, env var names), not behavior.
-- No redesign of Kafka consumer-group semantics beyond what's needed here — the existing single-global-consumer-group-per-topic model (flagged as a known simplification during the original NATS→Kafka migration) is unchanged; each binary just gets its own configurable, uniquely-defaulted group name (see Section 7).
+- No redesign of Kafka consumer-group semantics beyond what's needed here. There are two independent scaling mechanisms in this design, only one of which involves a "consumer group":
+  - **`Consumer` (Kafka-receiving side):** scales via Kafka's native consumer-group mechanism — multiple `Consumer` instances that share the same group name have the topic's partitions split between them by Kafka itself (`kgo.ConsumerGroup(groupName)`), which already works today with no redesign needed for the basic mechanism. What's still deferred is the deeper tuning nobody has designed yet: partition count relative to instance count, rebalancing strategy, behavior during a rebalance mid-scale-out, etc. — the "known simplification" flagged during the original NATS→Kafka migration.
+  - **`Worker` (inbox-table-reading side):** scales via a completely separate, already-fully-designed mechanism — the same `FOR UPDATE SKIP LOCKED` atomic claim `outbox.Relay` already uses. Multiple `Worker` instances run concurrently against the same `inbox` table with no group-name concept at all; there is no Kafka involvement on this side whatsoever.
+  - Each binary still gets its own configurable, uniquely-defaulted Kafka consumer group name regardless (see Section 7) — that default only matters for the `Consumer` axis above.
 - No generic multi-topic router — this worker consumes exactly one topic (`email-received`). A future service consuming a different topic gets its own dedicated binary, not a shared multi-topic dispatcher — this is also why naming and env vars are scoped per topic-binary rather than left generic (see Section 1).
 - No shared generic "claim + execute + retry + quarantine" engine between `libs/outbox` and `libs/inbox` — deliberately kept as two structurally-similar but independently-implemented packages for now, to avoid touching already-shipped `libs/outbox` logic for a modest amount of duplication. Revisit only if a third similar consumer appears.
 - No shared `Record` type between `outbox` and `inbox` either, for the same reason — their shapes aren't actually identical (`outbox.Record` carries a `Key` for partitioning on produce; `inbox.Record` doesn't need one), and unifying just the data shape while keeping the engines independent would be a half-measure.
@@ -237,6 +240,22 @@ The default is prefixed with the owning service name (`core-`), not just the top
 - `services/core/internal/test/inbox/inbox_test.go` (new): integration test via testcontainer, mirroring `services/email`'s `mail_test.go`/`outbox_test.go` style — covers `Save`'s dedup on `(topic, partition, offset)`, and `FetchBatch`/`MarkProcessed`/`MarkFailed`'s claim/TTL/quarantine behavior against real Postgres.
 - No test for `Consumer` against a real Kafka broker — mirrors `libs/outbox`'s `Producer`, the concrete Kafka-touching type isn't unit-tested, only the pieces around it (and `Consumer` itself is now a thin adapter over the already-used `Subscribe`).
 - Section 1's rename is a pure identifier/identity change with no logic touched — existing outbox tests aren't expected to need any changes beyond what the rename itself mechanically requires (e.g. any test referencing the old binary path, if one exists).
+
+## 9. Optional: per-key ordering in `Worker` (tackle last, if at all)
+
+**Problem:** `services/email`'s outbox already sets the Kafka record key to the organization ID (`service.go:78`), so same-organization messages always land on the same partition and are ordered relative to each other by Kafka. But `Worker.FetchBatch` claims rows purely by global `id`, with no concept of key — so that per-organization ordering, already correctly preserved all the way into the `inbox` table, is not preserved once more than one `Worker` instance is running. Today's design only gives a real ordering guarantee with exactly one `Worker` instance; running more trades away all ordering, not just cross-organization ordering.
+
+**Solution, if pursued:**
+1. Add a `key BYTEA` column (nullable) to the `inbox` table. Thread `record.Key` through `Store.Save`'s signature (`Consumer` already has access to it from the Kafka record — it's just not passed through today).
+2. Add a partial unique index enforcing at most one in-flight row per key:
+   ```sql
+   CREATE UNIQUE INDEX inbox_key_processing_idx ON inbox (key) WHERE status = 'processing';
+   ```
+3. Let concurrent claim attempts race rather than pessimistically preventing them: if two `Worker` instances both try to move a same-key row to `'processing'`, the transaction that commits second hits a real unique-constraint violation. Catch that specific error in the claim path and treat it as "this row wasn't claimable after all, leave it pending for the next poll" — not a batch failure. This mirrors the existing `ON CONFLICT DO NOTHING` idiom already used by `CreateMail` (let the database resolve the race, treat rejection as expected control flow, not an error).
+4. `NULL` keys are unconstrained by the partial index (a partial unique index ignores rows where the indexed column is `NULL`), so records without a key — if some future topic doesn't set one — stay freely, concurrently claimable with no special-casing needed.
+5. Needs a dedicated concurrency integration test: race two real claim attempts against two pending rows sharing the same key, and assert only one is ever `'processing'` at a time — this property only manifests under genuine concurrent access to real Postgres, a mocked-`Store` unit test can't prove it.
+
+Explicitly optional and lowest priority in this spec — the core inbox pattern (durable persist + async process + retry/quarantine) delivers its main value (idempotency, decoupling ack from slow processing) without this. Only worth doing once the rest is shipped and working, and only if per-organization ordering under horizontal `Worker` scaling turns out to matter in practice.
 
 ## Explicitly deferred / out of scope
 
