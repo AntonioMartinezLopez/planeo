@@ -8,6 +8,14 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
+// saver is the one method Consumer needs from whatever persists a raw
+// Kafka record. Declared here, inline, now that the shared Store interface
+// (which used to live in store.go alongside Record) has been removed —
+// Consumer's needs are narrower than the removed interface's full shape.
+type saver interface {
+	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (inserted bool, err error)
+}
+
 // Consumer reads from Kafka and persists into the inbox, committing the
 // offset only after Save succeeds. No Handler is invoked here. Owns its
 // own kgo consumer-group client directly — mirrors outbox.Producer's
@@ -16,10 +24,10 @@ type Consumer struct {
 	brokers   []string
 	groupName string
 	topic     string
-	store     Store
+	store     saver
 }
 
-func NewConsumer(brokers []string, groupName, topic string, store Store) *Consumer {
+func NewConsumer(brokers []string, groupName, topic string, store saver) *Consumer {
 	return &Consumer{
 		brokers:   brokers,
 		groupName: groupName,
