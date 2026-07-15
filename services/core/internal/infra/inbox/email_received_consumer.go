@@ -25,7 +25,7 @@ type Repository interface {
 	MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error
 }
 
-type EmailReceivedConsumerAdapter struct {
+type EmailReceivedConsumer struct {
 	repo            Repository
 	requestService  request.Service
 	categoryService category.Service
@@ -36,7 +36,7 @@ type EmailReceivedConsumerAdapter struct {
 	maxAttempts     int
 }
 
-func NewEmailReceivedConsumerAdapter(
+func NewEmailReceivedConsumer(
 	repo Repository,
 	requestService request.Service,
 	categoryService category.Service,
@@ -45,8 +45,8 @@ func NewEmailReceivedConsumerAdapter(
 	batchSize int,
 	maxAttempts int,
 	claimTTL time.Duration,
-) *EmailReceivedConsumerAdapter {
-	return &EmailReceivedConsumerAdapter{
+) *EmailReceivedConsumer {
+	return &EmailReceivedConsumer{
 		repo:            repo,
 		requestService:  requestService,
 		categoryService: categoryService,
@@ -60,7 +60,7 @@ func NewEmailReceivedConsumerAdapter(
 
 // PollOnce claims a batch of pending inbox rows and processes each in turn.
 // One bad record does not stop the rest of the batch.
-func (a *EmailReceivedConsumerAdapter) PollOnce(ctx context.Context) error {
+func (a *EmailReceivedConsumer) PollOnce(ctx context.Context) error {
 	records, err := a.repo.FetchBatch(ctx, a.topic, a.instanceID, a.batchSize, a.claimTTL)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (a *EmailReceivedConsumerAdapter) PollOnce(ctx context.Context) error {
 // are slow, network-dependent calls, and holding a Postgres row lock and a
 // pooled connection across them would be an unnecessary cost. Only the
 // domain writes and the inbox row's final status are wrapped together.
-func (a *EmailReceivedConsumerAdapter) processRecord(ctx context.Context, rec libsinbox.Record) error {
+func (a *EmailReceivedConsumer) processRecord(ctx context.Context, rec libsinbox.Record) error {
 	var payload contracts.EmailCreatedPayload
 	if err := json.Unmarshal(rec.Payload, &payload); err != nil {
 		return a.repo.MarkFailed(ctx, rec.ID, err, a.maxAttempts)

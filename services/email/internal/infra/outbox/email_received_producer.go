@@ -17,10 +17,10 @@ type Repository interface {
 	MarkFailed(ctx context.Context, id int64, sendErr error, maxAttempts int) error
 }
 
-// EmailReceivedProducerAdapter owns the claim/produce/mark flow for the
+// EmailReceivedProducer owns the claim/produce/mark flow for the
 // "email-received" topic. A service with more than one producer gets one
 // adapter type per topic, not a single generic parameterized type.
-type EmailReceivedProducerAdapter struct {
+type EmailReceivedProducer struct {
 	repo        Repository
 	producer    libsoutbox.Producer
 	topic       string
@@ -30,7 +30,7 @@ type EmailReceivedProducerAdapter struct {
 	maxAttempts int
 }
 
-func NewEmailReceivedProducerAdapter(
+func NewEmailReceivedProducer(
 	repo Repository,
 	producer libsoutbox.Producer,
 	topic string,
@@ -38,8 +38,8 @@ func NewEmailReceivedProducerAdapter(
 	batchSize int,
 	maxAttempts int,
 	claimTTL time.Duration,
-) *EmailReceivedProducerAdapter {
-	return &EmailReceivedProducerAdapter{
+) *EmailReceivedProducer {
+	return &EmailReceivedProducer{
 		repo:        repo,
 		producer:    producer,
 		topic:       topic,
@@ -55,7 +55,7 @@ func NewEmailReceivedProducerAdapter(
 // Kafka isn't enrolled in Postgres's transaction, so wrapping it here would
 // buy no atomicity; the known "produce succeeds, mark fails, resend on next
 // poll" duplicate-send risk is unchanged from the pre-adapter design.
-func (a *EmailReceivedProducerAdapter) PollOnce(ctx context.Context) error {
+func (a *EmailReceivedProducer) PollOnce(ctx context.Context) error {
 	records, err := a.repo.FetchBatch(ctx, a.topic, a.instanceID, a.batchSize, a.claimTTL)
 	if err != nil {
 		return err

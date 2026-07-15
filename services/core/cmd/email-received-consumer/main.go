@@ -33,7 +33,7 @@ func main() {
 
 	instanceID := uuid.NewString()
 
-	adapter := coreinbox.NewEmailReceivedConsumerAdapter(
+	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
 		db, requestService, categoryService, contracts.EmailReceivedTopic, instanceID,
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
@@ -49,7 +49,7 @@ func main() {
 
 	log.Info().Msg("Email-received consumer running")
 	runner := inbox.NewRunner(inbox.WithPollInterval(cfg.PollInterval))
-	if err := runner.Run(runCtx, adapter.PollOnce); err != nil {
+	if err := runner.Run(runCtx, emailReceivedConsumer.PollOnce); err != nil {
 		log.Info().Err(err).Msg("Email-received consumer stopped")
 	}
 }

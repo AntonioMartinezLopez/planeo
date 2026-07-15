@@ -72,7 +72,7 @@ func (f *fakeProducer) ProduceSync(ctx context.Context, topic string, key, value
 	return nil
 }
 
-func TestEmailReceivedProducerAdapter(t *testing.T) {
+func TestEmailReceivedProducer(t *testing.T) {
 	if !testing.Short() {
 		t.Skip()
 	}
@@ -80,9 +80,9 @@ func TestEmailReceivedProducerAdapter(t *testing.T) {
 	t.Run("produces a fetched record and marks it processed", func(t *testing.T) {
 		repo := newFakeRepository([]libsoutbox.Record{{ID: 1, Topic: "email-received", Key: []byte("k"), Payload: []byte("v")}})
 		producer := &fakeProducer{}
-		adapter := outbox.NewEmailReceivedProducerAdapter(repo, producer, "email-received", "instance-a", 10, 5, 30*time.Second)
+		emailReceivedProducer := outbox.NewEmailReceivedProducer(repo, producer, "email-received", "instance-a", 10, 5, 30*time.Second)
 
-		err := adapter.PollOnce(context.Background())
+		err := emailReceivedProducer.PollOnce(context.Background())
 
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(producer.sent))
@@ -93,11 +93,11 @@ func TestEmailReceivedProducerAdapter(t *testing.T) {
 		record := libsoutbox.Record{ID: 2, Topic: "broken-topic", Key: nil, Payload: []byte("v")}
 		repo := newFakeRepository([]libsoutbox.Record{record, record, record})
 		producer := &fakeProducer{failTopic: "broken-topic"}
-		adapter := outbox.NewEmailReceivedProducerAdapter(repo, producer, "broken-topic", "instance-a", 1, 2, 30*time.Second)
+		emailReceivedProducer := outbox.NewEmailReceivedProducer(repo, producer, "broken-topic", "instance-a", 1, 2, 30*time.Second)
 
-		assert.Nil(t, adapter.PollOnce(context.Background()))
-		assert.Nil(t, adapter.PollOnce(context.Background()))
-		assert.Nil(t, adapter.PollOnce(context.Background()))
+		assert.Nil(t, emailReceivedProducer.PollOnce(context.Background()))
+		assert.Nil(t, emailReceivedProducer.PollOnce(context.Background()))
+		assert.Nil(t, emailReceivedProducer.PollOnce(context.Background()))
 
 		assert.Equal(t, 0, len(producer.sent))
 		assert.GreaterOrEqual(t, repo.failed[2], 2)

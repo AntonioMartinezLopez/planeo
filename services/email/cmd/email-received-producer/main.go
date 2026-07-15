@@ -33,7 +33,7 @@ func main() {
 	}
 	defer kafkaClient.Close()
 
-	adapter := emailoutbox.NewEmailReceivedProducerAdapter(
+	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
 		db, producer, contracts.EmailReceivedTopic, uuid.NewString(),
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
@@ -43,7 +43,7 @@ func main() {
 
 	log.Info().Msg("Email-received producer running")
 	runner := outbox.NewRunner(outbox.WithPollInterval(cfg.PollInterval))
-	if err := runner.Run(runCtx, adapter.PollOnce); err != nil {
+	if err := runner.Run(runCtx, emailReceivedProducer.PollOnce); err != nil {
 		log.Info().Err(err).Msg("Email-received producer stopped")
 	}
 }
