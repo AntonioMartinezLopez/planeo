@@ -94,7 +94,7 @@ func (a *EmailReceivedConsumerAdapter) processRecord(ctx context.Context, rec li
 	if err != nil {
 		log := logger.FromContext(ctx)
 		log.Error().Err(err).Msg("failed to extract fields from request")
-		// not fatal - matches CreateInboxHandler's prior behavior exactly
+		// not fatal - a missing extraction still allows classification and request creation to proceed
 	}
 
 	requestData := llm.RequestData{Subject: payload.Subject, Text: payload.Body}
