@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"planeo/libs/db"
 	"planeo/services/core/internal/domain/request"
 
 	"github.com/jackc/pgx/v5"
@@ -79,7 +80,8 @@ func (c *Client) CreateRequest(ctx context.Context, request request.NewRequest) 
 	}
 
 	var id int
-	err := c.db.QueryRow(ctx, query, args).Scan(&id)
+	q := db.FromContext(ctx, c.db)
+	err := q.QueryRow(ctx, query, args).Scan(&id)
 	if err != nil {
 		return 0, NewDatabaseError("error inserting into database", err)
 	}
@@ -109,7 +111,8 @@ func (c *Client) UpdateRequest(ctx context.Context, req request.UpdateRequest) e
 		args["categoryId"] = nil
 	}
 
-	result, err := c.db.Exec(ctx, query, args)
+	q := db.FromContext(ctx, c.db)
+	result, err := q.Exec(ctx, query, args)
 	if err != nil {
 		return NewDatabaseError("error updating request", err)
 	}

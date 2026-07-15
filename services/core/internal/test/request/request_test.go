@@ -659,3 +659,69 @@ func TestCreateRequestIdempotency(t *testing.T) {
 		assert.NotEqual(t, firstId, secondId, "requests with an empty referenceId (e.g. created manually) must not be deduplicated")
 	})
 }
+
+func TestCreateAndUpdateRequestParticipateInTransaction(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("CreateRequest and UpdateRequest both commit together inside WithTransaction", func(t *testing.T) {
+		var requestId int
+		err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+			id, err := env.DB.CreateRequest(ctx, request.NewRequest{
+				Subject:        "Tx test",
+				Text:           "body",
+				Email:          "tx@example.com",
+				OrganizationId: 1,
+				ReferenceId:    "tx-participation-test",
+			})
+			if err != nil {
+				return err
+			}
+			requestId = id
+			return env.DB.UpdateRequest(ctx, request.UpdateRequest{
+				Id:             id,
+				Text:           "updated body",
+				Subject:        "Tx test updated",
+				Email:          "tx@example.com",
+				OrganizationId: 1,
+			})
+		})
+		assert.Nil(t, err)
+
+		got, err := env.DB.GetRequest(context.Background(), 1, requestId)
+		assert.Nil(t, err)
+		assert.Equal(t, "updated body", got.Text, "both writes must be visible after a successful transaction")
+	})
+
+	t.Run("a failure after CreateRequest rolls back the whole transaction", func(t *testing.T) {
+		err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+			_, err := env.DB.CreateRequest(ctx, request.NewRequest{
+				Subject:        "Rollback test",
+				Text:           "body",
+				Email:          "rollback@example.com",
+				OrganizationId: 1,
+				ReferenceId:    "tx-rollback-test",
+			})
+			if err != nil {
+				return err
+			}
+			// A nonexistent CategoryId violates the requests.category_id
+			// foreign key, forcing a real transaction-aborting error.
+			return env.DB.UpdateRequest(ctx, request.UpdateRequest{
+				Id:             999999,
+				OrganizationId: 1,
+				CategoryId:     999999,
+			})
+		})
+		assert.NotNil(t, err, "the forced foreign key violation must surface as an error")
+
+		requests, err := env.DB.GetRequests(context.Background(), 1, 0, 100, false, nil)
+		assert.Nil(t, err)
+		for _, r := range requests {
+			assert.NotEqual(t, "tx-rollback-test", r.ReferenceId, "CreateRequest's row must not survive when the transaction as a whole fails")
+		}
+	})
+}
