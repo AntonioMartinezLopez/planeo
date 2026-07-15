@@ -1546,9 +1546,10 @@ git commit -m "feat(core): make CreateRequest/UpdateRequest participate in a cal
 - Delete: `services/core/internal/infra/events/email_received.go`
 - Delete: `services/core/internal/infra/events/events.go`
 - Create: `services/core/internal/infra/inbox/adapter.go`
-- Create: `services/core/internal/infra/inbox/adapter_test.go`
 - Modify: `services/core/cmd/email-received-consumer/main.go`
 - Create: `services/core/internal/test/inbox/adapter_rollback_test.go`
+
+(No unit test file for the new adapter — `adapter_test.go` was tried and retracted; see Step 3's note. `processRecord` calls the real `llm` package directly, so its only test coverage is the integration-level rollback test below, which runs against real Postgres and the real, network-reachable LLM.)
 
 **Interfaces:**
 - Consumes: `libs/inbox.Consumer`/`NewConsumer` (unchanged, Task 4), `libs/inbox.NewRunner`/`WithPollInterval` (Task 4), `libs/inbox.Record` (Task 4); `(*postgres.Client).FetchBatch(ctx, instanceID, limit, claimTTL)`/`WithTransaction`/`MarkProcessed`/`MarkFailed` (Task 5); `(*postgres.Client).CreateRequest`/`UpdateRequest` now participating in `WithTransaction` (Task 6); `services/core/internal/domain/request.Service`, `services/core/internal/domain/category.Service`; `services/core/internal/infra/llm.ExtractRequestFields`/`ClassifyRequest`/`RequestData`; `libs/events/contracts.EmailCreatedPayload`/`EmailReceivedTopic`.
@@ -1713,7 +1714,13 @@ func (a *EmailReceivedConsumerAdapter) processRecord(ctx context.Context, rec li
 }
 ```
 
-- [ ] **Step 3: Create `services/core/internal/infra/inbox/adapter_test.go`**
+- [ ] **Step 3 (retracted after implementation — see note below): `services/core/internal/infra/inbox/adapter_test.go`**
+
+**This step was implemented, then deliberately removed in a follow-up commit (`d758843`, after `00d6a6e`).** `processRecord` calls `llm.ExtractRequestFields`/`llm.ClassifyRequest` directly as free functions, not through an injectable port — so a unit test exercising `processRecord` makes live network calls to the real Mistral API and requires `MISTRAL_API_KEY` in the process environment to pass, which is not appropriate for a `-short` unit test (non-hermetic, environment-dependent, costs a real API call per run). This is a pre-existing property of the `llm` package's design (the original `CreateEmailReceivedCallback`/`CreateInboxHandler` had the same non-injectable dependency; it was simply never unit-tested before, so the gap never surfaced). Revisit only if a future task makes the LLM calls injectable — do not re-add this test as originally written. The code below is kept for historical reference (what Task 7 originally attempted), not as something to (re)implement:
+
+<details>
+<summary>Original Step 3 content (retracted, not to be re-implemented)</summary>
+
 
 ```go
 package inbox_test
@@ -1838,10 +1845,11 @@ func TestEmailReceivedConsumerAdapter(t *testing.T) {
 
 `requestmocks.NewMockService(t)` and `categorymocks.NewMockService(t)` are the confirmed, existing mockery-generated constructors for `request.Service`/`category.Service` (in `services/core/internal/domain/request/mocks/service_mock.go` and `services/core/internal/domain/category/mocks/service_mock.go`) — no name adjustment needed. The `.EXPECT().MethodName(args...).Return(...)` builder shape matches the existing convention already used throughout `services/core/internal/domain/request/service_test.go`. `libsinbox` aliases `planeo/libs/inbox` to avoid ambiguity with this file's own package under test, `planeo/services/core/internal/infra/inbox` (imported unaliased as `inbox`, used for `inbox.NewEmailReceivedConsumerAdapter`).
 
-- [ ] **Step 4: Run the new unit tests**
+</details>
 
-Run: `go test ./services/core/internal/infra/inbox/... -v -short -count=1`
-Expected: PASS (both subtests green).
+- [ ] **Step 4 (retracted along with Step 3 — no longer applicable): ~~Run the new unit tests~~**
+
+Skipped — `services/core/internal/infra/inbox` has no unit test file after the Step 3 retraction. The rollback-atomicity integration test (Step 6) is what actually exercises `processRecord`'s transaction/rollback behavior, against real Postgres and the real (network-reachable) LLM calls — it remains in place and is not affected by this retraction.
 
 - [ ] **Step 5: Update `services/core/cmd/email-received-consumer/main.go`**
 
@@ -2052,11 +2060,8 @@ Expected: exit 0 — this is the point where Task 4's deliberate break is fully 
 Run: `go vet ./...`
 Expected: exit 0.
 
-Run: `go test ./services/core/internal/infra/inbox/... -v -short -count=1`
-Expected: PASS.
-
 Run: `go test ./services/core/internal/test/inbox/... -v -count=1`
-Expected: PASS — all pre-existing inbox repository tests, plus the new `TestEmailReceivedConsumerAdapterRollsBackOnWriteFailure`, green. Requires Docker running locally.
+Expected: PASS — all pre-existing inbox repository tests, plus the new `TestEmailReceivedConsumerAdapterRollsBackOnWriteFailure`, green. Requires Docker running locally. (No `go test ./services/core/internal/infra/inbox/...` step — that package has no test file after Step 3's retraction.)
 
 - [ ] **Step 8: Commit**
 
@@ -2064,6 +2069,8 @@ Expected: PASS — all pre-existing inbox repository tests, plus the new `TestEm
 git add services/core/internal/infra/events services/core/internal/infra/inbox services/core/cmd/email-received-consumer/main.go services/core/internal/test/inbox/adapter_rollback_test.go
 git commit -m "feat(core): add EmailReceivedConsumerAdapter, replacing inbox.Worker and CreateInboxHandler"
 ```
+
+(In the actual execution history, `adapter_test.go` was committed as part of this step and then removed in a separate follow-up commit once its non-hermetic Mistral-API dependency was identified — see Step 3's note. A future implementer following this plan fresh should simply not create `adapter_test.go` at all, skipping straight from Step 2 to Step 5.)
 
 ---
 
