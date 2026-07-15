@@ -238,12 +238,19 @@ tasks:
       - echo "Building Docker image for email-received-producer with tag {{.VERSION}}..."
       - docker build -t {{.DOCKER_REGISTRY}}/email-received-producer:{{.VERSION}} -f services/email/Dockerfile.email-received-producer .
 
+  build:core:email-received-consumer:
+    desc: Build Docker image for email-received-consumer sidecar
+    cmds:
+      - echo "Building Docker image for email-received-consumer with tag {{.VERSION}}..."
+      - docker build -t {{.DOCKER_REGISTRY}}/email-received-consumer:{{.VERSION}} -f services/core/Dockerfile.email-received-consumer .
+
   build:all:
     desc: Build Docker images for all services
     cmds:
       - task: build:core
       - task: build:email
       - task: build:email:email-received-producer
+      - task: build:core:email-received-consumer
 
   # ========================================
   # Frontend

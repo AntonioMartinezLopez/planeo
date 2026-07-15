@@ -120,6 +120,35 @@ services:
       EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS: "5"
       EMAIL_RECEIVED_PRODUCER_CLAIM_TTL: 30s
 
+  # email-received consumer sidecar for services/core - durably persists
+  # Kafka email-received messages into core's inbox table, then processes
+  # them asynchronously (creates/updates a Request via LLM extraction and
+  # classification).
+  # NOTE: On first `task up`, this container will log query errors for a few
+  # seconds while waiting for the inbox table to be created by migrations.
+  # This is expected and not a regression.
+  email-received-consumer:
+    container_name: email-received-consumer
+    build:
+      context: ..
+      dockerfile: services/core/Dockerfile.email-received-consumer
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: planeo
+      DB_PASSWORD: planeo
+      DB_NAME: planeo
+      KAFKA_BROKERS: kafka:19092
+      EMAIL_RECEIVED_CONSUMER_GROUP_NAME: core-email-received-consumer
+      EMAIL_RECEIVED_CONSUMER_POLL_INTERVAL: 1s
+      EMAIL_RECEIVED_CONSUMER_BATCH_SIZE: "100"
+      EMAIL_RECEIVED_CONSUMER_MAX_ATTEMPTS: "5"
+      EMAIL_RECEIVED_CONSUMER_CLAIM_TTL: 30s
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
+
 networks:
   default:
     driver: bridge
