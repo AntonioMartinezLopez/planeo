@@ -10,22 +10,33 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (c *Client) FetchBatch(ctx context.Context, limit int, claimTTL time.Duration) ([]outbox.Record, error) {
+func (c *Client) FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]outbox.Record, error) {
 	cutoff := time.Now().Add(-claimTTL)
 
+	// claimed_by lets THIS instance immediately reclaim its own stuck
+	// "processing" rows (e.g. produce succeeded but MarkProcessed failed)
+	// on the very next poll, without waiting for claimTTL — sequential
+	// single-instance polling guarantees no other in-flight attempt is
+	// still touching it. claimTTL remains the fallback for the case where
+	// the instance itself crashed and a new instance id needs to recover
+	// orphaned rows left by the old one.
 	query := `
 		UPDATE outbox
-		SET status = 'processing', claimed_at = NOW()
+		SET status = 'processing', claimed_at = NOW(), claimed_by = @instanceId
 		WHERE id IN (
 			SELECT id FROM outbox
-			WHERE status = 'pending'
+			WHERE topic = @topic
+			  AND (
+			      status = 'pending'
+			   OR (status = 'processing' AND claimed_by = @instanceId)
 			   OR (status = 'processing' AND claimed_at < @cutoff)
+			  )
 			ORDER BY id
 			LIMIT @limit
 			FOR UPDATE SKIP LOCKED
 		)
 		RETURNING id, topic, key, payload`
-	args := pgx.NamedArgs{"cutoff": cutoff, "limit": limit}
+	args := pgx.NamedArgs{"topic": topic, "instanceId": instanceID, "cutoff": cutoff, "limit": limit}
 
 	rows, err := c.db.Query(ctx, query, args)
 	if err != nil {
