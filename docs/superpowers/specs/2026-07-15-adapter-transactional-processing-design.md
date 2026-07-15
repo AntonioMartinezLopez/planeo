@@ -142,12 +142,13 @@ Mirrors the producer's claim mechanism exactly (same schema fields, same `FetchB
 package inbox // services/core/internal/infra/inbox
 
 type Repository interface {
-    FetchBatch(ctx context.Context, instanceID string, limit int, claimTTL time.Duration) ([]Record, error)
+    FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]Record, error)
     WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
     MarkProcessed(ctx context.Context, id int64) error
     MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error
 }
 ```
+(`FetchBatch` is topic-scoped, matching the producer side exactly — added after the final whole-branch review flagged the original no-topic shape as a latent trap: without it, if `services/core`'s inbox ever received a second topic, two consumer adapters could steal each other's rows. This is a correction from an earlier draft of this section, which specified no `topic` parameter here as a deliberate asymmetry with the producer side — that asymmetry turned out not to be worth the risk.)
 `*postgres.Client`'s `WithTransaction` wraps `libs/db.WithTx(ctx, c.db, fn)` — the adapter never touches `*pgxpool.Pool` or `libs/db` directly, only this interface. `FetchBatch` stays on the plain pool (it's never called inside the adapter's transaction). **`MarkProcessed`/`MarkFailed` must resolve their `Querier` via `db.FromContext(ctx, c.db)`, not call `c.db` directly** — otherwise, called with `txCtx` from inside `WithTransaction`, they'd silently run on a separate, auto-committed connection instead of participating in the transaction, defeating the entire point of this section.
 
 **Adapter — batch claim (rows already carry their full `Payload`), then per record: gather outside any transaction, write inside a short one:**

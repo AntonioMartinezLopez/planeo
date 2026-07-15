@@ -2140,3 +2140,12 @@ Expected: all PASS. (Requires Docker running locally for the integration/testcon
 git add -A
 git commit -m "chore: cleanup fixes from final verification"
 ```
+
+## Post-final-review addendum (commit `3fdee42`)
+
+The final whole-branch review flagged two Minor findings, both fixed after Task 8:
+
+1. **Consumer-side `inbox` `FetchBatch` wasn't topic-scoped, unlike the producer-side `outbox` `FetchBatch`.** Correct in behavior today (the inbox table has exactly one topic), but a latent trap if `services/core`'s inbox ever receives a second topic — two consumer adapters could steal each other's rows. Fixed by adding a `topic` parameter to `(*postgres.Client).FetchBatch` (now `FetchBatch(ctx, topic, instanceID string, limit int, claimTTL time.Duration)`, matching the producer side's shape exactly), threading it through `inbox.Repository`'s interface, `EmailReceivedConsumerAdapter` (new `topic` field, set via its constructor), `cmd/email-received-consumer/main.go`'s wiring (`contracts.EmailReceivedTopic`), and all 11 existing `FetchBatch` call sites in `services/core/internal/test/inbox/inbox_test.go`. This is a real, load-bearing signature change to `Repository.FetchBatch` and `(*postgres.Client).FetchBatch` beyond what Task 5/7 originally specified — a future implementer working from this plan fresh should build `FetchBatch` topic-scoped from the start, matching the outbox side, rather than the no-topic shape shown in Task 5/7's original code blocks above.
+2. Two stale comments referencing the removed `Relay` type by name (`libs/outbox/producer.go`, `services/email/internal/infra/outbox/adapter.go`) were reworded.
+
+All 6 test suites re-verified green after this fix; `go build`/`go vet`/`gofmt` all clean.
