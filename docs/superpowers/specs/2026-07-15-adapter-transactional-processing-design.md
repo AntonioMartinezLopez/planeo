@@ -137,18 +137,18 @@ Mirrors the producer's claim mechanism exactly (same schema fields, same `FetchB
 
 **Schema:** the `inbox` table (from the original inbox-pattern spec) keeps `status`(`pending`/`processing`/`processed`/`failed`)/`claimed_at`/`attempts`/`last_error`/`failed_at`, and gains `claimed_by TEXT`, mirroring the outbox table exactly.
 
-**Repository — declared at point of use, includes `WithTx` for the write-only phase:**
+**Repository — declared at point of use, includes `WithTransaction` for the write-only phase** (named to match the existing convention already established by `services/email`'s `mail_repository.go`'s `Client.WithTransaction`, not the lib-level `libs/db.WithTx` helper it wraps):
 ```go
 package inbox // services/core/internal/infra/inbox
 
 type Repository interface {
     FetchBatch(ctx context.Context, instanceID string, limit int, claimTTL time.Duration) ([]Record, error)
-    WithTx(ctx context.Context, fn func(ctx context.Context) error) error
+    WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
     MarkProcessed(ctx context.Context, id int64) error
     MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error
 }
 ```
-`services/core/internal/infra/postgres/inbox_repository.go`'s `WithTx` wraps `libs/db.WithTx(ctx, c.pool, fn)` — the adapter never touches `*pgxpool.Pool` or `libs/db` directly, only this interface.
+`*postgres.Client`'s `WithTransaction` wraps `libs/db.WithTx(ctx, c.db, fn)` — the adapter never touches `*pgxpool.Pool` or `libs/db` directly, only this interface. `FetchBatch` stays on the plain pool (it's never called inside the adapter's transaction). **`MarkProcessed`/`MarkFailed` must resolve their `Querier` via `db.FromContext(ctx, c.db)`, not call `c.db` directly** — otherwise, called with `txCtx` from inside `WithTransaction`, they'd silently run on a separate, auto-committed connection instead of participating in the transaction, defeating the entire point of this section.
 
 **Adapter — batch claim (rows already carry their full `Payload`), then per record: gather outside any transaction, write inside a short one:**
 ```go
@@ -189,28 +189,32 @@ func (a *EmailReceivedConsumerAdapter) processRecord(ctx context.Context, rec Re
         return a.repo.MarkFailed(ctx, rec.ID, err, a.maxAttempts)
     }
 
-    // Write-only transaction: CreateRequest/UpdateRequest's writes and MarkProcessed/MarkFailed
-    // are atomic together. On a write failure, MarkFailed's OWN result (nil on success) is
-    // returned - never the raw write error - so the transaction commits the partial write plus
-    // the failure bookkeeping together, rather than rolling back the attempt-count increment
-    // along with everything else. Getting this inverted (returning the raw error) would silently
-    // roll back every MarkFailed call on this path.
-    return a.repo.WithTx(ctx, func(txCtx context.Context) error {
+    // Write-only transaction: CreateRequest/UpdateRequest's writes and MarkProcessed are atomic
+    // together. MarkFailed is deliberately NOT called inside this transaction: once any statement
+    // in a Postgres transaction errors, that transaction is aborted and every subsequent statement
+    // on it fails too (SQLSTATE 25P02) - so calling MarkFailed(txCtx, ...) after CreateRequest's own
+    // error would itself fail, WithTransaction would roll back, and the attempts increment would be
+    // lost entirely. A row that deterministically fails would retry forever and never quarantine.
+    txErr := a.repo.WithTransaction(ctx, func(txCtx context.Context) error {
         requestId, err := a.requestService.CreateRequest(txCtx, request.NewRequest{ /* ... */ })
         if err != nil {
-            return a.repo.MarkFailed(txCtx, rec.ID, err, a.maxAttempts)
+            return err
         }
         if err := a.requestService.UpdateRequest(txCtx, request.UpdateRequest{ /* ...extractedFields, categoryId... */ }); err != nil {
-            return a.repo.MarkFailed(txCtx, rec.ID, err, a.maxAttempts)
+            return err
         }
         return a.repo.MarkProcessed(txCtx, rec.ID)
     })
+    if txErr != nil {
+        return a.repo.MarkFailed(ctx, rec.ID, txErr, a.maxAttempts) // separate call, on the plain ctx, after rollback
+    }
+    return nil
 }
 ```
 
 **Why gather-then-write, not one transaction around everything:** the handler makes two sequential LLM calls (`ExtractRequestFields`, `ClassifyRequest`), each potentially seconds long. Wrapping those in the same transaction as the row lock would hold a Postgres row lock and a pooled connection for the full round-trip of each call — tolerable at this project's volume, but an unnecessary, avoidable cost. Gathering first means the transaction only spans the parts that actually need to be atomic together: the two domain writes and the inbox row's final status.
 
-**On partial-write handling:** if `CreateRequest` succeeds but `UpdateRequest` then fails, the transaction still commits (via `MarkFailed`'s own successful return) — the partially-created `Request` row is preserved, not rolled back. The next retry's `CreateRequest` call resolves to the same row (Task 5's idempotent upsert) rather than duplicating it, and simply completes the `UpdateRequest` step it didn't reach before. This is a deliberate choice: rolling back partial writes on every failure would mean redoing the entire gather phase (including both LLM calls) on every retry, even when only the last step failed.
+**On partial-write handling:** if `CreateRequest` succeeds but `UpdateRequest` then fails, the whole transaction rolls back — the partially-created `Request` row does not survive. This is not a loss compared to preserving it: the LLM calls already happened *before* the transaction, so a retry redoes that gathering work regardless of whether a partial row existed; Task 5's idempotent upsert means the retry's `CreateRequest` call ends up at the same row either way. Rolling back everything and recording the failure in a separate call after the fact is both the only mechanism Postgres actually permits here (see above) and loses nothing the alternative would have preserved.
 
 **Requires:** `services/core`'s `request`/`category` domain-service repositories (specifically `CreateRequest`/`UpdateRequest`'s write path) to resolve their `Querier` via `db.FromContext(ctx, pool)` instead of calling `c.db` directly, mirroring the pattern `services/email`'s `mail`/`outbox` repositories already use (from the earlier outbox-architecture-cleanup plan). Today, `services/core`'s repositories ignore any transaction on `ctx` entirely — this is a real, contained migration, scoped to the write path these two methods use, not a wholesale rewrite of `services/core`'s persistence layer.
 
@@ -221,9 +225,10 @@ Both adapters need, per topic: `batchSize`, `claimTTL`, `maxAttempts`, and a pro
 ## 6. Testing
 
 - **`libs/outbox`/`libs/inbox`**: shrink to `Producer`/`Consumer` + `Runner`. Existing `Relay`/`Worker`/`Store`/`Handler` unit tests are removed along with the types they tested; `Runner`'s own test coverage is just its ticker/ctx.Done() loop.
-- **Adapters** (`EmailReceivedProducerAdapter`, `EmailReceivedConsumerAdapter`): new unit tests against a fake `Repository` (same fake-store pattern the original `libs/inbox` `worker_test.go` already used) — covering successful produce/process, produce/handler failure → `MarkFailed` called with the right error, and (consumer only) the `WithTx` failure path preserving partial writes.
-- **Repositories** (`postgres.OutboxRepository`, `postgres.InboxRepository`): integration tests via the existing testcontainer harnesses, covering the new `claimed_by`-based behavior specifically — a `processing` row owned by *this* instance is reclaimed immediately (no `claimTTL` wait), while a `processing` row owned by a *different* instance id is only reclaimed after `claimTTL` elapses.
-- **`services/core`'s `request`/`category` repositories**: a test proving `CreateRequest`/`UpdateRequest` participate in a caller-supplied transaction via `db.FromContext`, mirroring `libs/db`'s own `TestWithTx`/`TestFromContext` and the `services/email` mail/outbox atomicity integration test from the outbox-architecture-cleanup plan.
+- **Adapters** (`EmailReceivedProducerAdapter`, `EmailReceivedConsumerAdapter`): new unit tests against a fake `Repository` (same fake-store pattern the original `libs/inbox` `worker_test.go` already used) — covering successful produce/process, produce/handler failure → `MarkFailed` called with the right error, and (consumer only) `WithTransaction`'s callback failing → `MarkFailed` called on the plain `ctx` afterward, not inside the failed transaction.
+- **Repositories** (`*postgres.Client` on both services): integration tests via the existing testcontainer harnesses, covering the new `claimed_by`-based behavior specifically — a `processing` row owned by *this* instance is reclaimed immediately (no `claimTTL` wait), while a `processing` row owned by a *different* instance id is only reclaimed after `claimTTL` elapses.
+- **`services/core`'s consumer-adapter rollback atomicity** (new, mirroring the outbox-architecture-cleanup plan's "`CreateOutboxEvent` failure rolls back `CreateMail`" integration test): force `UpdateRequest` to fail after a successful `CreateRequest` inside the adapter's transaction, then assert against real Postgres that no `Request` row persists and the inbox row is back to `pending` with `attempts` incremented — proving the rollback is real, not just believed correct by inspection.
+- **`services/core`'s `request` repository**: a test proving `CreateRequest`/`UpdateRequest` participate in a caller-supplied transaction via `db.FromContext`, mirroring `libs/db`'s own `TestWithTx`/`TestFromContext` and the `services/email` mail/outbox atomicity integration test from the outbox-architecture-cleanup plan.
 
 ## Explicitly deferred / out of scope
 
