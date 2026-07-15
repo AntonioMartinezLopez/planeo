@@ -8,10 +8,12 @@ import (
 	"planeo/libs/logger"
 	"planeo/services/core/internal/domain/category"
 	"planeo/services/core/internal/domain/request"
-	coreEvents "planeo/services/core/internal/infra/events"
+	coreinbox "planeo/services/core/internal/infra/inbox"
 	"planeo/services/core/internal/infra/postgres"
 	"strings"
 	"syscall"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -29,10 +31,12 @@ func main() {
 	categoryService := category.NewService(db)
 	requestService := request.NewService(db)
 
-	handler := coreEvents.CreateInboxHandler(coreEvents.Services{
-		RequestService:  requestService,
-		CategoryService: categoryService,
-	})
+	instanceID := uuid.NewString()
+
+	adapter := coreinbox.NewEmailReceivedConsumerAdapter(
+		db, requestService, categoryService, instanceID,
+		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
+	)
 
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -43,15 +47,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
 	}
 
-	worker := inbox.NewWorker(db, handler,
-		inbox.WithPollInterval(cfg.PollInterval),
-		inbox.WithBatchSize(cfg.BatchSize),
-		inbox.WithMaxAttempts(cfg.MaxAttempts),
-		inbox.WithClaimTTL(cfg.ClaimTTL),
-	)
-
 	log.Info().Msg("Email-received consumer running")
-	if err := worker.Run(runCtx); err != nil {
+	runner := inbox.NewRunner(inbox.WithPollInterval(cfg.PollInterval))
+	if err := runner.Run(runCtx, adapter.PollOnce); err != nil {
 		log.Info().Err(err).Msg("Email-received consumer stopped")
 	}
 }
