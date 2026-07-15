@@ -1547,9 +1547,8 @@ git commit -m "feat(core): make CreateRequest/UpdateRequest participate in a cal
 - Delete: `services/core/internal/infra/events/events.go`
 - Create: `services/core/internal/infra/inbox/adapter.go`
 - Modify: `services/core/cmd/email-received-consumer/main.go`
-- Create: `services/core/internal/test/inbox/adapter_rollback_test.go`
 
-(No unit test file for the new adapter — `adapter_test.go` was tried and retracted; see Step 3's note. `processRecord` calls the real `llm` package directly, so its only test coverage is the integration-level rollback test below, which runs against real Postgres and the real, network-reachable LLM.)
+(No test file for the new adapter — both `adapter_test.go` (a unit test) and `adapter_rollback_test.go` (an integration test) were tried and retracted; see Steps 3 and 6's notes below. `processRecord` calls the real `llm` package directly, so this adapter currently has no dedicated test coverage of its own; its correctness rests on the pieces it composes — `Repository` (tested in Task 5), `request.Service`/`category.Service` (tested at the domain layer) — being individually correct, plus the whole-branch final review.)
 
 **Interfaces:**
 - Consumes: `libs/inbox.Consumer`/`NewConsumer` (unchanged, Task 4), `libs/inbox.NewRunner`/`WithPollInterval` (Task 4), `libs/inbox.Record` (Task 4); `(*postgres.Client).FetchBatch(ctx, instanceID, limit, claimTTL)`/`WithTransaction`/`MarkProcessed`/`MarkFailed` (Task 5); `(*postgres.Client).CreateRequest`/`UpdateRequest` now participating in `WithTransaction` (Task 6); `services/core/internal/domain/request.Service`, `services/core/internal/domain/category.Service`; `services/core/internal/infra/llm.ExtractRequestFields`/`ClassifyRequest`/`RequestData`; `libs/events/contracts.EmailCreatedPayload`/`EmailReceivedTopic`.
@@ -1973,7 +1972,12 @@ func main() {
 ```
 (`coreinbox` aliases `services/core/internal/infra/inbox` because its package name, `inbox`, collides with `libs/inbox`'s — both are needed in this file.)
 
-- [ ] **Step 6: Add the rollback-atomicity integration test**
+- [ ] **Step 6 (retracted after implementation — see note below): `services/core/internal/test/inbox/adapter_rollback_test.go`**
+
+**This step was implemented, then deliberately removed in a follow-up commit (`cc746e1`, after `00d6a6e`).** The task reviewer found the test's verification step used the same instance id ("instance-a") that claimed the row — because of the `claimed_by` fast-reclaim mechanism, a row stuck at `status='processing'` with `claimed_by="instance-a"` is immediately reclaimable by that same instance, indistinguishable from a genuinely `pending` row. So the test could not actually discriminate correct `MarkFailed`-after-rollback behavior from the exact regression it existed to catch (`MarkFailed` called inside the already-aborted transaction, silently failing). A one-line fix (using a different instance id for the verification call) was identified and verified correct, but the decision was made to remove this test entirely for now rather than carry it forward — this adapter currently has no dedicated test coverage of its own (both this test and Step 3's unit test were tried and retracted). Revisit both together later, alongside making the `llm` package's calls injectable (the root cause of the unit test's non-hermeticity) — a fixed version of this rollback test would be a natural companion to that future work. The code below is kept for historical reference only, not to be re-implemented as-is:
+
+<details>
+<summary>Original Step 6 content (retracted, not to be re-implemented)</summary>
 
 Create `services/core/internal/test/inbox/adapter_rollback_test.go`:
 
@@ -2052,6 +2056,8 @@ func (f forcingUpdateFailureRequestService) UpdateRequest(ctx context.Context, r
 }
 ```
 
+</details>
+
 - [ ] **Step 7: Verify the whole module compiles and run the tests**
 
 Run: `go build ./...`
@@ -2061,16 +2067,16 @@ Run: `go vet ./...`
 Expected: exit 0.
 
 Run: `go test ./services/core/internal/test/inbox/... -v -count=1`
-Expected: PASS — all pre-existing inbox repository tests, plus the new `TestEmailReceivedConsumerAdapterRollsBackOnWriteFailure`, green. Requires Docker running locally. (No `go test ./services/core/internal/infra/inbox/...` step — that package has no test file after Step 3's retraction.)
+Expected: PASS — all pre-existing inbox repository tests (`TestInboxRepositorySave`, `TestInboxRepositoryFetchBatch`, `TestInboxRepositoryMarkFailed`, `TestInboxRepositoryClaimedBy`) green. Requires Docker running locally. (No `go test ./services/core/internal/infra/inbox/...` step, and no rollback test in this directory — both retracted per Steps 3 and 6's notes above.)
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add services/core/internal/infra/events services/core/internal/infra/inbox services/core/cmd/email-received-consumer/main.go services/core/internal/test/inbox/adapter_rollback_test.go
+git add services/core/internal/infra/events services/core/internal/infra/inbox services/core/cmd/email-received-consumer/main.go
 git commit -m "feat(core): add EmailReceivedConsumerAdapter, replacing inbox.Worker and CreateInboxHandler"
 ```
 
-(In the actual execution history, `adapter_test.go` was committed as part of this step and then removed in a separate follow-up commit once its non-hermetic Mistral-API dependency was identified — see Step 3's note. A future implementer following this plan fresh should simply not create `adapter_test.go` at all, skipping straight from Step 2 to Step 5.)
+(In the actual execution history, both `adapter_test.go` and `adapter_rollback_test.go` were committed as part of implementing this task and then removed in separate follow-up commits once their non-hermetic dependencies — real Mistral API calls, and a same-instance-id blind spot in the rollback assertion — were identified. See Steps 3 and 6's notes above. A future implementer following this plan fresh should simply not create either test file at all, going straight from Step 2 to Step 5, then Step 5 to Step 7.)
 
 ---
 
