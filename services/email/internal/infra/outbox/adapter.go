@@ -54,7 +54,7 @@ func NewEmailReceivedProducerAdapter(
 // produces each to Kafka, sequentially. No transaction wraps ProduceSync —
 // Kafka isn't enrolled in Postgres's transaction, so wrapping it here would
 // buy no atomicity; the known "produce succeeds, mark fails, resend on next
-// poll" duplicate-send risk is unchanged from today's Relay.
+// poll" duplicate-send risk is unchanged from the pre-adapter design.
 func (a *EmailReceivedProducerAdapter) PollOnce(ctx context.Context) error {
 	records, err := a.repo.FetchBatch(ctx, a.topic, a.instanceID, a.batchSize, a.claimTTL)
 	if err != nil {

@@ -45,26 +45,31 @@ func (c *Client) Save(ctx context.Context, topic string, partition int32, offset
 	return true, nil
 }
 
-func (c *Client) FetchBatch(ctx context.Context, instanceID string, limit int, claimTTL time.Duration) ([]inbox.Record, error) {
+func (c *Client) FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]inbox.Record, error) {
 	cutoff := time.Now().Add(-claimTTL)
 
 	// Same claimed_by fast-reclaim / claimTTL fallback shape as
 	// services/email's outbox FetchBatch — see that file's comment for the
-	// full rationale.
+	// full rationale. Scoped by topic, mirroring the outbox side, so that if
+	// services/core's inbox ever receives a second topic, two consumer
+	// adapters can't steal each other's rows.
 	query := `
 		UPDATE inbox
 		SET status = 'processing', claimed_at = NOW(), claimed_by = @instanceId
 		WHERE id IN (
 			SELECT id FROM inbox
-			WHERE status = 'pending'
+			WHERE topic = @topic
+			  AND (
+			      status = 'pending'
 			   OR (status = 'processing' AND claimed_by = @instanceId)
 			   OR (status = 'processing' AND claimed_at < @cutoff)
+			  )
 			ORDER BY id
 			LIMIT @limit
 			FOR UPDATE SKIP LOCKED
 		)
 		RETURNING id, topic, payload`
-	args := pgx.NamedArgs{"instanceId": instanceID, "cutoff": cutoff, "limit": limit}
+	args := pgx.NamedArgs{"topic": topic, "instanceId": instanceID, "cutoff": cutoff, "limit": limit}
 
 	rows, err := c.db.Query(ctx, query, args)
 	if err != nil {

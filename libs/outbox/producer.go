@@ -7,7 +7,7 @@ import (
 )
 
 // Producer sends a single record to Kafka. Implemented by kafkaProducer in
-// production; test code can supply a fake so Relay's poll/mark logic is
+// production; test code can supply a fake so an adapter's poll/mark logic is
 // unit-testable without a live broker.
 type Producer interface {
 	ProduceSync(ctx context.Context, topic string, key, value []byte) error

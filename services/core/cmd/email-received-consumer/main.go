@@ -34,7 +34,7 @@ func main() {
 	instanceID := uuid.NewString()
 
 	adapter := coreinbox.NewEmailReceivedConsumerAdapter(
-		db, requestService, categoryService, instanceID,
+		db, requestService, categoryService, contracts.EmailReceivedTopic, instanceID,
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 

@@ -15,9 +15,11 @@ import (
 )
 
 // Repository is implemented once per service (satisfied directly by
-// *postgres.Client).
+// *postgres.Client). topic scopes FetchBatch so that if services/core's
+// inbox ever receives a second topic, two consumer adapters can't steal
+// each other's rows — mirroring the producer-side outbox.Repository.
 type Repository interface {
-	FetchBatch(ctx context.Context, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error)
+	FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error)
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	MarkProcessed(ctx context.Context, id int64) error
 	MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error
@@ -27,6 +29,7 @@ type EmailReceivedConsumerAdapter struct {
 	repo            Repository
 	requestService  request.Service
 	categoryService category.Service
+	topic           string
 	instanceID      string
 	batchSize       int
 	claimTTL        time.Duration
@@ -37,6 +40,7 @@ func NewEmailReceivedConsumerAdapter(
 	repo Repository,
 	requestService request.Service,
 	categoryService category.Service,
+	topic string,
 	instanceID string,
 	batchSize int,
 	maxAttempts int,
@@ -46,6 +50,7 @@ func NewEmailReceivedConsumerAdapter(
 		repo:            repo,
 		requestService:  requestService,
 		categoryService: categoryService,
+		topic:           topic,
 		instanceID:      instanceID,
 		batchSize:       batchSize,
 		claimTTL:        claimTTL,
@@ -56,7 +61,7 @@ func NewEmailReceivedConsumerAdapter(
 // PollOnce claims a batch of pending inbox rows and processes each in turn.
 // One bad record does not stop the rest of the batch.
 func (a *EmailReceivedConsumerAdapter) PollOnce(ctx context.Context) error {
-	records, err := a.repo.FetchBatch(ctx, a.instanceID, a.batchSize, a.claimTTL)
+	records, err := a.repo.FetchBatch(ctx, a.topic, a.instanceID, a.batchSize, a.claimTTL)
 	if err != nil {
 		return err
 	}
