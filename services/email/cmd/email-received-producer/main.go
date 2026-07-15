@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"os/signal"
+	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 	"planeo/libs/outbox"
+	emailoutbox "planeo/services/email/internal/infra/outbox"
 	"planeo/services/email/internal/infra/postgres"
 	"strings"
 	"syscall"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -29,18 +33,17 @@ func main() {
 	}
 	defer kafkaClient.Close()
 
-	relay := outbox.NewRelay(db, producer,
-		outbox.WithPollInterval(cfg.PollInterval),
-		outbox.WithBatchSize(cfg.BatchSize),
-		outbox.WithMaxAttempts(cfg.MaxAttempts),
-		outbox.WithClaimTTL(cfg.ClaimTTL),
+	adapter := emailoutbox.NewEmailReceivedProducerAdapter(
+		db, producer, contracts.EmailReceivedTopic, uuid.NewString(),
+		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	log.Info().Msg("Outbox relay running")
-	if err := relay.Run(runCtx); err != nil {
-		log.Info().Err(err).Msg("Outbox relay stopped")
+	log.Info().Msg("Email-received producer running")
+	runner := outbox.NewRunner(outbox.WithPollInterval(cfg.PollInterval))
+	if err := runner.Run(runCtx, adapter.PollOnce); err != nil {
+		log.Info().Err(err).Msg("Email-received producer stopped")
 	}
 }
