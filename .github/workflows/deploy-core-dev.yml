@@ -26,7 +26,7 @@ jobs:
         needs: test-core
         steps:
             - name: Checkout code
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
             - name: Log in to the Container registry
               uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
               with:
@@ -35,7 +35,7 @@ jobs:
                 password: ${{ secrets.GITHUB_TOKEN }}
             - name: Build and push Docker image
               id: push
-              uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+              uses: docker/build-push-action@cb941d0b895b09c17fa011d41c411b33c752cf28
               with:
                 context: .
                 file: ./services/core/Dockerfile

@@ -17,9 +17,9 @@ jobs:
         working-directory: ./web
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         cache-dependency-path: './web/package-lock.json'
         node-version-file: './web/.nvmrc'
@@ -35,9 +35,9 @@ jobs:
       run:
           working-directory: ./web
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         cache-dependency-path: './web/package-lock.json'
         node-version-file: './web/.nvmrc'
@@ -55,9 +55,9 @@ jobs:
       run:
           working-directory: ./web
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         cache-dependency-path: './web/package-lock.json'
         node-version-file: './web/.nvmrc'
