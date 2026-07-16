@@ -660,6 +660,70 @@ func TestCreateRequestIdempotency(t *testing.T) {
 	})
 }
 
+func TestUpsertRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("inserts a new request when no row matches (organization_id, reference_id)", func(t *testing.T) {
+		id, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Upsert insert test",
+			Text:           "body",
+			Email:          "sender@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-insert-test",
+		})
+		assert.Nil(t, err)
+		assert.NotZero(t, id)
+
+		got, err := env.DB.GetRequest(context.Background(), 1, id)
+		assert.Nil(t, err)
+		assert.Equal(t, "Upsert insert test", got.Subject)
+	})
+
+	t.Run("overwrites every column when a row already matches (organization_id, reference_id)", func(t *testing.T) {
+		firstId, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Original subject",
+			Text:           "original body",
+			Name:           "Original Name",
+			Email:          "original@example.com",
+			Address:        "Original Address",
+			Telephone:      "111",
+			Raw:            "original raw",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-overwrite-test",
+		})
+		assert.Nil(t, err)
+		assert.NotZero(t, firstId)
+
+		secondId, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Updated subject",
+			Text:           "updated body",
+			Name:           "Updated Name",
+			Email:          "updated@example.com",
+			Address:        "Updated Address",
+			Telephone:      "222",
+			Raw:            "updated raw",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-overwrite-test",
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, firstId, secondId, "a matching (organization_id, reference_id) must resolve to the same row, not a new one")
+
+		got, err := env.DB.GetRequest(context.Background(), 1, secondId)
+		assert.Nil(t, err)
+		assert.Equal(t, "Updated subject", got.Subject)
+		assert.Equal(t, "updated body", got.Text)
+		assert.Equal(t, "Updated Name", got.Name)
+		assert.Equal(t, "updated@example.com", got.Email)
+		assert.Equal(t, "Updated Address", got.Address)
+		assert.Equal(t, "222", got.Telephone)
+		assert.Equal(t, "updated raw", got.Raw)
+	})
+}
+
 func TestCreateAndUpdateRequestParticipateInTransaction(t *testing.T) {
 	if testing.Short() {
 		t.Skip()

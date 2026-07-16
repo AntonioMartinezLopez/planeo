@@ -6,6 +6,7 @@ import (
 	"planeo/libs/events/contracts"
 	"planeo/libs/logger"
 	"planeo/libs/outbox"
+	domainoutbox "planeo/services/email/internal/domain/outbox"
 	emailoutbox "planeo/services/email/internal/infra/outbox"
 	"planeo/services/email/internal/infra/postgres"
 	"strings"
@@ -33,8 +34,9 @@ func main() {
 	}
 	defer kafkaClient.Close()
 
+	outboxService := domainoutbox.NewService(db, producer)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
-		db, producer, contracts.EmailReceivedTopic, uuid.NewString(),
+		outboxService, contracts.EmailReceivedTopic, uuid.NewString(),
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 

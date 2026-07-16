@@ -10,12 +10,19 @@ packages:
   planeo/services/core/internal/domain/category:
     interfaces:
       CategoryRepository: {}
+      Service: {}
+  planeo/services/core/internal/domain/inbox:
+    interfaces:
+      Repository: {}
+      LLMClient: {}
+      Service: {}
   planeo/services/core/internal/domain/organization:
     interfaces:
       OrganizationRepository: {}
   planeo/services/core/internal/domain/request:
     interfaces:
       RequestRepository: {}
+      Service: {}
   planeo/services/core/internal/domain/user:
     interfaces:
       IAM: {}

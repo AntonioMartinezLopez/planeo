@@ -7,8 +7,10 @@ import (
 	"planeo/libs/inbox"
 	"planeo/libs/logger"
 	"planeo/services/core/internal/domain/category"
+	domaininbox "planeo/services/core/internal/domain/inbox"
 	"planeo/services/core/internal/domain/request"
 	coreinbox "planeo/services/core/internal/infra/inbox"
+	"planeo/services/core/internal/infra/llm"
 	"planeo/services/core/internal/infra/postgres"
 	"strings"
 	"syscall"
@@ -31,10 +33,16 @@ func main() {
 	categoryService := category.NewService(db)
 	requestService := request.NewService(db)
 
+	llmClient, err := llm.NewClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create LLM client")
+	}
+
 	instanceID := uuid.NewString()
 
+	inboxService := domaininbox.NewService(db, requestService, categoryService, llmClient)
 	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
-		db, requestService, categoryService, contracts.EmailReceivedTopic, instanceID,
+		inboxService, contracts.EmailReceivedTopic, instanceID,
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 
