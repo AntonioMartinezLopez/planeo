@@ -65,15 +65,89 @@ services:
       - ROUNDCUBEMAIL_SMTP_SERVER=greenmail # SMTP server - tls:// prefix for STARTTLS, ssl:// for SSL/TLS
       - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
 
-# nats messaging (single node with JetStream)
-  nats:
-    container_name: nats
-    image: nats
-    entrypoint: /nats-server
-    command: --server_name N1 --js --sd /data -p 4222
+  # kafka messaging (single node, KRaft mode - no Zookeeper)
+  kafka:
+    container_name: kafka
+    image: apache/kafka:latest
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     ports:
-      - 4222:4222
-      - 8222:8222
+      - 9092:9092
+
+  # kafka UI for inspecting topics, consumer groups and messages
+  kafka-ui:
+    container_name: kafka-ui
+    image: ghcr.io/kafbat/kafka-ui:latest
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+    ports:
+      - 8082:8080
+
+  # email-received producer sidecar - drains services/email's outbox table to Kafka
+  # NOTE: On first `task up`, this container will log query errors for a few seconds
+  # while waiting for the outbox table to be created by migrations. This is expected
+  # and not a regression — the poll loop continues and self-recovers once the table exists.
+  email-received-producer:
+    container_name: email-received-producer
+    build:
+      context: ..
+      dockerfile: services/email/Dockerfile.email-received-producer
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: planeo
+      DB_PASSWORD: planeo
+      DB_NAME: mail
+      KAFKA_BROKERS: kafka:19092
+      EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL: 1s
+      EMAIL_RECEIVED_PRODUCER_BATCH_SIZE: "100"
+      EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS: "5"
+      EMAIL_RECEIVED_PRODUCER_CLAIM_TTL: 30s
+
+  # email-received consumer sidecar for services/core - durably persists
+  # Kafka email-received messages into core's inbox table, then processes
+  # them asynchronously (creates/updates a Request via LLM extraction and
+  # classification).
+  # NOTE: On first `task up`, this container will log query errors for a few
+  # seconds while waiting for the inbox table to be created by migrations.
+  # This is expected and not a regression.
+  email-received-consumer:
+    container_name: email-received-consumer
+    build:
+      context: ..
+      dockerfile: services/core/Dockerfile.email-received-consumer
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: planeo
+      DB_PASSWORD: planeo
+      DB_NAME: planeo
+      KAFKA_BROKERS: kafka:19092
+      EMAIL_RECEIVED_CONSUMER_GROUP_NAME: core-email-received-consumer
+      EMAIL_RECEIVED_CONSUMER_POLL_INTERVAL: 1s
+      EMAIL_RECEIVED_CONSUMER_BATCH_SIZE: "100"
+      EMAIL_RECEIVED_CONSUMER_MAX_ATTEMPTS: "5"
+      EMAIL_RECEIVED_CONSUMER_CLAIM_TTL: 30s
+      MISTRAL_API_KEY: ${MISTRAL_API_KEY}
 
 networks:
   default:

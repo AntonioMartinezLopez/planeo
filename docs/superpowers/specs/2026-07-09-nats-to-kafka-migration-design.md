@@ -1,0 +1,109 @@
+# NATS → Kafka Migration (franz-go)
+
+## Purpose
+
+Replace NATS/JetStream with Kafka as the messaging backbone for the `email.received` event flow between `services/email` (publisher) and `services/core` (subscriber). This is an explicitly transitional step: the goal is a low-effort, low-risk swap that keeps the system working exactly as it does today. The way this codebase uses Kafka (topic design, consumer group strategy, retry/DLQ handling, multi-topic support) will be redesigned in a later pass — this migration should not anticipate that redesign.
+
+## Non-goals
+
+- Redesigning the event/messaging abstraction, topic naming scheme, or consumer group strategy beyond what's needed to functionally replace NATS.
+- Building retry/dead-letter infrastructure. Failure handling intentionally stays simple (see below).
+- Adding integration tests for the messaging layer (none exist today for NATS either).
+- Managing Kafka topics via infrastructure-as-code. Topic auto-creation is relied on for now; explicit topic management will move to an OpenTofu-managed infra folder in a future, separate piece of work.
+
+## Current state (NATS)
+
+- `libs/events` is the only package touching NATS. It exposes `EventServiceInterface` with `PublishEmailReceived`, `SubscribeEmailReceived`, `IsConnected`, used unchanged by both services.
+- `EventService` wraps `*nats.Conn` + a JetStream `Stream` (name `EVENTS`, subject wildcard `events.>`, `WorkQueuePolicy` retention).
+- Subject: `events.email.received`. Durable consumer name: `email-receiver`.
+- Publish: `js.Publish(ctx, subject, data)` (JSON-marshaled `EmailCreatedPayload`), synchronous, returns error.
+- Subscribe: `consumer.Consume(handler)` — push-based; handler calls `msg.Ack()` on success, `msg.NakWithDelay(1*time.Minute)` on error (JetStream redelivers only that message later; other messages keep flowing).
+- Config: `NATS_URL` env var (`nats://localhost:4222`) in both services' config structs and `.env.template` files.
+- Docker: single `nats` container running with `--js` (JetStream) flag, ports 4222/8222.
+- Dependency: `github.com/nats-io/nats.go v1.52.0` (+ indirect `nkeys`, `nuid`).
+- No existing tests reference NATS.
+
+## Target state (Kafka via franz-go)
+
+### Scope
+
+Only `libs/events` changes internally. Call sites (`services/core/cmd/main.go`, `services/core/internal/infra/events/*.go`, `services/email/cmd/main.go`, `services/email/internal/infra/email/email_service.go`) keep the same function calls; only the config field name changes (`NatsUrl` → `KafkaBrokers`).
+
+### `libs/events` component design
+
+**`EventService` struct**: wraps a single `*kgo.Client` (replaces `*nats.Conn` + `jetstream.Stream`).
+
+**`NewEventService(brokers string) (EventServiceInterface, error)`**: splits `brokers` on `,` into a broker list, creates a `kgo.Client` via `kgo.NewClient(kgo.SeedBrokers(brokers...))`, then calls `client.Ping(ctx)` with a short timeout to fail fast on connection problems (mirrors `nats.Connect`'s synchronous connect-or-fail behavior). No stream/topic creation call — Kafka auto-creates topics on first produce/consume (`auto.create.topics.enable=true` on the broker).
+
+**`Publish(ctx, topic string, data []byte) error`**: `client.ProduceSync(ctx, &kgo.Record{Topic: topic, Value: data}).FirstErr()`. Synchronous, returns error directly — same call-site shape as today's `Publish`.
+
+**`Subscribe(ctx, groupName, topic string, handler func([]byte) error) error`**: creates a second, call-scoped `kgo.Client` configured with `kgo.ConsumerGroup(groupName)`, `kgo.ConsumeTopics(topic)`, `kgo.DisableAutoCommit()`. This mirrors today's shape, where `CreateOrUpdateConsumer` + `Consume(handler)` both happen inside `Subscribe`. Spawns one goroutine running a `PollFetches(ctx)` loop for the lifetime of the passed context. For each fetched record:
+  - call `handler(record.Value)`
+  - on success (`nil` error): `client.CommitRecords(ctx, record)`
+  - on error: log the error and skip the commit — **no redelivery-with-delay loop, no blocking retry**. This does *not* work like a per-message ack: Kafka offset commits are a cumulative high-water mark per partition, not a per-message acknowledgment. A failed record is only truly "redelivered" if no later record in the same partition is ever committed afterward. In practice, once any subsequent record in that partition succeeds and commits, the failed record's offset is silently skipped past — it is never redelivered or retried. For a busy topic, the practical effect of skipping the commit is to **silently drop the failed message**, not to guarantee redelivery. This is an accepted simplification for this dev-only pass, not a substitute for real retry infrastructure.
+
+**`IsConnected() bool`**: `client.Ping(ctx)` with a short timeout, returns whether it errored.
+
+**`Close()`**: `client.Close()`.
+
+### `email_received.go` (both `libs/events` and `services/core/internal/infra/events`)
+
+Same structure as today: package-level `topic = "email-received"` (renamed from `events.email.received` — Kafka convention avoids dots) and `subscriptionName = "email-receiver"` (unchanged consumer group name, explicitly kept as-is per current design even though it's known to not generalize — that redesign is future work). `PublishEmailReceived` JSON-marshals `EmailCreatedPayload` and calls `Publish`. `SubscribeEmailReceived`'s handler signature changes from `func(jetstream.Msg)` to a plain `func(data []byte) error` closure that JSON-unmarshals into `EmailCreatedPayload` and invokes the caller's callback — same marshal/unmarshal logic as today.
+
+### Config changes
+
+- `services/core/internal/config/config.go`: field `NatsUrl` → `KafkaBrokers`, env var `NATS_URL` → `KAFKA_BROKERS`.
+- `services/email/internal/config/config.go`: same rename.
+- `services/core/.env.template` and `services/email/.env.template`: `NATS_URL=nats://localhost:4222` → `KAFKA_BROKERS=localhost:9092`.
+
+### Docker Compose (`dev/docker-compose.yaml`)
+
+Replace the `nats` service with a single-node KRaft-mode Kafka broker (no Zookeeper), using the official `apache/kafka` image in combined broker+controller mode, exposing `9092`, with `auto.create.topics.enable=true`.
+
+Also add a `kafka-ui` service running **kafbat-ui** (community-maintained fork of `provectus/kafka-ui`), pointed at the broker's internal listener, exposed on a dev-friendly port (e.g. `8080`) for browsing topics, consumer groups/lag, and messages during local development.
+
+### Dependencies (`go.mod`)
+
+Remove `github.com/nats-io/nats.go` and its indirect deps (`nats-io/nkeys`, `nats-io/nuid`). Add `github.com/twmb/franz-go` (`kgo` package).
+
+### Testing
+
+No existing tests reference NATS, so there is nothing to migrate. No new integration tests are added in this pass — messaging-layer testing is out of scope until the broader Kafka redesign.
+
+## Explicitly deferred (future redesign)
+
+- Per-domain/per-event consumer group naming strategy (currently hardcoded, known limitation, intentionally kept).
+- Real retry/dead-letter handling for failed message processing.
+- Explicit topic provisioning via OpenTofu-managed infrastructure.
+- Any multi-topic or multi-consumer-group support beyond the single `email-received` flow.
+
+## Kafka good practices not addressed by this migration
+
+This migration is intentionally minimal. The following are standard Kafka production practices that this pass does **not** implement — tracked here so they can be picked up deliberately in a later redesign rather than assumed to already be in place.
+
+**Delivery & correctness**
+- No message key on produced records — no per-entity (e.g. per-`OrganizationId`) ordering guarantee within a partition.
+- No consumer-side dedup — Kafka is at-least-once; a crash between processing and offset commit can redeliver a message the consumer already acted on. `MessageID` is available on the payload for this purpose but unused.
+- No dead-letter-topic / max-retry-count pattern — under the current cumulative-commit design, a permanently failing message is not retried and does not block its partition; instead it is silently dropped as soon as a later record in the same partition is committed. Adding real retry/DLQ handling in a future pass would need to address this silent-drop behavior, not a blocking one.
+- No idempotent-producer / durability tuning (`enable.idempotence`, `acks=all`) — running on client/broker defaults.
+
+**Topic & cluster design**
+- Single partition, single broker, replication factor 1 — no consumer parallelism, no fault tolerance.
+- No explicit topic config (`retention.ms`, `cleanup.policy`, `min.insync.replicas`) — broker defaults only.
+- Topic auto-creation relied on rather than explicit provisioning (tracked separately for the future OpenTofu-managed infra work).
+- Consumer group strategy is a known placeholder, not designed for multiple independent consumers of one topic.
+
+**Schema & contracts**
+- No schema registry or compatibility checks (Avro/Protobuf/JSON Schema) — raw JSON with no guardrail against producer/consumer version drift.
+
+**Operations & observability**
+- No consumer lag monitoring or alerting.
+- No metrics export (e.g. Prometheus) or trace-context propagation through message headers.
+- No graceful shutdown wiring for the poll loop (draining in-flight work, leaving the consumer group cleanly).
+- Single-threaded poll loop — sequential processing per consumer, no concurrency control.
+
+**Security**
+- No auth/encryption — plaintext, no SASL/TLS, no ACLs restricting which service may produce/consume which topics. Acceptable for local dev only.
+
+**Testing**
+- No integration tests for the messaging layer (matches today's NATS gap, but Kafka's broker/consumer-group failure modes make this more valuable to close going forward).

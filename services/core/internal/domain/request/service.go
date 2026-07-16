@@ -24,6 +24,10 @@ func (s *service) CreateRequest(ctx context.Context, request NewRequest) (int, e
 	return s.requestRepository.CreateRequest(ctx, request)
 }
 
+func (s *service) UpsertRequest(ctx context.Context, req Request) (int, error) {
+	return s.requestRepository.UpsertRequest(ctx, req)
+}
+
 func (s *service) UpdateRequest(ctx context.Context, request UpdateRequest) error {
 	return s.requestRepository.UpdateRequest(ctx, request)
 }

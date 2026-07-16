@@ -4,23 +4,12 @@ import (
 	"context"
 	"encoding/json"
 
+	"planeo/services/core/internal/domain/inbox"
+
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/mistral"
 )
 
-type ExtractorOutput struct {
-	Address string
-	Name    string
-	Phone   string
-}
-
-func ExtractRequestFields(ctx context.Context, requestText string) (ExtractorOutput, error) {
-
-	llm, err := mistral.New(mistral.WithModel("mistral-small-latest"))
-	if err != nil {
-		return ExtractorOutput{}, err
-	}
-
+func (c *Client) ExtractRequestFields(ctx context.Context, requestText string) (inbox.ExtractorOutput, error) {
 	messageHistory := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem,
 			`
@@ -37,9 +26,9 @@ func ExtractRequestFields(ctx context.Context, requestText string) (ExtractorOut
 	}
 
 	// Call the LLM
-	response, err := llm.GenerateContent(ctx, messageHistory, llms.WithTools(extraction_tools))
+	response, err := c.llm.GenerateContent(ctx, messageHistory, llms.WithTools(extraction_tools))
 	if err != nil {
-		return ExtractorOutput{}, err
+		return inbox.ExtractorOutput{}, err
 	}
 
 	// Check if the response is a function call
@@ -55,16 +44,16 @@ func ExtractRequestFields(ctx context.Context, requestText string) (ExtractorOut
 			arguments := functionCall.FunctionCall.Arguments
 
 			// parse the arguments string to struct
-			output := ExtractorOutput{}
+			output := inbox.ExtractorOutput{}
 
 			if err := json.Unmarshal([]byte(arguments), &output); err != nil {
-				return ExtractorOutput{}, err
+				return inbox.ExtractorOutput{}, err
 			}
 
 			return output, nil
 		}
 	}
-	return ExtractorOutput{}, nil
+	return inbox.ExtractorOutput{}, nil
 }
 
 var extraction_tools = []llms.Tool{

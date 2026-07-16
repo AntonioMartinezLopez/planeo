@@ -1,6 +1,7 @@
 package request
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -613,5 +614,178 @@ func TestRequestIntegration(t *testing.T) {
 			response := testApi.Delete("/v1/organizations/1/requests/1", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 			assert.Equal(t, 204, response.Code)
 		})
+	})
+}
+
+func TestCreateRequestIdempotency(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("creating a request twice with the same organization+referenceId returns the same id", func(t *testing.T) {
+		newRequest := request.NewRequest{
+			Subject:        "Idempotency test",
+			Text:           "body",
+			Email:          "sender@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "duplicate-message-id",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.NotZero(t, firstId)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), newRequest)
+		assert.Nil(t, err)
+		assert.Equal(t, firstId, secondId, "reprocessing the same source email must resolve to the same Request row, not create a duplicate")
+	})
+
+	t.Run("requests without a referenceId remain unconstrained", func(t *testing.T) {
+		manualRequest := request.NewRequest{
+			Subject:        "Manually created",
+			Text:           "body",
+			Email:          "operator@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "",
+		}
+
+		firstId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+
+		secondId, err := env.DB.CreateRequest(context.Background(), manualRequest)
+		assert.Nil(t, err)
+		assert.NotEqual(t, firstId, secondId, "requests with an empty referenceId (e.g. created manually) must not be deduplicated")
+	})
+}
+
+func TestUpsertRequest(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("inserts a new request when no row matches (organization_id, reference_id)", func(t *testing.T) {
+		id, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Upsert insert test",
+			Text:           "body",
+			Email:          "sender@example.com",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-insert-test",
+		})
+		assert.Nil(t, err)
+		assert.NotZero(t, id)
+
+		got, err := env.DB.GetRequest(context.Background(), 1, id)
+		assert.Nil(t, err)
+		assert.Equal(t, "Upsert insert test", got.Subject)
+	})
+
+	t.Run("overwrites every column when a row already matches (organization_id, reference_id)", func(t *testing.T) {
+		firstId, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Original subject",
+			Text:           "original body",
+			Name:           "Original Name",
+			Email:          "original@example.com",
+			Address:        "Original Address",
+			Telephone:      "111",
+			Raw:            "original raw",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-overwrite-test",
+		})
+		assert.Nil(t, err)
+		assert.NotZero(t, firstId)
+
+		secondId, err := env.DB.UpsertRequest(context.Background(), request.Request{
+			Subject:        "Updated subject",
+			Text:           "updated body",
+			Name:           "Updated Name",
+			Email:          "updated@example.com",
+			Address:        "Updated Address",
+			Telephone:      "222",
+			Raw:            "updated raw",
+			OrganizationId: 1,
+			ReferenceId:    "upsert-overwrite-test",
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, firstId, secondId, "a matching (organization_id, reference_id) must resolve to the same row, not a new one")
+
+		got, err := env.DB.GetRequest(context.Background(), 1, secondId)
+		assert.Nil(t, err)
+		assert.Equal(t, "Updated subject", got.Subject)
+		assert.Equal(t, "updated body", got.Text)
+		assert.Equal(t, "Updated Name", got.Name)
+		assert.Equal(t, "updated@example.com", got.Email)
+		assert.Equal(t, "Updated Address", got.Address)
+		assert.Equal(t, "222", got.Telephone)
+		assert.Equal(t, "updated raw", got.Raw)
+	})
+}
+
+func TestCreateAndUpdateRequestParticipateInTransaction(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	t.Run("CreateRequest and UpdateRequest both commit together inside WithTransaction", func(t *testing.T) {
+		var requestId int
+		err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+			id, err := env.DB.CreateRequest(ctx, request.NewRequest{
+				Subject:        "Tx test",
+				Text:           "body",
+				Email:          "tx@example.com",
+				OrganizationId: 1,
+				ReferenceId:    "tx-participation-test",
+			})
+			if err != nil {
+				return err
+			}
+			requestId = id
+			return env.DB.UpdateRequest(ctx, request.UpdateRequest{
+				Id:             id,
+				Text:           "updated body",
+				Subject:        "Tx test updated",
+				Email:          "tx@example.com",
+				OrganizationId: 1,
+			})
+		})
+		assert.Nil(t, err)
+
+		got, err := env.DB.GetRequest(context.Background(), 1, requestId)
+		assert.Nil(t, err)
+		assert.Equal(t, "updated body", got.Text, "both writes must be visible after a successful transaction")
+	})
+
+	t.Run("a failure after CreateRequest rolls back the whole transaction", func(t *testing.T) {
+		err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
+			_, err := env.DB.CreateRequest(ctx, request.NewRequest{
+				Subject:        "Rollback test",
+				Text:           "body",
+				Email:          "rollback@example.com",
+				OrganizationId: 1,
+				ReferenceId:    "tx-rollback-test",
+			})
+			if err != nil {
+				return err
+			}
+			// A nonexistent CategoryId violates the requests.category_id
+			// foreign key, forcing a real transaction-aborting error.
+			return env.DB.UpdateRequest(ctx, request.UpdateRequest{
+				Id:             999999,
+				OrganizationId: 1,
+				CategoryId:     999999,
+			})
+		})
+		assert.NotNil(t, err, "the forced foreign key violation must surface as an error")
+
+		requests, err := env.DB.GetRequests(context.Background(), 1, 0, 100, false, nil)
+		assert.Nil(t, err)
+		for _, r := range requests {
+			assert.NotEqual(t, "tx-rollback-test", r.ReferenceId, "CreateRequest's row must not survive when the transaction as a whole fails")
+		}
 	})
 }

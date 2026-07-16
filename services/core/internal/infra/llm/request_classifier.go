@@ -4,25 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"planeo/services/core/internal/domain/category"
+	"planeo/services/core/internal/domain/inbox"
 
 	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/mistral"
 )
 
-type RequestData struct {
-	Subject string
-	Text    string
-}
-
 //nolint:funlen
-func ClassifyRequest(ctx context.Context, request RequestData, categories []category.Category) (int, error) {
-	llm, err := mistral.New(mistral.WithModel("mistral-small-latest"))
-
-	if err != nil {
-		return 0, err
-	}
-
+func (c *Client) ClassifyRequest(ctx context.Context, request inbox.RequestData, categories []category.Category) (int, error) {
 	// Build string of request
 	requestString := fmt.Sprintf("Subject: %s,\nText: %s\n", request.Subject, request.Text)
 
@@ -43,9 +33,9 @@ func ClassifyRequest(ctx context.Context, request RequestData, categories []cate
 		The categories are as follows:
 
 		`+categoriesString+`
-		
+
 		Please use provided tool "classify_request" to classify the request
-		If none of the categories fit, call the tool with 0 for the request parameter.		
+		If none of the categories fit, call the tool with 0 for the request parameter.
 		`),
 		llms.TextParts(llms.ChatMessageTypeHuman,
 			`
@@ -55,7 +45,7 @@ func ClassifyRequest(ctx context.Context, request RequestData, categories []cate
 	}
 
 	// Call the LLM
-	response, err := llm.GenerateContent(ctx, messageHistory, llms.WithTools(classifier_tools))
+	response, err := c.llm.GenerateContent(ctx, messageHistory, llms.WithTools(classifier_tools))
 	if err != nil {
 		return 0, err
 	}
