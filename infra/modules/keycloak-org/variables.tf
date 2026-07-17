@@ -14,6 +14,12 @@ variable "client_secret" {
   sensitive   = true
 }
 
+variable "extra_default_scopes" {
+  description = "Additional realm client scope names to add to this org client's default scopes, beyond Keycloak's stock defaults (service_account, web-origins, acr, profile, roles, basic, email)"
+  type        = list(string)
+  default     = []
+}
+
 variable "permission_schema" {
   description = "resource name => scope name => list of role names granted that scope. Defaults to the schema verified against auth/local/client_rbac.json."
   type        = map(map(list(string)))

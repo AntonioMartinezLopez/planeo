@@ -16,6 +16,20 @@ resource "keycloak_openid_client" "this" {
   }
 }
 
+# Replaces the client's entire default scope list (Keycloak semantics), so
+# the base list below must mirror the live stock defaults Keycloak assigns to
+# a confidential client with service accounts enabled -- verified against
+# GET /admin/realms/local/clients?clientId=local on the live dev realm.
+resource "keycloak_openid_client_default_scopes" "this" {
+  realm_id  = var.realm_id
+  client_id = keycloak_openid_client.this.id
+
+  default_scopes = concat(
+    ["service_account", "web-origins", "acr", "profile", "roles", "basic", "email"],
+    var.extra_default_scopes,
+  )
+}
+
 resource "keycloak_role" "roles" {
   for_each  = toset(["Admin", "Planner", "User"])
   realm_id  = var.realm_id

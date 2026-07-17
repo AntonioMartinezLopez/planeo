@@ -21,3 +21,28 @@ resource "keycloak_openid_client" "admin_dev" {
   service_accounts_enabled     = false
   standard_flow_enabled        = false
 }
+
+# Realm-scoped identity concern: emits a top-level "groups" claim (e.g.
+# groups: ["/local"]) in every issued token, mirroring the retired
+# auth/local/realm.json's custom client scope. Consumed by
+# libs/middlewares/organization_validation.go via IsWithinOrganisation, which
+# checks this claim for "/<organization>" membership.
+resource "keycloak_openid_client_scope" "groups" {
+  realm_id    = keycloak_realm.this.id
+  name        = "groups"
+  description = "Group membership"
+
+  include_in_token_scope = true
+}
+
+resource "keycloak_openid_group_membership_protocol_mapper" "groups" {
+  realm_id        = keycloak_realm.this.id
+  client_scope_id = keycloak_openid_client_scope.groups.id
+  name            = "group"
+  claim_name      = "groups"
+  full_path       = true
+
+  add_to_id_token     = true
+  add_to_access_token = true
+  add_to_userinfo     = true
+}
