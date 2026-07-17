@@ -8,9 +8,9 @@ module "realm" {
 module "org_local" {
   source = "../../../modules/keycloak-org"
 
-  realm_id         = module.realm.id
-  org_name         = "local"
-  client_secret    = var.org_client_secret
+  realm_id      = module.realm.id
+  org_name      = "local"
+  client_secret = var.org_client_secret
 }
 
 locals {
