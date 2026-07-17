@@ -8,6 +8,12 @@ variable "org_name" {
   type        = string
 }
 
+variable "client_secret" {
+  description = "Fixed secret for this organization's OIDC client"
+  type        = string
+  sensitive   = true
+}
+
 variable "permission_schema" {
   description = "resource name => scope name => list of role names granted that scope. Defaults to the schema verified against auth/local/client_rbac.json."
   type        = map(map(list(string)))

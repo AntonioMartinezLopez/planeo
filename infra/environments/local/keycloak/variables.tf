@@ -19,3 +19,9 @@ variable "admin_client_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "org_client_secret" {
+  description = "Fixed secret for the local org's OIDC client, must match dev/.env's OAUTH_CLIENT_SECRET"
+  type        = string
+  sensitive   = true
+}
