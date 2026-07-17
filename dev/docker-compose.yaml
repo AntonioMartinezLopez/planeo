@@ -25,7 +25,7 @@ services:
 
   ##### Keycloak services #####
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0.2
+    image: quay.io/keycloak/keycloak:26.1.0
     command: start-dev
     environment:
       KC_HOSTNAME: localhost
