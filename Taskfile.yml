@@ -115,6 +115,39 @@ tasks:
       - source .envrc && goose status
 
   # ========================================
+  # Infrastructure (OpenTofu)
+  # ========================================
+
+  infra:fmt:
+    desc: Format all OpenTofu files under infra/
+    cmds:
+      - tofu fmt -recursive infra/
+
+  infra:init:keycloak:
+    desc: Initialize the local Keycloak OpenTofu config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu init
+
+  infra:validate:keycloak:
+    desc: Validate the local Keycloak OpenTofu config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu validate
+
+  infra:plan:keycloak:
+    desc: Preview changes to the local Keycloak config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu plan {{.CLI_ARGS}}
+
+  infra:apply:keycloak:
+    desc: Apply changes to the local Keycloak config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu apply -input=false {{.CLI_ARGS}}
+
+  # ========================================
   # Service Management
   # ========================================
 
