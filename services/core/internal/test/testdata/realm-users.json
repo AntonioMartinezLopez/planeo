@@ -1,6 +1,5 @@
 [
   {
-    "id": "7c806e52-e7cc-484b-843b-1242046590dc",
     "username": "admin",
     "firstName": "admin",
     "lastName": "admin",
@@ -21,7 +20,6 @@
     "groups": ["/local"]
   },
   {
-    "id": "146b3857-090e-453d-b1e6-8cdfbb1a6dcb",
     "username": "planner",
     "firstName": "planner",
     "lastName": "planner",
@@ -42,7 +40,6 @@
     "groups": ["/local"]
   },
   {
-    "id": "d7eddb93-254e-4482-9a53-f31a5975dd1d",
     "username": "user",
     "firstName": "User",
     "lastName": "User",
