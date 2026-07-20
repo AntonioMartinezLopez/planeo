@@ -15,6 +15,7 @@ type CreateUserParams struct {
 func (kc *KeycloakAdminClient) CreateKeycloakUser(groupId string, userData CreateUserParams) error {
 
 	data := map[string]any{
+		"username":      userData.Email,
 		"firstName":     userData.FirstName,
 		"lastName":      userData.LastName,
 		"email":         userData.Email,
