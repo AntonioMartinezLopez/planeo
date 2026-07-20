@@ -147,6 +147,11 @@ tasks:
     cmds:
       - tofu apply -input=false {{.CLI_ARGS}}
 
+  infra:sync-test-realm:
+    desc: Regenerate services/core's Keycloak integration-test fixture from the live local realm
+    cmds:
+      - ./dev/sync_test_realm.sh
+
   # ========================================
   # Service Management
   # ========================================
