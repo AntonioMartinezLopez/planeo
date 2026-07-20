@@ -96,7 +96,7 @@ func TestUserIntegration(t *testing.T) {
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.NotNil(t, body.User)
 			assert.Equal(t, "d7eddb93-254e-4482-9a53-f31a5975dd1d", body.User.Uuid)
-			assert.Equal(t, "user@local.de", body.User.Username)
+			assert.Equal(t, "user", body.User.Username)
 		})
 
 		t.Run("should return 404 when user does not exist", func(t *testing.T) {
