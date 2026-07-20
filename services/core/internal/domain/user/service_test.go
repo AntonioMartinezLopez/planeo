@@ -399,4 +399,32 @@ func TestUserService(t *testing.T) {
 			assert.Nil(t, result)
 		})
 	})
+
+	t.Run("EnsureProvisioned", func(t *testing.T) {
+		t.Run("Should return error if EnsureUser fails", func(t *testing.T) {
+			// Setup
+			mockUserRepository := mocks.NewMockUserRepository(t)
+			mockUserRepository.EXPECT().EnsureUser(ctx, testOrganizationId, "sub-123", "admin", "admin", "admin", "admin@local.de").Return(assert.AnError)
+			userService := NewService(mockUserRepository, nil)
+
+			// Act
+			result := userService.EnsureProvisioned(ctx, testOrganizationId, "sub-123", "admin", "admin", "admin", "admin@local.de")
+
+			// Assert
+			assert.NotNil(t, result)
+		})
+
+		t.Run("Should return nil if EnsureUser succeeds", func(t *testing.T) {
+			// Setup
+			mockUserRepository := mocks.NewMockUserRepository(t)
+			mockUserRepository.EXPECT().EnsureUser(ctx, testOrganizationId, "sub-123", "admin", "admin", "admin", "admin@local.de").Return(nil)
+			userService := NewService(mockUserRepository, nil)
+
+			// Act
+			result := userService.EnsureProvisioned(ctx, testOrganizationId, "sub-123", "admin", "admin", "admin", "admin@local.de")
+
+			// Assert
+			assert.Nil(t, result)
+		})
+	})
 }

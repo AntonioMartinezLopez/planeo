@@ -146,3 +146,7 @@ func (s *service) GetUsers(ctx context.Context, organizationId int) ([]User, err
 
 	return user, nil
 }
+
+func (s *service) EnsureProvisioned(ctx context.Context, organizationId int, uuid, username, firstName, lastName, email string) error {
+	return s.userRepository.EnsureUser(ctx, organizationId, uuid, username, firstName, lastName, email)
+}

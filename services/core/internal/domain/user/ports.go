@@ -21,6 +21,7 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, organizationId int, uuid string, user NewUser) error
 	DeleteUser(ctx context.Context, organizationId int, uuid string) error
 	UpdateUser(ctx context.Context, organizationId int, uuid string, user UpdateUser) error
+	EnsureUser(ctx context.Context, organizationId int, uuid, username, firstName, lastName, email string) error
 }
 
 type Service interface {
@@ -32,4 +33,5 @@ type Service interface {
 	AssignRoles(ctx context.Context, organizationId int, uuid string, roles []Role) error
 	GetUsers(ctx context.Context, organizationId int) ([]User, error)
 	GetIAMUserByUuid(ctx context.Context, organizationId int, uuid string) (*IAMUser, error)
+	EnsureProvisioned(ctx context.Context, organizationId int, uuid, username, firstName, lastName, email string) error
 }
