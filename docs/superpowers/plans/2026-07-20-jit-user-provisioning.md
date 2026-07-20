@@ -225,7 +225,7 @@ git commit -m "feat(middlewares): expose given_name/family_name/preferred_userna
 
 ---
 
-### Task 3: `organization` domain — `GetOrganizationByIAMID`
+### Task 3: `organization` domain — `GetOrganizationByIAMId`
 
 **Files:**
 - Modify: `services/core/internal/domain/organization/ports.go`
@@ -236,7 +236,7 @@ git commit -m "feat(middlewares): expose given_name/family_name/preferred_userna
 
 **Interfaces:**
 - Consumes: none beyond what already exists.
-- Produces: `organization.Service.GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (Organization, error)` — consumed by Task 5's middleware.
+- Produces: `organization.Service.GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error)` — consumed by Task 5's middleware.
 
 - [ ] **Step 1: Write the failing unit test**
 
@@ -260,15 +260,15 @@ func TestOrganizationService(t *testing.T) {
 
 	ctx := context.Background()
 
-	t.Run("GetOrganizationByIAMID", func(t *testing.T) {
+	t.Run("GetOrganizationByIAMId", func(t *testing.T) {
 		t.Run("Should return error if repository fails", func(t *testing.T) {
 			// Setup
 			mockOrganizationRepository := mocks.NewMockOrganizationRepository(t)
-			mockOrganizationRepository.EXPECT().GetOrganizationByIAMID(ctx, "local").Return(Organization{}, assert.AnError)
+			mockOrganizationRepository.EXPECT().GetOrganizationByIAMId(ctx, "local").Return(Organization{}, assert.AnError)
 			organizationService := NewService(mockOrganizationRepository)
 
 			// Act
-			result, err := organizationService.GetOrganizationByIAMID(ctx, "local")
+			result, err := organizationService.GetOrganizationByIAMId(ctx, "local")
 
 			// Assert
 			assert.NotNil(t, err)
@@ -279,11 +279,11 @@ func TestOrganizationService(t *testing.T) {
 			// Setup
 			expectedOrganization := Organization{Id: 1, Name: "local", IAMOrganizationID: "local"}
 			mockOrganizationRepository := mocks.NewMockOrganizationRepository(t)
-			mockOrganizationRepository.EXPECT().GetOrganizationByIAMID(ctx, "local").Return(expectedOrganization, nil)
+			mockOrganizationRepository.EXPECT().GetOrganizationByIAMId(ctx, "local").Return(expectedOrganization, nil)
 			organizationService := NewService(mockOrganizationRepository)
 
 			// Act
-			result, err := organizationService.GetOrganizationByIAMID(ctx, "local")
+			result, err := organizationService.GetOrganizationByIAMId(ctx, "local")
 
 			// Assert
 			assert.Nil(t, err)
@@ -296,7 +296,7 @@ func TestOrganizationService(t *testing.T) {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `go test ./services/core/internal/domain/organization/... -short -run TestOrganizationService -v`
-Expected: compile error — `GetOrganizationByIAMID` is not a method on `Service`, and `mocks.NewMockOrganizationRepository(t).EXPECT()` has no `GetOrganizationByIAMID` (the mock doesn't have this method yet either — this is expected to fail at compile time until Steps 3-5 land).
+Expected: compile error — `GetOrganizationByIAMId` is not a method on `Service`, and `mocks.NewMockOrganizationRepository(t).EXPECT()` has no `GetOrganizationByIAMId` (the mock doesn't have this method yet either — this is expected to fail at compile time until Steps 3-5 land).
 
 - [ ] **Step 3: Add the method to `ports.go`**
 
@@ -317,13 +317,13 @@ with:
 type OrganizationRepository interface {
 	GetOrganizationsByUserSub(ctx context.Context, userSub string) ([]Organization, error)
 	GetOrganizationById(ctx context.Context, id int) (Organization, error)
-	GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (Organization, error)
+	GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error)
 }
 
 type Service interface {
 	GetOrganizationsByUserSub(ctx context.Context, userSub string) ([]Organization, error)
 	GetOrganizationById(ctx context.Context, organizationId int) (Organization, error)
-	GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (Organization, error)
+	GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error)
 }
 ```
 
@@ -331,8 +331,8 @@ type Service interface {
 
 In `services/core/internal/domain/organization/service.go`, append after `GetOrganizationById`:
 ```go
-func (s *service) GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (Organization, error) {
-	return s.organizationRepository.GetOrganizationByIAMID(ctx, iamOrganizationID)
+func (s *service) GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error) {
+	return s.organizationRepository.GetOrganizationByIAMId(ctx, iamOrganizationId)
 }
 ```
 
@@ -340,11 +340,11 @@ func (s *service) GetOrganizationByIAMID(ctx context.Context, iamOrganizationID 
 
 In `services/core/internal/infra/postgres/organziation_repository.go`, append after `GetOrganizationById`:
 ```go
-// GetOrganizationByIAMID returns the organization whose iam_organization_id
+// GetOrganizationByIAMId returns the organization whose iam_organization_id
 // matches the given Keycloak group/org name (e.g. "local").
-func (c *Client) GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (organization.Organization, error) {
+func (c *Client) GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (organization.Organization, error) {
 	query := "SELECT * FROM organizations WHERE iam_organization_id = @iamOrganizationId"
-	args := pgx.NamedArgs{"iamOrganizationId": iamOrganizationID}
+	args := pgx.NamedArgs{"iamOrganizationId": iamOrganizationId}
 
 	row, err := c.db.Query(ctx, query, args)
 	if err != nil {
@@ -365,9 +365,9 @@ func (c *Client) GetOrganizationByIAMID(ctx context.Context, iamOrganizationID s
 ```bash
 cd services/core && mockery
 ```
-Expected: `services/core/internal/domain/organization/mocks/organization_repository_mock.go` now has a `GetOrganizationByIAMID` method. Confirm:
+Expected: `services/core/internal/domain/organization/mocks/organization_repository_mock.go` now has a `GetOrganizationByIAMId` method. Confirm:
 ```bash
-grep -c "GetOrganizationByIAMID" internal/domain/organization/mocks/organization_repository_mock.go
+grep -c "GetOrganizationByIAMId" internal/domain/organization/mocks/organization_repository_mock.go
 ```
 Expected: non-zero.
 
@@ -381,7 +381,7 @@ Expected: `PASS`, both subtests green.
 ```bash
 cd /Users/antoniomartinezlopez/dev/planeo
 git add services/core/internal/domain/organization/ services/core/internal/infra/postgres/organziation_repository.go
-git commit -m "feat(core): add organization.Service.GetOrganizationByIAMID"
+git commit -m "feat(core): add organization.Service.GetOrganizationByIAMId"
 ```
 
 ---
@@ -562,7 +562,7 @@ git commit -m "feat(core): add user.Service.EnsureProvisioned"
 - Modify: `services/core/internal/infra/rest/server.go`
 
 **Interfaces:**
-- Consumes: `organization.Service.GetOrganizationByIAMID` (Task 3), `user.Service.EnsureProvisioned` (Task 4), `middlewares.OauthAccessClaims.{GivenName,FamilyName,PreferredUsername,Sub,Email,Groups}` (Task 2), `middlewares.AccessClaimsContextKey` (pre-existing, `libs/middlewares/claims.go:42`), `rest.Middleware` type alias (pre-existing, `server.go:48`).
+- Consumes: `organization.Service.GetOrganizationByIAMId` (Task 3), `user.Service.EnsureProvisioned` (Task 4), `middlewares.OauthAccessClaims.{GivenName,FamilyName,PreferredUsername,Sub,Email,Groups}` (Task 2), `middlewares.AccessClaimsContextKey` (pre-existing, `libs/middlewares/claims.go:42`), `rest.Middleware` type alias (pre-existing, `server.go:48`).
 - Produces: `rest.ProvisionUserMiddleware(userService user.Service, organizationService organization.Service) Middleware`, registered in `appMiddlewares`.
 
 No dedicated unit test for this file: this repo's existing middleware (`AuthMiddleware`, `OrganizationCheckMiddleware`) has no isolated unit tests either — coverage for middleware in this codebase comes from HTTP-level integration tests, which Task 6 provides for this one.
@@ -606,11 +606,11 @@ func ProvisionUserMiddleware(userService user.Service, organizationService organ
 		}
 
 		log := logger.FromContext(ctx.Context())
-		iamOrganizationID := strings.TrimPrefix(accessClaims.Groups[0], "/")
+		iamOrganizationId := strings.TrimPrefix(accessClaims.Groups[0], "/")
 
-		org, err := organizationService.GetOrganizationByIAMID(ctx.Context(), iamOrganizationID)
+		org, err := organizationService.GetOrganizationByIAMId(ctx.Context(), iamOrganizationId)
 		if err != nil {
-			log.Error().Err(err).Str("iamOrganizationId", iamOrganizationID).Msg("failed to resolve organization for user provisioning")
+			log.Error().Err(err).Str("iamOrganizationId", iamOrganizationId).Msg("failed to resolve organization for user provisioning")
 			next(ctx)
 			return
 		}
@@ -795,60 +795,17 @@ git commit -m "feat(core): remove hardcoded user seed rows, rely on JIT provisio
 ### Task 7: Retire the sync-script workaround, full workspace verification
 
 **Files:**
-- Delete: `dev/sync_dev_user_ids.sh`
-- Delete: `infra/environments/local/keycloak/outputs.tf`
-- Modify: `Taskfile.yml`
 - Modify: `services/core/internal/test/testdata/realm-users.json`
 
 **Interfaces:** None (this task only removes the now-unnecessary workaround built earlier in this session while diagnosing the bug this plan fixes; it doesn't touch any interface from Tasks 1-6).
 
-- [ ] **Step 1: Delete the sync script and its Taskfile wiring**
+`dev/sync_dev_user_ids.sh`, its Taskfile task (`infra:sync-dev-user-ids`), the `task up` step that called it, and `infra/environments/local/keycloak/outputs.tf` (its `dev_user_ids` output) were a same-session prototype of the sync-script approach that was superseded by this plan before ever being committed — they were deleted and reverted straight out of the working tree, not through this task. There is nothing left to remove for any of those; if you find any of them present when you reach this task, delete/revert them the same way (`git rm` if tracked, `rm`/manual Taskfile edit if not) before continuing, but on a clean checkout of this plan's prior tasks there won't be anything to do here.
 
-```bash
-git rm dev/sync_dev_user_ids.sh
-```
-
-In `Taskfile.yml`, remove this task block entirely:
-```yaml
-  infra:sync-dev-user-ids:
-    desc: Copy Keycloak's live dev-user ids into Postgres's seeded users table
-    cmds:
-      - ./dev/sync_dev_user_ids.sh
-```
-
-In `Taskfile.yml`'s `up:` task, replace:
-```yaml
-  up:
-    desc: Start Docker services and run DB migrations
-    cmds:
-      - echo "Starting up the dev environment..."
-      - cd dev && ./start.sh
-      - task: migrate:core
-      - task: migrate:email
-      - task: infra:sync-dev-user-ids
-```
-with:
-```yaml
-  up:
-    desc: Start Docker services and run DB migrations
-    cmds:
-      - echo "Starting up the dev environment..."
-      - cd dev && ./start.sh
-      - task: migrate:core
-      - task: migrate:email
-```
-
-- [ ] **Step 2: Delete the now-unused Terraform output**
-
-```bash
-git rm infra/environments/local/keycloak/outputs.tf
-```
-
-- [ ] **Step 3: Remove the pinned test-fixture user ids**
+- [ ] **Step 1: Remove the pinned test-fixture user ids**
 
 In `services/core/internal/test/testdata/realm-users.json`, remove all three `"id": "..."` lines (one per user object — `"id": "7c806e52-e7cc-484b-843b-1242046590dc"`, `"id": "146b3857-090e-453d-b1e6-8cdfbb1a6dcb"`, `"id": "d7eddb93-254e-4482-9a53-f31a5975dd1d"`), leaving every other field in each of the three user objects unchanged. Keycloak's realm-import will now assign each test user a random id, exactly like the live dev environment does — nothing needs it to match a hardcoded Postgres value anymore.
 
-- [ ] **Step 4: Regenerate the test realm fixture and re-run the full core test suite**
+- [ ] **Step 2: Regenerate the test realm fixture and re-run the full core test suite**
 
 ```bash
 task infra:sync-test-realm
@@ -857,7 +814,7 @@ task test:core:integration
 ```
 Expected: both green. This is the proof that the fixture-side workaround from earlier in this session is genuinely no longer needed — the test users now get fully random Keycloak ids, and JIT provisioning still makes everything work.
 
-- [ ] **Step 5: Full dev-environment fresh-cycle verification**
+- [ ] **Step 3: Full dev-environment fresh-cycle verification**
 
 ```bash
 task down
@@ -878,7 +835,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8000/api/v1/organizat
 ```
 Expected: a JSON array containing the `local` organization (HTTP 200, non-empty) — with **no** `dev/sync_dev_user_ids.sh` step having run. Stop the core service afterward (`pkill -f "air -c air.toml"`).
 
-- [ ] **Step 6: Full workspace lint/build verification**
+- [ ] **Step 4: Full workspace lint/build verification**
 
 ```bash
 cd /Users/antoniomartinezlopez/dev/planeo
@@ -893,19 +850,19 @@ task test:all
 ```
 Expected: all suites (core unit/integration, email unit/integration, libs unit/integration) pass.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add Taskfile.yml services/core/internal/test/testdata/realm-users.json services/core/internal/test/testdata/realm.json
-git commit -m "chore(infra): retire dev_user_ids sync workaround now that JIT provisioning covers it"
+git add services/core/internal/test/testdata/realm-users.json services/core/internal/test/testdata/realm.json
+git commit -m "chore(infra): drop pinned test-fixture user ids now that JIT provisioning covers it"
 ```
 
 ---
 
 ## Self-Review
 
-**Spec coverage:** Architecture (5 additions) — Tasks 1-5. Data flow — Task 5's middleware, proven end-to-end by Task 6's integration test. Error handling (best-effort, non-blocking) — Task 5's `ProvisionUserMiddleware` always calls `next` regardless of resolution/provisioning outcome. Testing — unit tests in Tasks 2/3/4, integration test in Task 6. Cleanup — Task 7 removes `dev/sync_dev_user_ids.sh`, its Taskfile wiring, `outputs.tf`'s `dev_user_ids` output, and the pinned test-fixture ids, exactly as the spec's Cleanup section specifies.
+**Spec coverage:** Architecture (5 additions) — Tasks 1-5. Data flow — Task 5's middleware, proven end-to-end by Task 6's integration test. Error handling (best-effort, non-blocking) — Task 5's `ProvisionUserMiddleware` always calls `next` regardless of resolution/provisioning outcome. Testing — unit tests in Tasks 2/3/4, integration test in Task 6. Cleanup — `dev/sync_dev_user_ids.sh`, its Taskfile wiring, and `outputs.tf`'s `dev_user_ids` output were removed pre-emptively (never committed); Task 7 removes the remaining piece, the pinned test-fixture ids, exactly as the spec's Cleanup section specifies.
 
 **Placeholder scan:** No TBD/TODO; every step has complete, runnable code or exact commands with expected output.
 
-**Type consistency:** `EnsureProvisioned(ctx, organizationId int, uuid, username, firstName, lastName, email string) error` has the identical signature everywhere it appears — `user.Service` interface (Task 4 Step 3), `service.go` implementation (Task 4 Step 4), the unit test mock expectations (Task 4 Step 1), and the middleware's call site (Task 5 Step 1). `GetOrganizationByIAMID(ctx, iamOrganizationID string) (Organization, error)` is likewise identical across `organization.Repository`/`Service` (Task 3 Step 3), the postgres implementation (Task 3 Step 5), the unit test (Task 3 Step 1), and the middleware (Task 5 Step 1). `OauthAccessClaims.{GivenName,FamilyName,PreferredUsername}` (Task 2) match the field names the middleware reads (Task 5 Step 1) exactly.
+**Type consistency:** `EnsureProvisioned(ctx, organizationId int, uuid, username, firstName, lastName, email string) error` has the identical signature everywhere it appears — `user.Service` interface (Task 4 Step 3), `service.go` implementation (Task 4 Step 4), the unit test mock expectations (Task 4 Step 1), and the middleware's call site (Task 5 Step 1). `GetOrganizationByIAMId(ctx, iamOrganizationId string) (Organization, error)` is likewise identical across `organization.Repository`/`Service` (Task 3 Step 3), the postgres implementation (Task 3 Step 5), the unit test (Task 3 Step 1), and the middleware (Task 5 Step 1). `OauthAccessClaims.{GivenName,FamilyName,PreferredUsername}` (Task 2) match the field names the middleware reads (Task 5 Step 1) exactly.

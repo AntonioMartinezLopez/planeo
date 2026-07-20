@@ -20,7 +20,7 @@ This spec replaces the hardcoded-UUID coupling with just-in-time (JIT) provision
 Five additions, each small and isolated:
 
 1. **`libs/middlewares/claims.go`** — add `GivenName`, `FamilyName`, `PreferredUsername` string fields (JSON tags `given_name`, `family_name`, `preferred_username`) to `OauthAccessClaims`. Keycloak already sends these in every access token (verified live this session); the struct simply doesn't map them yet.
-2. **`organization` domain** — add `Service.GetOrganizationByIAMID(ctx context.Context, iamOrganizationID string) (Organization, error)`, backed by a new `Repository` method querying `WHERE iam_organization_id = @iamOrganizationID`. Resolves "which Postgres organization does this JWT's group belong to."
+2. **`organization` domain** — add `Service.GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error)`, backed by a new `Repository` method querying `WHERE iam_organization_id = @iamOrganizationId`. Resolves "which Postgres organization does this JWT's group belong to."
 3. **`user` domain** — add `Service.EnsureProvisioned(ctx context.Context, organizationId int, uuid, username, firstName, lastName, email string) error`, backed by a `Repository` method using `INSERT INTO users (...) VALUES (...) ON CONFLICT (uuid) DO NOTHING` — the same idempotent-insert idiom already used in `internal/infra/inbox/inbox_repository.go` and `services/email/internal/infra/postgres/mail_repository.go`. A single conflict-safe insert is both the existence check and the write; no separate `GetByUUID` lookup is needed.
 4. **New middleware**, `services/core/internal/infra/rest/user_provisioning.go` (not `libs/middlewares`, since it must call the services/core-specific `user.Service` — a concrete domain dependency the shared library does not and should not know about, per this repo's hexagonal layering rules). Registered in `server.go`'s `appMiddlewares`, immediately after `middlewares.AuthMiddleware(...)`.
 5. **Migration edit** — remove the 3 hardcoded `INSERT INTO "users"` rows from `20241101135140_initialize_database.sql:103-107`. The `organizations` seed row (matched by the string `iam_organization_id = 'local'`, unaffected by this problem) is untouched.
@@ -33,7 +33,7 @@ Request
   → [new] user-provisioning middleware:
       - reads claims from context
       - if Groups is empty: log, call next, done
-      - org, err := OrganizationService.GetOrganizationByIAMID(ctx, strings.TrimPrefix(claims.Groups[0], "/"))
+      - org, err := OrganizationService.GetOrganizationByIAMId(ctx, strings.TrimPrefix(claims.Groups[0], "/"))
       - if err != nil: log, call next, done
       - err = UserService.EnsureProvisioned(ctx, org.Id, claims.Sub, claims.PreferredUsername, claims.GivenName, claims.FamilyName, claims.Email)
       - if err != nil: log, call next, done  (best-effort; never blocks the request)
@@ -49,7 +49,7 @@ Provisioning is best-effort and never fails the request it runs alongside: an em
 
 ## Testing
 
-- **Unit** (`internal/domain/organization/service_test.go`, `internal/domain/user/service_test.go`, mocked repositories): `GetOrganizationByIAMID` found/not-found; `EnsureProvisioned` new-row and already-exists-is-a-no-op cases, and a repository-error case.
+- **Unit** (`internal/domain/organization/service_test.go`, `internal/domain/user/service_test.go`, mocked repositories): `GetOrganizationByIAMId` found/not-found; `EnsureProvisioned` new-row and already-exists-is-a-no-op cases, and a repository-error case.
 - **Integration** (new case in `internal/test/organization/` or `internal/test/user/`): mint a JWT for a `sub` with no existing Postgres row, make one authenticated request, assert the `users` row now exists with the expected organization, then assert `GET /v1/organizations` returns it.
 - The rest of the existing integration suite gets this as incidental regression coverage: every test already authenticates before asserting, and once the migration stops pre-seeding admin/planner/user, those requests are what provisions them.
 
