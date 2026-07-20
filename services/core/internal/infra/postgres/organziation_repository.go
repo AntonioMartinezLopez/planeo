@@ -46,3 +46,22 @@ func (c *Client) GetOrganizationsByUserSub(ctx context.Context, userSub string) 
 
 	return organizations, nil
 }
+
+// GetOrganizationByIAMId returns the organization whose iam_organization_id
+// matches the given Keycloak group/org name (e.g. "local").
+func (c *Client) GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (organization.Organization, error) {
+	query := "SELECT * FROM organizations WHERE iam_organization_id = @iamOrganizationId"
+	args := pgx.NamedArgs{"iamOrganizationId": iamOrganizationId}
+
+	row, err := c.db.Query(ctx, query, args)
+	if err != nil {
+		return organization.Organization{}, NewDatabaseError("error querying database", err)
+	}
+
+	org, err := pgx.CollectOneRow(row, pgx.RowToStructByName[organization.Organization])
+	if err != nil {
+		return organization.Organization{}, NewDatabaseError("error collecting organization", err)
+	}
+
+	return org, nil
+}
