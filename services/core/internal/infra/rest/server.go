@@ -129,6 +129,7 @@ func InitRoutes(api huma.API, config Config, services Services) {
 	jwksURL := fmt.Sprintf("%s/protocol/openid-connect/certs", config.OauthIssuerUrl)
 	appMiddlewares := []Middleware{
 		middlewares.AuthMiddleware(api, jwksURL, config.OauthIssuerUrl),
+		ProvisionUserMiddleware(services.UserService, services.OrganizationService),
 		middlewares.OrganizationCheckMiddleware(api, func(organizationId string) (string, error) {
 			id, err := strconv.Atoi(organizationId)
 			if err != nil {
