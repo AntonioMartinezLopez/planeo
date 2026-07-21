@@ -20,9 +20,9 @@ type UserSession struct {
 }
 
 func NewKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, error) {
-	realmPath, _ := filepath.Abs(filepath.Join("..", "..", "..", "..", "..", "auth", "local", "realm.json"))
+	realmPath, _ := filepath.Abs(filepath.Join("..", "testdata", "realm.json"))
 	return keycloak.Run(ctx,
-		"quay.io/keycloak/keycloak:25.0.2",
+		"quay.io/keycloak/keycloak:26.1.0",
 		testcontainers.WithHostPortAccess(8080),
 		testcontainers.WithWaitStrategyAndDeadline(5*time.Minute, wait.ForAll(
 			wait.ForHTTP("/realms/local/protocol/openid-connect/certs").WithPort("8080"),

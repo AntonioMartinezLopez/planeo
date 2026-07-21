@@ -6,14 +6,17 @@ import (
 )
 
 type OauthAccessClaims struct {
-	Sub            string   `json:"sub"`
-	Name           string   `json:"name"`
-	Email          string   `json:"email"`
-	UserId         string   `json:"userid"`
-	Issuer         string   `json:"iss"`
-	Groups         []string `json:"groups"`
-	ExpirationTime int64    `json:"exp"`
-	Roles          []string `json:"roles"`
+	Sub               string   `json:"sub"`
+	Name              string   `json:"name"`
+	GivenName         string   `json:"given_name"`
+	FamilyName        string   `json:"family_name"`
+	PreferredUsername string   `json:"preferred_username"`
+	Email             string   `json:"email"`
+	UserId            string   `json:"userid"`
+	Issuer            string   `json:"iss"`
+	Groups            []string `json:"groups"`
+	ExpirationTime    int64    `json:"exp"`
+	Roles             []string `json:"roles"`
 }
 
 func (c OauthAccessClaims) IsWithinOrganisation(organization string) bool {

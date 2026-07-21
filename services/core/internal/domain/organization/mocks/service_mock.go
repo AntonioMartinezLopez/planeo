@@ -38,6 +38,72 @@ func (_m *MockService) EXPECT() *MockService_Expecter {
 	return &MockService_Expecter{mock: &_m.Mock}
 }
 
+// GetOrganizationByIAMId provides a mock function for the type MockService
+func (_mock *MockService) GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (organization.Organization, error) {
+	ret := _mock.Called(ctx, iamOrganizationId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationByIAMId")
+	}
+
+	var r0 organization.Organization
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (organization.Organization, error)); ok {
+		return returnFunc(ctx, iamOrganizationId)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) organization.Organization); ok {
+		r0 = returnFunc(ctx, iamOrganizationId)
+	} else {
+		r0 = ret.Get(0).(organization.Organization)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, iamOrganizationId)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockService_GetOrganizationByIAMId_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationByIAMId'
+type MockService_GetOrganizationByIAMId_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationByIAMId is a helper method to define mock.On call
+//   - ctx context.Context
+//   - iamOrganizationId string
+func (_e *MockService_Expecter) GetOrganizationByIAMId(ctx interface{}, iamOrganizationId interface{}) *MockService_GetOrganizationByIAMId_Call {
+	return &MockService_GetOrganizationByIAMId_Call{Call: _e.mock.On("GetOrganizationByIAMId", ctx, iamOrganizationId)}
+}
+
+func (_c *MockService_GetOrganizationByIAMId_Call) Run(run func(ctx context.Context, iamOrganizationId string)) *MockService_GetOrganizationByIAMId_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_GetOrganizationByIAMId_Call) Return(organization1 organization.Organization, err error) *MockService_GetOrganizationByIAMId_Call {
+	_c.Call.Return(organization1, err)
+	return _c
+}
+
+func (_c *MockService_GetOrganizationByIAMId_Call) RunAndReturn(run func(ctx context.Context, iamOrganizationId string) (organization.Organization, error)) *MockService_GetOrganizationByIAMId_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrganizationById provides a mock function for the type MockService
 func (_mock *MockService) GetOrganizationById(ctx context.Context, organizationId int) (organization.Organization, error) {
 	ret := _mock.Called(ctx, organizationId)

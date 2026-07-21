@@ -101,6 +101,35 @@ func (c *Client) CreateUser(ctx context.Context, organizationId int, uuid string
 	return nil
 }
 
+// EnsureUser idempotently mirrors a Keycloak-authenticated identity into
+// Postgres. Unlike CreateUser (which also creates the Keycloak account),
+// this assumes the Keycloak user already exists - it only needs to make
+// sure the local profile row does too. ON CONFLICT DO NOTHING makes this
+// safe to call on every authenticated request without a separate
+// existence check.
+func (c *Client) EnsureUser(ctx context.Context, organizationId int, uuid, username, firstName, lastName, email string) error {
+	query := `
+		INSERT INTO users (username, first_name, last_name, email, uuid, organization_id)
+		VALUES (@username, @firstname, @lastname, @email, @uuid, @organizationId)
+		ON CONFLICT (uuid) DO NOTHING`
+
+	args := pgx.NamedArgs{
+		"organizationId": organizationId,
+		"uuid":           uuid,
+		"username":       username,
+		"firstname":      firstName,
+		"lastname":       lastName,
+		"email":          email,
+	}
+
+	_, err := c.db.Exec(ctx, query, args)
+	if err != nil {
+		return NewDatabaseError("error ensuring user", err)
+	}
+
+	return nil
+}
+
 func (c *Client) DeleteUser(ctx context.Context, organizationId int, uuid string) error {
 	query := `
 		DELETE FROM users 

@@ -34,9 +34,9 @@ while true; do
   fi
 done
 
-# prepare keycloak
+# prepare keycloak (OpenTofu-managed realm/org/users)
 echo "Preparing Keycloak..."
-./check_and_install_realm.sh
+task infra:apply:keycloak -- -auto-approve
 
 # Wait for all background processes to finish
 wait

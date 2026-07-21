@@ -88,15 +88,24 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			assert.NotNil(t, session)
-			response := testApi.Get("/v1/organizations/1/iam/users/d7eddb93-254e-4482-9a53-f31a5975dd1d", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+
+			// resolve the "user" fixture user's Keycloak-assigned uuid (no longer pinned in the fixture)
+			listResponse := testApi.Get("/v1/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			var users struct{ Users []user.IAMUser }
+			_ = jsonHelper.DecodeJSONAndValidate(listResponse.Result().Body, &users, true)
+			index := slices.IndexFunc(users.Users, func(u user.IAMUser) bool { return u.Username == "user" })
+			assert.NotEqual(t, -1, index)
+			userUuid := users.Users[index].Uuid
+
+			response := testApi.Get(fmt.Sprintf("/v1/organizations/1/iam/users/%s", userUuid), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			assert.Equal(t, 200, response.Code)
 
 			var body struct{ User user.IAMUser }
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
 			assert.NotNil(t, body.User)
-			assert.Equal(t, "d7eddb93-254e-4482-9a53-f31a5975dd1d", body.User.Uuid)
-			assert.Equal(t, "user@local.de", body.User.Username)
+			assert.Equal(t, userUuid, body.User.Uuid)
+			assert.Equal(t, "user", body.User.Username)
 		})
 
 		t.Run("should return 404 when user does not exist", func(t *testing.T) {
@@ -276,8 +285,16 @@ func TestUserIntegration(t *testing.T) {
 
 			assert.NotNil(t, session)
 
+			// resolve the "planner" fixture user's Keycloak-assigned uuid (no longer pinned in the fixture)
+			listResponse := testApi.Get("/v1/organizations/1/iam/users", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			var users struct{ Users []user.IAMUser }
+			_ = jsonHelper.DecodeJSONAndValidate(listResponse.Result().Body, &users, true)
+			index := slices.IndexFunc(users.Users, func(u user.IAMUser) bool { return u.Username == "planner" })
+			assert.NotEqual(t, -1, index)
+			plannerUuid := users.Users[index].Uuid
+
 			// get user
-			response := testApi.Get("/v1/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+			response := testApi.Get(fmt.Sprintf("/v1/organizations/1/iam/users/%s", plannerUuid), fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
 
 			var body struct{ User user.IAMUser }
 			_ = jsonHelper.DecodeJSONAndValidate(response.Result().Body, &body, true)
@@ -376,7 +393,8 @@ func TestUserIntegration(t *testing.T) {
 			}
 
 			for _, b := range body {
-				response := testApi.Put("/v1/organizations/1/iam/users/146b3857-090e-453d-b1e6-8cdfbb1a6dcb", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
+				// path uuid is arbitrary: validation fails before any user lookup
+				response := testApi.Put("/v1/organizations/1/iam/users/00000000-0000-0000-0000-000000000000", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken), b)
 				assert.Equal(t, 422, response.Code)
 			}
 		})

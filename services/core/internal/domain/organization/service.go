@@ -19,3 +19,7 @@ func (s *service) GetOrganizationsByUserSub(ctx context.Context, userSub string)
 func (s *service) GetOrganizationById(ctx context.Context, organizationId int) (Organization, error) {
 	return s.organizationRepository.GetOrganizationById(ctx, organizationId)
 }
+
+func (s *service) GetOrganizationByIAMId(ctx context.Context, iamOrganizationId string) (Organization, error) {
+	return s.organizationRepository.GetOrganizationByIAMId(ctx, iamOrganizationId)
+}

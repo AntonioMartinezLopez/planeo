@@ -1,0 +1,62 @@
+[
+  {
+    "username": "admin",
+    "firstName": "admin",
+    "lastName": "admin",
+    "email": "admin@local.de",
+    "emailVerified": true,
+    "enabled": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "admin",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["default-roles-local"],
+    "clientRoles": {
+      "local": ["Admin"]
+    },
+    "groups": ["/local"]
+  },
+  {
+    "username": "planner",
+    "firstName": "planner",
+    "lastName": "planner",
+    "email": "planner@local.de",
+    "emailVerified": true,
+    "enabled": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "planner",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["default-roles-local"],
+    "clientRoles": {
+      "local": ["Planner"]
+    },
+    "groups": ["/local"]
+  },
+  {
+    "username": "user",
+    "firstName": "User",
+    "lastName": "User",
+    "email": "user@local.de",
+    "emailVerified": true,
+    "enabled": true,
+    "credentials": [
+      {
+        "type": "password",
+        "value": "user",
+        "temporary": false
+      }
+    ],
+    "realmRoles": ["default-roles-local"],
+    "clientRoles": {
+      "local": ["User"]
+    },
+    "groups": ["/local"]
+  }
+]

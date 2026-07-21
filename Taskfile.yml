@@ -115,6 +115,50 @@ tasks:
       - source .envrc && goose status
 
   # ========================================
+  # Infrastructure (OpenTofu)
+  # ========================================
+
+  infra:fmt:
+    desc: Format all OpenTofu files under infra/
+    cmds:
+      - tofu fmt -recursive infra/
+
+  infra:init:keycloak:
+    desc: Initialize the local Keycloak OpenTofu config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu init
+
+  infra:validate:keycloak:
+    desc: Validate the local Keycloak OpenTofu config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu validate
+
+  infra:plan:keycloak:
+    desc: Preview changes to the local Keycloak config
+    dir: infra/environments/local/keycloak
+    cmds:
+      - tofu plan {{.CLI_ARGS}}
+
+  infra:apply:keycloak:
+    desc: Apply changes to the local Keycloak config
+    dir: infra/environments/local/keycloak
+    cmds:
+      # -parallelism=1 serializes provider API calls: Keycloak's authorization
+      # resource-server endpoint races (409 Conflict) when multiple
+      # authorization-resource/permission creates hit the same client's
+      # resource server concurrently, which happens on every from-scratch
+      # apply because keycloak-client-authz creates ~12 resources via
+      # for_each. Serializing removes that race at its source.
+      - tofu apply -input=false -parallelism=1 {{.CLI_ARGS}}
+
+  infra:sync-test-realm:
+    desc: Regenerate services/core's Keycloak integration-test fixture from the live local realm
+    cmds:
+      - ./dev/sync_test_realm.sh
+
+  # ========================================
   # Service Management
   # ========================================
 

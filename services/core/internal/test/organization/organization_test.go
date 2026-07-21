@@ -1,11 +1,13 @@
 package organization
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	jsonHelper "planeo/libs/json"
 	"planeo/services/core/internal/domain/organization"
+	"planeo/services/core/internal/domain/user"
 	"planeo/services/core/internal/test/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -107,5 +109,39 @@ func TestOrganizationIntegration(t *testing.T) {
 				assert.NotEmpty(t, org.IAMOrganizationID)
 			}
 		})
+	})
+}
+
+func TestUserProvisioningIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+	testApi := env.Api
+
+	t.Run("creates a Postgres users row for a sub with no prior row on first authenticated request", func(t *testing.T) {
+		session, err := env.GetUserSession("planner", "planner")
+		assert.NoError(t, err)
+		assert.NotNil(t, session)
+
+		response := testApi.Get("/v1/organizations", fmt.Sprintf("Authorization: Bearer %s", session.AccessToken))
+		assert.Equal(t, 200, response.Code)
+
+		users, err := env.DB.GetUsers(context.Background(), 1)
+		assert.NoError(t, err)
+
+		var provisioned *user.User
+		for i := range users {
+			if users[i].Email == "planner@local.de" {
+				provisioned = &users[i]
+			}
+		}
+
+		if assert.NotNil(t, provisioned, "expected a Postgres users row for planner@local.de to have been created") {
+			assert.NotEmpty(t, provisioned.UUID)
+			assert.Equal(t, "planner", provisioned.Username)
+			assert.Equal(t, "planner", provisioned.FirstName)
+		}
 	})
 }
