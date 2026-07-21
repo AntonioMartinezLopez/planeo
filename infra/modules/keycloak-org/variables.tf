@@ -20,6 +20,18 @@ variable "extra_default_scopes" {
   default     = []
 }
 
+variable "redirect_uris" {
+  description = "Valid redirect URIs for the browser-based (standard flow) OIDC login, e.g. the web app's OAuth callback route"
+  type        = list(string)
+  default     = []
+}
+
+variable "web_origins" {
+  description = "Allowed CORS web origins for browser-based clients using this org's client"
+  type        = list(string)
+  default     = []
+}
+
 variable "permission_schema" {
   description = "resource name => scope name => list of role names granted that scope. Defaults to the schema verified against auth/local/client_rbac.json."
   type        = map(map(list(string)))

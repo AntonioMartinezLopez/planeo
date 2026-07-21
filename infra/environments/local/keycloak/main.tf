@@ -12,6 +12,8 @@ module "org_local" {
   org_name             = "local"
   client_secret        = var.org_client_secret
   extra_default_scopes = [module.realm.groups_scope_name]
+  redirect_uris        = ["http://localhost:3000/auth/keycloak"]
+  web_origins          = ["http://localhost:3000"]
 }
 
 locals {
