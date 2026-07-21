@@ -5,15 +5,22 @@ module "realm" {
   admin_client_secret = var.admin_client_secret
 }
 
-module "org_local" {
-  source = "../../../modules/keycloak-org"
+module "app_client" {
+  source = "../../../modules/keycloak-client"
 
   realm_id             = module.realm.id
-  org_name             = "local"
+  client_name          = "local"
   client_secret        = var.org_client_secret
   extra_default_scopes = [module.realm.groups_scope_name]
   redirect_uris        = ["http://localhost:3000/auth/keycloak"]
   web_origins          = ["http://localhost:3000"]
+}
+
+module "org_local" {
+  source = "../../../modules/keycloak-org"
+
+  realm_id = module.realm.id
+  org_name = "local"
 }
 
 locals {
@@ -45,7 +52,7 @@ resource "keycloak_user_roles" "dev" {
 
   realm_id = module.realm.id
   user_id  = keycloak_user.dev[each.key].id
-  role_ids = [module.org_local.role_ids[each.value.role]]
+  role_ids = [module.app_client.role_ids[each.value.role]]
 }
 
 resource "keycloak_user_groups" "dev" {
