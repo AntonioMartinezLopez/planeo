@@ -11,14 +11,19 @@ import (
 )
 
 type DBConnection struct {
-	DB *pgxpool.Pool
+	DB     *pgxpool.Pool
+	cancel context.CancelFunc
 }
 
 func (pg *DBConnection) Ping(ctx context.Context) error {
 	return pg.DB.Ping(ctx)
 }
 
+// Close stops the background ping loop before closing the pool, so Close
+// is the only way that loop ever stops - it otherwise runs for the life of
+// the process and will panic if a closed pool starts failing pings.
 func (pg *DBConnection) Close() {
+	pg.cancel()
 	pg.DB.Close()
 }
 
@@ -31,9 +36,10 @@ func InitializeDatabaseConnection(ctx context.Context, connString string) *DBCon
 		panic("Failed to connect to database")
 	}
 
-	pgInstance := &DBConnection{db}
+	pingCtx, cancel := context.WithCancel(ctx)
+	pgInstance := &DBConnection{DB: db, cancel: cancel}
 
-	go pingDatabase(ctx, pgInstance)
+	go pingDatabase(pingCtx, pgInstance)
 
 	return pgInstance
 }
@@ -41,13 +47,18 @@ func InitializeDatabaseConnection(ctx context.Context, connString string) *DBCon
 func pingDatabase(ctx context.Context, pg *DBConnection) {
 	var errorCounter int
 	logger := logger.FromContext(ctx)
-	for {
-		func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			err := pg.DB.Ping(ctx)
-			if err != nil {
+	ticker := time.NewTicker(20 * time.Second)
+	defer ticker.Stop()
 
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			pingCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			err := pg.DB.Ping(pingCtx)
+			cancel()
+			if err != nil {
 				logger.Error().Err(err).Msg("Failed to ping the database")
 				errorCounter++
 				if errorCounter >= 5 {
@@ -59,8 +70,7 @@ func pingDatabase(ctx context.Context, pg *DBConnection) {
 				}
 				errorCounter = 0
 			}
-		}()
-		time.Sleep(20 * time.Second)
+		}
 	}
 }
 
