@@ -119,6 +119,14 @@ services:
     depends_on:
       - postgres
       - kafka
+    # Gated behind a profile so a bare `docker compose up` (what start.sh
+    # runs first) never starts these with a blank Kafka SASL password.
+    # They're started explicitly, by name, once real credentials exist in
+    # dev/.env — see start.sh. Naming a service explicitly always starts it
+    # regardless of its profile, so this only affects the bare, no-args
+    # `docker compose up` case.
+    profiles:
+      - kafka-clients
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -146,6 +154,14 @@ services:
     depends_on:
       - postgres
       - kafka
+    # Gated behind a profile so a bare `docker compose up` (what start.sh
+    # runs first) never starts these with a blank Kafka SASL password.
+    # They're started explicitly, by name, once real credentials exist in
+    # dev/.env — see start.sh. Naming a service explicitly always starts it
+    # regardless of its profile, so this only affects the bare, no-args
+    # `docker compose up` case.
+    profiles:
+      - kafka-clients
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"

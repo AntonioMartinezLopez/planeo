@@ -64,7 +64,14 @@ tasks:
     desc: Stop all Docker services and remove volumes
     cmds:
       - echo "Shutting down the dev environment..."
-      - cd dev && docker compose down -v
+      # --profile kafka-clients includes email-received-producer/consumer:
+      # they're gated behind that profile (see dev/docker-compose.yaml) so
+      # a bare `docker compose down` doesn't select them and they'd
+      # otherwise survive as stopped containers still attached to the
+      # dev_default network, blocking its removal. Left stale, they'd
+      # later fail to start on the next `task up` (the container's cached
+      # network reference points at a network ID that no longer exists).
+      - cd dev && docker compose --profile kafka-clients down -v
 
   restart:
     desc: Restart the dev environment
@@ -157,6 +164,57 @@ tasks:
     desc: Regenerate services/core's Keycloak integration-test fixture from the live local realm
     cmds:
       - ./dev/sync_test_realm.sh
+
+  infra:init:kafka:
+    desc: Initialize the local Kafka OpenTofu config
+    dir: infra/environments/local/kafka
+    cmds:
+      - tofu init
+
+  infra:validate:kafka:
+    desc: Validate the local Kafka OpenTofu config
+    dir: infra/environments/local/kafka
+    cmds:
+      - tofu validate
+
+  infra:plan:kafka:
+    desc: Preview changes to the local Kafka config
+    dir: infra/environments/local/kafka
+    cmds:
+      - tofu plan {{.CLI_ARGS}}
+
+  infra:apply:kafka:
+    desc: Apply changes to the local Kafka config
+    dir: infra/environments/local/kafka
+    cmds:
+      # Two-pass apply: the Mongey/kafka provider (v0.13.1) panics planning
+      # kafka_user_scram_credential when its password argument is still an
+      # unknown value from a not-yet-created random_password resource — a
+      # reproduced upstream provider bug (Mongey/terraform-provider-kafka,
+      # same code path across at least 0.11.0-0.13.1). Pass 1 creates just
+      # the two random_password resources (no dependency on the crashing
+      # resource type, so the provider never plans it). Pass 2 then sees a
+      # known password string for both kafka_user_scram_credential
+      # resources and applies normally. Required on a clean/empty state.
+      - tofu apply -input=false -target='module.email_received_producer.random_password.this' -target='module.core_email_received_consumer.random_password.this' -auto-approve {{.CLI_ARGS}}
+      - tofu apply -input=false -parallelism=1 {{.CLI_ARGS}}
+
+  infra:sync-secrets:kafka:
+    desc: Write generated Kafka SCRAM passwords into dev/.env for docker-compose to pick up
+    dir: infra/environments/local/kafka
+    cmds:
+      - |
+        PRODUCER_PW=$(tofu output -raw email_received_producer_password)
+        CONSUMER_PW=$(tofu output -raw core_email_received_consumer_password)
+        sed -i.bak '/^EMAIL_PRODUCER_KAFKA_SASL_PASSWORD=/d;/^CORE_CONSUMER_KAFKA_SASL_PASSWORD=/d' ../../../../dev/.env
+        # Guard against dev/.env (or dev/.env.template) not ending in a
+        # newline: without this, the first `echo >>` below would
+        # concatenate onto the last existing line instead of starting a
+        # new one, corrupting that line and silently dropping this key.
+        [ -n "$(tail -c1 ../../../../dev/.env)" ] && echo >> ../../../../dev/.env
+        echo "EMAIL_PRODUCER_KAFKA_SASL_PASSWORD=$PRODUCER_PW" >> ../../../../dev/.env
+        echo "CORE_CONSUMER_KAFKA_SASL_PASSWORD=$CONSUMER_PW" >> ../../../../dev/.env
+        rm -f ../../../../dev/.env.bak
 
   # ========================================
   # Service Management
