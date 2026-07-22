@@ -620,7 +620,7 @@ git commit -m "feat(infra): wire task up to apply Kafka config and sync generate
 
 **Interfaces:**
 - Consumes: `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD` / `CORE_CONSUMER_KAFKA_SASL_PASSWORD` from `dev/.env` (Task 3), usernames `email-received-producer` / `core-email-received-consumer` (Task 2, fixed strings, not secret).
-- Produces: `kafka.Config` + `kafka.NewClient(cfg Config, extraOpts ...kgo.Opt) (*kgo.Client, error)` — the one place SASL mechanism and TLS are chosen, so switching a real environment to `SASL_SSL`/`SCRAM-SHA-512` is a `KAFKA_TLS_ENABLED`/`KAFKA_SASL_MECHANISM` env-var change, not a code change. `outbox.NewProducer(client *kgo.Client) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` both now take an already-constructed client instead of building their own — construction lives in one place (`libs/kafka`), driven by each sidecar's own `main.go`.
+- Produces: `kafka.Config` + `kafka.NewClient(cfg Config, extraOpts ...kgo.Opt) (*kgo.Client, error)` — the one place SASL mechanism and TLS are chosen, so switching a real environment to `SASL_SSL`/`SCRAM-SHA-512` is a `KAFKA_TLS_ENABLED`/`KAFKA_SASL_MECHANISM` env-var change, not a code change. `outbox.NewProducer(client syncProducer) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` both now take an already-constructed client instead of building their own — a real `*kgo.Client` satisfies both narrow interfaces structurally, so both `main.go`s just pass the `*kgo.Client` `kafka.NewClient` returns, no explicit conversion needed. Construction lives in one place (`libs/kafka`), driven by each sidecar's own `main.go`.
 
 This task answers a question raised while reviewing this plan: the original design hardcoded `.AsSha256Mechanism()` directly in both `libs/outbox` and `libs/inbox`, with no TLS option at all, meaning a future switch to `SASL_SSL`/`SCRAM-SHA-512` would require editing and redeploying those files. `libs/kafka` centralizes that choice behind config instead. `libs/outbox`'s `Producer` interface and `libs/inbox`'s `saver` interface already gave each package a narrow, franz-go-independent contract for its own downstream adapters — this task extends the same idea to *construction*: neither package needs to know how to build an authenticated `kgo.Client` anymore, only how to use one it's given.
 
@@ -737,8 +737,17 @@ type Producer interface {
 	ProduceSync(ctx context.Context, topic string, key, value []byte) error
 }
 
+// syncProducer is the narrow slice of *kgo.Client's API kafkaProducer needs -
+// declared here (not imported) so kafkaProducer can be driven by a fake in
+// tests without a live broker. *kgo.Client (built via planeo/libs/kafka.NewClient)
+// satisfies this structurally; production code never constructs a
+// syncProducer value directly, it passes a real *kgo.Client.
+type syncProducer interface {
+	ProduceSync(ctx context.Context, rs ...*kgo.Record) kgo.ProduceResults
+}
+
 type kafkaProducer struct {
-	client *kgo.Client
+	client syncProducer
 }
 
 func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
@@ -750,12 +759,12 @@ func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, valu
 // planeo/libs/kafka.NewClient) as a Producer. This package no longer
 // constructs or owns the client's lifecycle - the caller does, and is
 // responsible for calling client.Close() on shutdown.
-func NewProducer(client *kgo.Client) Producer {
+func NewProducer(client syncProducer) Producer {
 	return &kafkaProducer{client: client}
 }
 ```
 
-`kgo.AllowAutoTopicCreation()` is gone (not carried over from today's version): the topic is now Terraform-managed and broker-side auto-create is off per Task 1's `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"` — this option would be a silent no-op against a broker that refuses to honor it. `NewProducer` no longer returns an `error` at all: wrapping an already-built client can't fail.
+`kgo.AllowAutoTopicCreation()` is gone (not carried over from today's version): the topic is now Terraform-managed and broker-side auto-create is off per Task 1's `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"` — this option would be a silent no-op against a broker that refuses to honor it. `NewProducer` no longer returns an `error` at all: wrapping an already-built client can't fail. `syncProducer` mirrors Step 4's `fetchClient` on the inbox side — both packages now depend on a narrow, locally-declared interface rather than the concrete `*kgo.Client`, kept symmetric on purpose.
 
 - [ ] **Step 4: Narrow `libs/inbox/consumer.go` to a `fetchClient` interface, and take a client instead of building one**
 
@@ -1079,4 +1088,4 @@ git commit -m "docs: record Kafka IaC implementation against the OpenTofu founda
 
 **Placeholder scan:** no TBD/TODO; every step has literal code, exact commands, and expected output strings.
 
-**Type/name consistency:** `email-received-producer`/`core-email-received-consumer` usernames match across Task 2 (Terraform `username` args), Task 3 secret var names, and Task 4 (docker-compose `KAFKA_SASL_USERNAME` literals) — checked. `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD`/`CORE_CONSUMER_KAFKA_SASL_PASSWORD` match between Task 3's sync script and Task 4's docker-compose `${...}` references — checked. `kafka.Config`/`kafka.NewClient` signature matches between Task 4 Step 1 (library) and Steps 5–6 (both `main.go` call sites) — checked. `outbox.NewProducer(client *kgo.Client) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` match between Task 4 Steps 3–4 (library) and Steps 5–6 (call sites) — checked. `KafkaSaslMechanism`/`KafkaTlsEnabled` field names and `KAFKA_SASL_MECHANISM`/`KAFKA_TLS_ENABLED` env var names match between both config.go edits and both docker-compose service blocks in Task 4 Step 7 — checked. Topic name `email-received` used consistently (not the spec's illustrative `email.received`) — checked.
+**Type/name consistency:** `email-received-producer`/`core-email-received-consumer` usernames match across Task 2 (Terraform `username` args), Task 3 secret var names, and Task 4 (docker-compose `KAFKA_SASL_USERNAME` literals) — checked. `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD`/`CORE_CONSUMER_KAFKA_SASL_PASSWORD` match between Task 3's sync script and Task 4's docker-compose `${...}` references — checked. `kafka.Config`/`kafka.NewClient` signature matches between Task 4 Step 1 (library) and Steps 5–6 (both `main.go` call sites) — checked. `outbox.NewProducer(client syncProducer) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` match between Task 4 Steps 3–4 (library) and Steps 5–6 (call sites) — checked; both interfaces are satisfied structurally by the concrete `*kgo.Client` `kafka.NewClient` returns, so neither call site needs an explicit type. `KafkaSaslMechanism`/`KafkaTlsEnabled` field names and `KAFKA_SASL_MECHANISM`/`KAFKA_TLS_ENABLED` env var names match between both config.go edits and both docker-compose service blocks in Task 4 Step 7 — checked. Topic name `email-received` used consistently (not the spec's illustrative `email.received`) — checked.
