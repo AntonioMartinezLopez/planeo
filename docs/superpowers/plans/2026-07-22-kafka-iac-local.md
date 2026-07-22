@@ -50,16 +50,19 @@ infra/
 Taskfile.yml                                       # modify: infra:*:kafka targets + infra:sync-secrets:kafka
 
 libs/
-├── outbox/producer.go                             # modify: NewProducer takes SASL creds, adds kgo.SASL(...), drops AllowAutoTopicCreation
-└── inbox/consumer.go                               # modify: NewConsumer takes SASL creds, adds kgo.SASL(...), drops AllowAutoTopicCreation
+├── kafka/                                          # new: shared client construction (SASL mechanism + TLS from config)
+│   ├── client.go
+│   └── client_test.go
+├── outbox/producer.go                              # modify: NewProducer takes a *kgo.Client instead of building one, drops AllowAutoTopicCreation
+└── inbox/consumer.go                               # modify: NewConsumer takes a fetchClient instead of building one, drops AllowAutoTopicCreation
 
 services/email/cmd/email-received-producer/
-├── config.go                                       # modify: add KafkaSaslUsername/KafkaSaslPassword
-└── main.go                                         # modify: pass creds to outbox.NewProducer
+├── config.go                                       # modify: add KafkaSaslUsername/KafkaSaslPassword/KafkaSaslMechanism/KafkaTlsEnabled
+└── main.go                                         # modify: build client via libs/kafka, pass it to outbox.NewProducer
 
 services/core/cmd/email-received-consumer/
-├── config.go                                       # modify: add KafkaSaslUsername/KafkaSaslPassword
-└── main.go                                         # modify: pass creds to inbox.NewConsumer
+├── config.go                                       # modify: add KafkaSaslUsername/KafkaSaslPassword/KafkaSaslMechanism/KafkaTlsEnabled
+└── main.go                                         # modify: build client via libs/kafka, pass it to inbox.NewConsumer
 ```
 
 ---
@@ -602,9 +605,11 @@ git commit -m "feat(infra): wire task up to apply Kafka config and sync generate
 
 ---
 
-### Task 4: Sidecar SASL wiring
+### Task 4: `libs/kafka` client helper + sidecar SASL wiring
 
 **Files:**
+- Create: `libs/kafka/client.go`
+- Create: `libs/kafka/client_test.go`
 - Modify: `libs/outbox/producer.go`
 - Modify: `libs/inbox/consumer.go`
 - Modify: `services/email/cmd/email-received-producer/config.go`
@@ -615,9 +620,106 @@ git commit -m "feat(infra): wire task up to apply Kafka config and sync generate
 
 **Interfaces:**
 - Consumes: `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD` / `CORE_CONSUMER_KAFKA_SASL_PASSWORD` from `dev/.env` (Task 3), usernames `email-received-producer` / `core-email-received-consumer` (Task 2, fixed strings, not secret).
-- Produces: `outbox.NewProducer(brokers, username, password)` and `inbox.NewConsumer(brokers, groupName, topic, store, username, password)` — new required parameters both sidecar `main.go`s must pass.
+- Produces: `kafka.Config` + `kafka.NewClient(cfg Config, extraOpts ...kgo.Opt) (*kgo.Client, error)` — the one place SASL mechanism and TLS are chosen, so switching a real environment to `SASL_SSL`/`SCRAM-SHA-512` is a `KAFKA_TLS_ENABLED`/`KAFKA_SASL_MECHANISM` env-var change, not a code change. `outbox.NewProducer(client *kgo.Client) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` both now take an already-constructed client instead of building their own — construction lives in one place (`libs/kafka`), driven by each sidecar's own `main.go`.
 
-- [ ] **Step 1: Add SASL to `libs/outbox/producer.go`**
+This task answers a question raised while reviewing this plan: the original design hardcoded `.AsSha256Mechanism()` directly in both `libs/outbox` and `libs/inbox`, with no TLS option at all, meaning a future switch to `SASL_SSL`/`SCRAM-SHA-512` would require editing and redeploying those files. `libs/kafka` centralizes that choice behind config instead. `libs/outbox`'s `Producer` interface and `libs/inbox`'s `saver` interface already gave each package a narrow, franz-go-independent contract for its own downstream adapters — this task extends the same idea to *construction*: neither package needs to know how to build an authenticated `kgo.Client` anymore, only how to use one it's given.
+
+- [ ] **Step 1: `libs/kafka/client.go`**
+
+```go
+package kafka
+
+import (
+	"crypto/tls"
+	"fmt"
+
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sasl"
+	"github.com/twmb/franz-go/pkg/sasl/scram"
+)
+
+// Config is the shared connection configuration for any Kafka client this
+// app creates. Which SASL/SCRAM mechanism to use and whether to dial with
+// TLS are config, not a compile-time choice, so moving from this repo's
+// local SASL_PLAINTEXT/SCRAM-SHA-256 setup to a production SASL_SSL/
+// SCRAM-SHA-512 broker never requires a code change in a producer or
+// consumer - only these fields' values change.
+type Config struct {
+	Brokers    []string
+	Username   string
+	Password   string
+	Mechanism  string // "SCRAM-SHA-256" or "SCRAM-SHA-512"
+	TLSEnabled bool
+}
+
+// NewClient builds a franz-go client authenticated per cfg. extraOpts lets
+// a caller layer its own options (e.g. inbox's consumer-group settings) on
+// top of the shared broker/SASL/TLS configuration - this package only ever
+// builds the connection, never decides what a caller does with it.
+func NewClient(cfg Config, extraOpts ...kgo.Opt) (*kgo.Client, error) {
+	mechanism, err := saslMechanism(cfg.Mechanism, cfg.Username, cfg.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := []kgo.Opt{
+		kgo.SeedBrokers(cfg.Brokers...),
+		kgo.SASL(mechanism),
+	}
+	if cfg.TLSEnabled {
+		opts = append(opts, kgo.DialTLSConfig(&tls.Config{}))
+	}
+	opts = append(opts, extraOpts...)
+
+	return kgo.NewClient(opts...)
+}
+
+func saslMechanism(mechanism, username, password string) (sasl.Mechanism, error) {
+	auth := scram.Auth{User: username, Pass: password}
+	switch mechanism {
+	case "SCRAM-SHA-256":
+		return auth.AsSha256Mechanism(), nil
+	case "SCRAM-SHA-512":
+		return auth.AsSha512Mechanism(), nil
+	default:
+		return nil, fmt.Errorf("unsupported KAFKA_SASL_MECHANISM %q: must be SCRAM-SHA-256 or SCRAM-SHA-512", mechanism)
+	}
+}
+```
+
+- [ ] **Step 2: `libs/kafka/client_test.go`**
+
+`NewClient` itself needs a live broker to test meaningfully (it doesn't fail on bad credentials - `kgo.NewClient` connects lazily, confirmed in Global Constraints), but `saslMechanism` is a pure function and the one piece of new branching logic this task adds - test that directly, without a broker:
+
+```go
+package kafka
+
+import "testing"
+
+func TestSaslMechanism(t *testing.T) {
+	t.Run("SCRAM-SHA-256 succeeds", func(t *testing.T) {
+		if _, err := saslMechanism("SCRAM-SHA-256", "user", "pass"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("SCRAM-SHA-512 succeeds", func(t *testing.T) {
+		if _, err := saslMechanism("SCRAM-SHA-512", "user", "pass"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("unsupported mechanism errors", func(t *testing.T) {
+		if _, err := saslMechanism("PLAIN", "user", "pass"); err == nil {
+			t.Fatal("expected an error for an unsupported mechanism, got nil")
+		}
+	})
+}
+```
+
+Run: `go test ./libs/kafka/... -v` — expect all three subtests to pass.
+
+- [ ] **Step 3: Simplify `libs/outbox/producer.go` to take a client instead of building one**
 
 ```go
 package outbox
@@ -626,7 +728,6 @@ import (
 	"context"
 
 	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/sasl/scram"
 )
 
 // Producer sends a single record to Kafka. Implemented by kafkaProducer in
@@ -645,27 +746,19 @@ func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, valu
 	return result.FirstErr()
 }
 
-// NewProducer creates a Producer backed by a new franz-go client connected
-// to brokers, authenticating via SASL/SCRAM-SHA-256 with username/password.
-// The returned *kgo.Client is also returned so the caller can Close it on
-// shutdown.
-func NewProducer(brokers []string, username, password string) (Producer, *kgo.Client, error) {
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(brokers...),
-		kgo.SASL(scram.Auth{User: username, Pass: password}.AsSha256Mechanism()),
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &kafkaProducer{client: client}, client, nil
+// NewProducer wraps an already-authenticated *kgo.Client (see
+// planeo/libs/kafka.NewClient) as a Producer. This package no longer
+// constructs or owns the client's lifecycle - the caller does, and is
+// responsible for calling client.Close() on shutdown.
+func NewProducer(client *kgo.Client) Producer {
+	return &kafkaProducer{client: client}
 }
 ```
 
-(`kgo.AllowAutoTopicCreation()` is dropped: the topic is now Terraform-managed and broker-side auto-create is off per Task 1's `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"` — this option would be a silent no-op against a broker that refuses to honor it.)
+`kgo.AllowAutoTopicCreation()` is gone (not carried over from today's version): the topic is now Terraform-managed and broker-side auto-create is off per Task 1's `KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"` — this option would be a silent no-op against a broker that refuses to honor it. `NewProducer` no longer returns an `error` at all: wrapping an already-built client can't fail.
 
-- [ ] **Step 2: Add SASL to `libs/inbox/consumer.go`**
+- [ ] **Step 4: Narrow `libs/inbox/consumer.go` to a `fetchClient` interface, and take a client instead of building one**
 
-Change the `NewConsumer` signature and its one caller of `kgo.NewClient`:
 ```go
 package inbox
 
@@ -675,56 +768,59 @@ import (
 	"planeo/libs/logger"
 
 	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/sasl/scram"
 )
 
 type saver interface {
 	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (inserted bool, err error)
 }
 
+// fetchClient is the narrow slice of *kgo.Client's API Consumer needs -
+// declared here (not imported) so Run can be driven by a fake in tests
+// without a live broker. *kgo.Client (built via planeo/libs/kafka.NewClient)
+// satisfies this structurally; production code never constructs a
+// fetchClient value directly, it passes a real *kgo.Client.
+type fetchClient interface {
+	PollFetches(ctx context.Context) kgo.Fetches
+	CommitRecords(ctx context.Context, rs ...*kgo.Record) error
+	Close()
+}
+
+// Consumer reads from Kafka and persists into the inbox, committing the
+// offset only after Save succeeds. No Handler is invoked here. The given
+// client must already be configured with its consumer group and topic
+// subscription (via kgo.ConsumerGroup/kgo.ConsumeTopics passed as extraOpts
+// to planeo/libs/kafka.NewClient) - Consumer only drives it, it doesn't
+// configure it.
 type Consumer struct {
-	brokers   []string
-	groupName string
-	topic     string
-	store     saver
-	username  string
-	password  string
+	client fetchClient
+	topic  string
+	store  saver
 }
 
-func NewConsumer(brokers []string, groupName, topic string, store saver, username, password string) *Consumer {
+func NewConsumer(client fetchClient, topic string, store saver) *Consumer {
 	return &Consumer{
-		brokers:   brokers,
-		groupName: groupName,
-		topic:     topic,
-		store:     store,
-		username:  username,
-		password:  password,
+		client: client,
+		topic:  topic,
+		store:  store,
 	}
 }
 
+// Run subscribes to the configured topic and persists each fetched record
+// into the inbox, deduped on the Kafka coordinate, committing the offset
+// only after a successful Save. Non-blocking — starts its own background
+// goroutine and returns immediately.
 func (c *Consumer) Run(ctx context.Context) error {
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(c.brokers...),
-		kgo.SASL(scram.Auth{User: c.username, Pass: c.password}.AsSha256Mechanism()),
-		kgo.ConsumerGroup(c.groupName),
-		kgo.ConsumeTopics(c.topic),
-		kgo.DisableAutoCommit(),
-	)
-	if err != nil {
-		return err
-	}
-
 	log := logger.FromContext(ctx)
 
 	go func() {
-		defer client.Close()
+		defer c.client.Close()
 
 		for {
 			if ctx.Err() != nil {
 				return
 			}
 
-			fetches := client.PollFetches(ctx)
+			fetches := c.client.PollFetches(ctx)
 			if fetches.IsClientClosed() {
 				return
 			}
@@ -733,6 +829,16 @@ func (c *Consumer) Run(ctx context.Context) error {
 				log.Error().Err(err).Msg("kafka fetch error")
 			})
 
+			// Kafka offset commits are a single cumulative per-partition
+			// marker, not a per-record acknowledgement: if record N's Save
+			// fails but record N+1's Save (and commit) succeeds, the
+			// committed offset would advance past N, and N would never be
+			// redelivered — a silent, permanent loss of exactly the message
+			// this pattern exists to protect. To prevent that, once a
+			// partition has a failure in this poll, stop committing further
+			// records on that partition for the rest of the poll (Save's
+			// (topic, partition, offset) dedup makes it safe to reprocess
+			// already-saved records on the next poll/redelivery).
 			failedPartitions := map[int32]bool{}
 			fetches.EachRecord(func(record *kgo.Record) {
 				if failedPartitions[record.Partition] {
@@ -745,7 +851,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 					return
 				}
 
-				if err := client.CommitRecords(ctx, record); err != nil {
+				if err := c.client.CommitRecords(ctx, record); err != nil {
 					log.Error().Err(err).Int32("partition", record.Partition).Int64("offset", record.Offset).Msg("failed to commit kafka offset, halting further commits on this partition")
 					failedPartitions[record.Partition] = true
 				}
@@ -757,11 +863,11 @@ func (c *Consumer) Run(ctx context.Context) error {
 }
 ```
 
-Only the `NewConsumer` signature, its struct fields, and the `kgo.NewClient` call inside `Run` change — everything else in this file (the polling loop, partition-failure tracking) is unchanged from today's version and shown here only for complete-file accuracy.
+`brokers`, `groupName`, and `username`/`password` are gone from `Consumer` entirely — consumer-group membership and topic subscription are now `kgo.ConsumerGroup`/`kgo.ConsumeTopics` options the caller passes to `kafka.NewClient` (Step 6), and authentication is `kafka.NewClient`'s concern, not `Consumer`'s. `topic` stays, since `Run` still needs it for the `store.Save` call. The polling/commit/partition-failure-tracking logic itself is unchanged from today's version.
 
-- [ ] **Step 3: Wire the email producer sidecar**
+- [ ] **Step 5: Wire the email producer sidecar**
 
-In `services/email/cmd/email-received-producer/config.go`, add two fields to `Config` and load them in `LoadConfig`:
+In `services/email/cmd/email-received-producer/config.go`, add four fields to `Config` (two SASL identity fields plus the two new config-driven ones) and load them in `LoadConfig`. Also add a `readBoolEnvVariableWithDefault` helper (this file has no bool-reading helper today):
 ```go
 type Config struct {
 	DbHost             string
@@ -772,6 +878,8 @@ type Config struct {
 	KafkaBrokers       string
 	KafkaSaslUsername  string
 	KafkaSaslPassword  string
+	KafkaSaslMechanism string
+	KafkaTlsEnabled    bool
 	PollInterval       time.Duration
 	BatchSize          int
 	MaxAttempts        int
@@ -780,76 +888,137 @@ type Config struct {
 ```
 ```go
 	return &Config{
-		DbHost:            readEnvVariable(ctx, "DB_HOST"),
-		DbPort:             readEnvVariable(ctx, "DB_PORT"),
-		DbUser:             readEnvVariable(ctx, "DB_USER"),
-		DbPassword:         readEnvVariable(ctx, "DB_PASSWORD"),
-		DbName:             readEnvVariable(ctx, "DB_NAME"),
-		KafkaBrokers:       readEnvVariable(ctx, "KAFKA_BROKERS"),
-		KafkaSaslUsername:  readEnvVariable(ctx, "KAFKA_SASL_USERNAME"),
-		KafkaSaslPassword:  readEnvVariable(ctx, "KAFKA_SASL_PASSWORD"),
-		PollInterval:       readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL", 1*time.Second),
-		BatchSize:          readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_BATCH_SIZE", 100),
-		MaxAttempts:        readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS", 5),
-		ClaimTTL:           readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_CLAIM_TTL", 30*time.Second),
+		DbHost:             readEnvVariable(ctx, "DB_HOST"),
+		DbPort:              readEnvVariable(ctx, "DB_PORT"),
+		DbUser:              readEnvVariable(ctx, "DB_USER"),
+		DbPassword:          readEnvVariable(ctx, "DB_PASSWORD"),
+		DbName:              readEnvVariable(ctx, "DB_NAME"),
+		KafkaBrokers:        readEnvVariable(ctx, "KAFKA_BROKERS"),
+		KafkaSaslUsername:   readEnvVariable(ctx, "KAFKA_SASL_USERNAME"),
+		KafkaSaslPassword:   readEnvVariable(ctx, "KAFKA_SASL_PASSWORD"),
+		KafkaSaslMechanism:  readStringEnvVariableWithDefault("KAFKA_SASL_MECHANISM", "SCRAM-SHA-256"),
+		KafkaTlsEnabled:     readBoolEnvVariableWithDefault("KAFKA_TLS_ENABLED", false),
+		PollInterval:        readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL", 1*time.Second),
+		BatchSize:           readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_BATCH_SIZE", 100),
+		MaxAttempts:         readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS", 5),
+		ClaimTTL:            readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_CLAIM_TTL", 30*time.Second),
 	}
 ```
-
-In `services/email/cmd/email-received-producer/main.go`, change the one call site:
 ```go
-	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	producer, kafkaClient, err := outbox.NewProducer(brokers, cfg.KafkaSaslUsername, cfg.KafkaSaslPassword)
+func readStringEnvVariableWithDefault(name string, def string) string {
+	v, ok := os.LookupEnv(name)
+	if !ok {
+		return def
+	}
+	return v
+}
+
+func readBoolEnvVariableWithDefault(name string, def bool) bool {
+	v, ok := os.LookupEnv(name)
+	if !ok {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
+}
 ```
 
-- [ ] **Step 4: Wire the core consumer sidecar**
-
-In `services/core/cmd/email-received-consumer/config.go`, add the same two fields to `Config` and load them the same way (`KafkaSaslUsername`/`KafkaSaslPassword` via `readEnvVariable(ctx, "KAFKA_SASL_USERNAME")` / `"KAFKA_SASL_PASSWORD"`).
-
-In `services/core/cmd/email-received-consumer/main.go`, change the one call site:
+In `services/email/cmd/email-received-producer/main.go`, add `"planeo/libs/kafka"` to the imports and change the Kafka setup:
 ```go
 	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	consumer := inbox.NewConsumer(brokers, cfg.GroupName, contracts.EmailReceivedTopic, db, cfg.KafkaSaslUsername, cfg.KafkaSaslPassword)
+	kafkaClient, err := kafka.NewClient(kafka.Config{
+		Brokers:    brokers,
+		Username:   cfg.KafkaSaslUsername,
+		Password:   cfg.KafkaSaslPassword,
+		Mechanism:  cfg.KafkaSaslMechanism,
+		TLSEnabled: cfg.KafkaTlsEnabled,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
+	}
+	defer kafkaClient.Close()
+
+	producer := outbox.NewProducer(kafkaClient)
 ```
 
-- [ ] **Step 5: Update the two sidecar service blocks in `dev/docker-compose.yaml`**
+- [ ] **Step 6: Wire the core consumer sidecar**
+
+In `services/core/cmd/email-received-consumer/config.go`, add the same four fields to `Config`, loaded the same way (this file already has a `readStringEnvVariableWithDefault` helper for `GroupName` — reuse it for `KafkaSaslMechanism`; add `readBoolEnvVariableWithDefault` the same way as Step 5).
+
+In `services/core/cmd/email-received-consumer/main.go`, add `"planeo/libs/kafka"` and `"github.com/twmb/franz-go/pkg/kgo"` to the imports and change the Kafka setup:
+```go
+	brokers := strings.Split(cfg.KafkaBrokers, ",")
+	kafkaClient, err := kafka.NewClient(
+		kafka.Config{
+			Brokers:    brokers,
+			Username:   cfg.KafkaSaslUsername,
+			Password:   cfg.KafkaSaslPassword,
+			Mechanism:  cfg.KafkaSaslMechanism,
+			TLSEnabled: cfg.KafkaTlsEnabled,
+		},
+		kgo.ConsumerGroup(cfg.GroupName),
+		kgo.ConsumeTopics(contracts.EmailReceivedTopic),
+		kgo.DisableAutoCommit(),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
+	}
+
+	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, db)
+	if err := consumer.Run(runCtx); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
+	}
+```
+(`runCtx` is already defined earlier in this file, via the existing `signal.NotifyContext` call — unchanged.)
+
+- [ ] **Step 7: Update the two sidecar service blocks in `dev/docker-compose.yaml`**
 
 In `email-received-producer`'s `environment:` block, change `KAFKA_BROKERS: kafka:19092` to `KAFKA_BROKERS: kafka:19094` (the new internal SASL listener from Task 1) and add:
 ```yaml
       KAFKA_SASL_USERNAME: email-received-producer
       KAFKA_SASL_PASSWORD: ${EMAIL_PRODUCER_KAFKA_SASL_PASSWORD}
+      KAFKA_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_TLS_ENABLED: "false"
 ```
 
 In `email-received-consumer`'s `environment:` block, the same `KAFKA_BROKERS` change, plus:
 ```yaml
       KAFKA_SASL_USERNAME: core-email-received-consumer
       KAFKA_SASL_PASSWORD: ${CORE_CONSUMER_KAFKA_SASL_PASSWORD}
+      KAFKA_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_TLS_ENABLED: "false"
 ```
 
-- [ ] **Step 6: Update existing unit tests for the new signatures**
+`KAFKA_SASL_MECHANISM`/`KAFKA_TLS_ENABLED` are set explicitly here (not left to their code defaults) so that `dev`/`stage`/`prod` environments, when they're built, override exactly these two lines to switch to `SCRAM-SHA-512`/`SASL_SSL` — no Go code changes, per this task's whole point.
 
-`libs/outbox/producer.go` and `libs/inbox/consumer.go` have no direct unit tests of `NewProducer`/`NewConsumer` themselves (both are thin constructors around a real `kgo.Client` — the existing test files test the *adapters* that consume the `Producer`/`saver` interfaces via fakes, not these constructors). Confirm this with:
+- [ ] **Step 8: Update existing unit tests for the new signatures**
+
 ```bash
 grep -rn "NewProducer\|NewConsumer" --include="*_test.go" libs/ services/
 ```
-Expected: no matches outside `main.go` call sites already updated in Steps 3–4. If any test *does* call these constructors directly, update its call site the same way (add the two new string arguments).
+Expected: no matches outside the two `main.go` call sites already updated in Steps 5–6 (both `Producer` and `saver`/`fetchClient` consumers are tested via fakes against those interfaces, not against these constructors — confirmed unchanged by this refactor). If any test *does* call these constructors directly, update its call site to match the new signatures.
 
-- [ ] **Step 7: Build and run existing tests**
+- [ ] **Step 9: Build and run existing tests**
 
 ```bash
 go build ./...
+go test ./libs/kafka/... -v
 task test:core:unit
 task test:email:unit
 ```
-Expected: clean build, all unit tests pass (this task touches no domain logic, only Kafka client construction).
+Expected: clean build; the three new `TestSaslMechanism` subtests pass; all existing unit tests pass unchanged (this task touches no domain logic, only Kafka client construction and its call sites).
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add libs/outbox/producer.go libs/inbox/consumer.go \
+git add libs/kafka libs/outbox/producer.go libs/inbox/consumer.go \
   services/email/cmd/email-received-producer/config.go services/email/cmd/email-received-producer/main.go \
   services/core/cmd/email-received-consumer/config.go services/core/cmd/email-received-consumer/main.go \
   dev/docker-compose.yaml
-git commit -m "feat: authenticate email-received producer/consumer sidecars via SASL/SCRAM"
+git commit -m "feat: add libs/kafka client helper, wire email-received sidecars via SASL/SCRAM"
 ```
 
 ---
@@ -910,4 +1079,4 @@ git commit -m "docs: record Kafka IaC implementation against the OpenTofu founda
 
 **Placeholder scan:** no TBD/TODO; every step has literal code, exact commands, and expected output strings.
 
-**Type/name consistency:** `email-received-producer`/`core-email-received-consumer` usernames match across Task 2 (Terraform `username` args), Task 3 secret var names, and Task 4 (docker-compose `KAFKA_SASL_USERNAME` literals) — checked. `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD`/`CORE_CONSUMER_KAFKA_SASL_PASSWORD` match between Task 3's sync script and Task 4's docker-compose `${...}` references — checked. `NewProducer`/`NewConsumer` signatures match between Task 4 Steps 1–2 (library) and Steps 3–4 (call sites) — checked. Topic name `email-received` used consistently (not the spec's illustrative `email.received`) — checked.
+**Type/name consistency:** `email-received-producer`/`core-email-received-consumer` usernames match across Task 2 (Terraform `username` args), Task 3 secret var names, and Task 4 (docker-compose `KAFKA_SASL_USERNAME` literals) — checked. `EMAIL_PRODUCER_KAFKA_SASL_PASSWORD`/`CORE_CONSUMER_KAFKA_SASL_PASSWORD` match between Task 3's sync script and Task 4's docker-compose `${...}` references — checked. `kafka.Config`/`kafka.NewClient` signature matches between Task 4 Step 1 (library) and Steps 5–6 (both `main.go` call sites) — checked. `outbox.NewProducer(client *kgo.Client) Producer` and `inbox.NewConsumer(client fetchClient, topic string, store saver) *Consumer` match between Task 4 Steps 3–4 (library) and Steps 5–6 (call sites) — checked. `KafkaSaslMechanism`/`KafkaTlsEnabled` field names and `KAFKA_SASL_MECHANISM`/`KAFKA_TLS_ENABLED` env var names match between both config.go edits and both docker-compose service blocks in Task 4 Step 7 — checked. Topic name `email-received` used consistently (not the spec's illustrative `email.received`) — checked.
