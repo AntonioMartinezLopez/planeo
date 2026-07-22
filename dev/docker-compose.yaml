@@ -66,6 +66,15 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
 
   # kafka messaging (single node, KRaft mode - no Zookeeper)
+  # LOCAL DEV ONLY: KAFKA_SUPER_USERS grants User:ANONYMOUS full cluster-admin
+  # rights (required so the broker's own controller/broker self-registration,
+  # which is unavoidably PLAINTEXT/unauthenticated in this single-node KRaft
+  # setup, isn't rejected by the authorizer). Combined with the unauthenticated
+  # PLAINTEXT/PLAINTEXT_HOST listeners on 19092/9092 below, this means anyone
+  # who can reach this broker has full admin access with no credentials at all.
+  # Do not copy this KAFKA_SUPER_USERS/listener combination to a host-reachable
+  # or non-local environment - only the SASL_INTERNAL/SASL_HOST listeners
+  # (19094/9094) are actually authenticated.
   kafka:
     container_name: kafka
     image: apache/kafka:4.3.1
