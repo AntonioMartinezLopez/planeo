@@ -55,10 +55,15 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 	t.Cleanup(func() {
 		ctx := context.Background()
-		if err := env.PostgresContainer.Terminate(ctx); err != nil {
-			panic(err)
-		}
+
+		// Close first so the background ping goroutine stops before its
+		// container disappears, and so a container-termination error below
+		// can't skip closing the pool and leak that goroutine indefinitely.
 		env.DB.Close()
+
+		if err := env.PostgresContainer.Terminate(ctx); err != nil {
+			t.Errorf("failed to terminate postgres container: %v", err)
+		}
 	})
 
 	return env
