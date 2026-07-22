@@ -13,16 +13,16 @@
 - Local only. `dev`/`stage`/`prod` get no Kafka provisioning in this plan (matching the spec's own Non-goals for the Keycloak half — this is the equivalent scope boundary for Kafka).
 - No secrets-manager decision. Secrets Terraform *consumes* (the bootstrap admin password) go in the existing plaintext, gitignored `dev/.env` / `terraform.tfvars` convention. Secrets Terraform *generates* (per-service SCRAM passwords) are synced via `tofu output -json` into `dev/.env`, per spec Section 4B — this plan adds the concrete sync mechanism, since the Keycloak half never needed one (its client secret is a fixed `var`, not generated).
 - The existing topic name is `email-received` (hyphen), not `email.received` — the spec's Section 6 used a dot-separated example name; the actual constant is `libs/events/contracts/contracts.go:27`'s `EmailReceivedTopic = "email-received"`. Use the real name everywhere in this plan.
-- `franz-go`'s `kgo.NewClient` connects lazily (confirmed against the package's own docs: "Connections to brokers are lazily created only when requests are written to them"). A sidecar can start successfully before its SCRAM credential exists; it will fail *authentication* on first use and keep retrying, exactly like the existing documented "logs errors for a few seconds while waiting for the outbox table" pattern in `dev/docker-compose.yaml`. This does **not** mean the sequencing problem disappears, though: the credential *value* is fixed into the container's environment at `docker compose up` time (via `${VAR}` substitution from `dev/.env`), so on a truly fresh environment the sidecars must be recreated (not just retried) once the real password exists — Task 3 makes this an explicit `start.sh` step, not a hope that lazy connection alone fixes it.
+- The two Kafka-client sidecars (`email-received-producer`, `email-received-consumer`) never start with a blank/placeholder credential in the first place. Rather than relying on `franz-go`'s lazy connection behavior to self-heal a container started too early, Task 3 gates both services behind a Compose `profiles:` entry so the *first* `docker compose up` (no `--profile` flag) skips them entirely; they're started for the first time, with real credentials already in `dev/.env`, only after `task infra:apply:kafka` + `task infra:sync-secrets:kafka` have run. This avoids the whole class of "started with an empty credential, needs a recreate later" problems rather than working around it.
 - Two independent listener needs, mirroring the existing `PLAINTEXT`/`PLAINTEXT_HOST` split already in `dev/docker-compose.yaml`: an internal SASL listener for the two sidecar containers (Docker network hostname `kafka`), and a host-reachable SASL listener for OpenTofu (which runs on the host, exactly like it already does for Keycloak against `localhost:8080`).
 
 ## File structure
 
 ```
 dev/
-├── docker-compose.yaml                          # modify: kafka service (SASL bootstrap), two sidecar services (SASL creds)
+├── docker-compose.yaml                          # modify: kafka service (SASL bootstrap), two sidecar services (SASL creds + profiles gate)
 ├── .env.template                                # modify: add KAFKA_BOOTSTRAP_ADMIN_PASSWORD
-├── start.sh                                      # modify: add Kafka health wait + apply + secret sync + sidecar recreate
+├── start.sh                                      # modify: add Kafka health wait + apply + secret sync + first start of gated sidecars
 └── kafka/
     ├── kafka_server_jaas.conf                    # new: SCRAM login module declaration, mounted read-only
     └── bootstrap.sh                              # new: format-with-scram-admin-on-first-boot script
@@ -481,6 +481,7 @@ git commit -m "feat(infra): add kafka-topics and kafka-scram-user OpenTofu modul
 **Files:**
 - Modify: `Taskfile.yml`
 - Modify: `dev/start.sh`
+- Modify: `dev/docker-compose.yaml` (profile gate on the two sidecar services only — Task 4 edits their `environment:` blocks separately)
 
 **Interfaces:**
 - Consumes: `tofu output -json` field names from Task 2 (`email_received_producer_password`, `core_email_received_consumer_password`).
@@ -541,9 +542,26 @@ grep KAFKA_SASL_PASSWORD dev/.env
 ```
 Expected: both lines present with non-empty values, and re-running the task doesn't duplicate them (the `sed` delete-then-append makes it idempotent).
 
-- [ ] **Step 4: Resequence `dev/start.sh`**
+- [ ] **Step 4: Gate the two sidecars behind a Compose profile**
 
-Insert a Kafka health check + apply + secret sync + sidecar recreate, after the existing Keycloak apply block and before the trailing `wait`:
+In `dev/docker-compose.yaml`, add a `profiles:` entry to both `email-received-producer` and `email-received-consumer` (each service's top-level keys, alongside its existing `container_name:`/`build:`/etc.):
+
+```yaml
+    # Gated behind a profile so a bare `docker compose up` (what start.sh
+    # runs first) never starts these with a blank Kafka SASL password.
+    # They're started explicitly, by name, once real credentials exist in
+    # dev/.env — see start.sh. Naming a service explicitly always starts it
+    # regardless of its profile, so this only affects the bare, no-args
+    # `docker compose up` case.
+    profiles:
+      - kafka-clients
+```
+
+Add this block to both service definitions. Nothing else in either service's YAML changes in this step (Task 4 Step 5 edits their `environment:` blocks separately).
+
+- [ ] **Step 5: Resequence `dev/start.sh`**
+
+Insert a Kafka health check + apply + secret sync + first start of the two gated sidecars, after the existing Keycloak apply block and before the trailing `wait`:
 
 ```bash
 # prepare kafka (OpenTofu-managed topics + SCRAM users)
@@ -557,30 +575,28 @@ echo "Preparing Kafka..."
 task infra:apply:kafka -- -auto-approve
 task infra:sync-secrets:kafka
 
-# Recreate the two Kafka-client sidecars so they pick up the SASL
-# credentials Task infra:sync-secrets:kafka just wrote to dev/.env. On a
-# fresh environment these containers already started (further up, as part
-# of the first `docker compose up`) with a blank password — franz-go
-# connects lazily so that didn't crash them, but a blank credential can
-# never become a valid one without a restart, since the value is fixed
-# into the container's environment at creation time.
+# First start of the two Kafka-client sidecars, now that
+# task infra:sync-secrets:kafka has written their real SASL passwords into
+# dev/.env. They were skipped by the earlier bare `docker compose up`
+# because of their `profiles:` entry, so this is their first start, not a
+# recreate — they never run with a blank credential.
 docker compose up -d --no-deps email-received-producer email-received-consumer
 ```
 
 The `kafka-broker-api-versions.sh` call is a plain unauthenticated admin request against the existing `PLAINTEXT_HOST` listener (port 9092, unchanged by this plan) — it only proves the broker process is accepting connections, which is all `tofu apply` needs before it can authenticate over the SASL listener.
 
-- [ ] **Step 5: Full-cycle verification**
+- [ ] **Step 6: Full-cycle verification**
 
 ```bash
 task down
 task up
 ```
-Expected: completes without error; `docker compose logs email-received-producer` and `docker compose logs email-received-consumer` show no repeated `SaslAuthenticationException` after the point where `infra:sync-secrets:kafka` ran (some *before* that point is expected and matches the existing "waiting" log-comment pattern already in `dev/docker-compose.yaml`).
+Expected: completes without error. `docker compose ps` shows `email-received-producer`/`email-received-consumer` as absent right after the first `docker compose up` (before the Kafka health-wait loop) and present only after `task infra:sync-secrets:kafka` runs. `docker compose logs email-received-producer` and `docker compose logs email-received-consumer` show no `SaslAuthenticationException` at all — since these containers are never started before real credentials exist, there is no expected window of auth errors this time (unlike the existing "waiting for the outbox table" pattern, which is a different, already-accepted kind of startup race).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add Taskfile.yml dev/start.sh
+git add Taskfile.yml dev/start.sh dev/docker-compose.yaml
 git commit -m "feat(infra): wire task up to apply Kafka config and sync generated secrets"
 ```
 
@@ -867,7 +883,7 @@ Send a test email through the existing local mail setup (per this repo's dev cre
 docker compose -f dev/docker-compose.yaml logs email-received-producer --tail 50
 docker compose -f dev/docker-compose.yaml logs email-received-consumer --tail 50
 ```
-Expected: no `SaslAuthenticationException` in either log after the point `task infra:sync-secrets:kafka` ran during `task up`.
+Expected: no `SaslAuthenticationException` in either log at all — both containers are profile-gated (Task 3) so they never start before real credentials exist.
 
 - [ ] **Step 4: Confirm `kafka-ui` still works unauthenticated**
 
