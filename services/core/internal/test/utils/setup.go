@@ -128,17 +128,19 @@ func NewIntegrationTestEnvironment(t *testing.T) *IntegrationTestEnvironment {
 
 	t.Cleanup(func() {
 		ctx := context.Background()
-		err := env.KeycloakContainer.Terminate(ctx)
-		if err != nil {
-			panic(err)
-		}
 
-		err = env.PostgresContainer.Terminate(ctx)
-		if err != nil {
-			panic(err)
-		}
-
+		// Close first so the background ping goroutine stops before its
+		// containers disappear, and so a container-termination error below
+		// can't skip closing the pool and leak that goroutine indefinitely.
 		env.DB.Close()
+
+		if err := env.KeycloakContainer.Terminate(ctx); err != nil {
+			t.Errorf("failed to terminate keycloak container: %v", err)
+		}
+
+		if err := env.PostgresContainer.Terminate(ctx); err != nil {
+			t.Errorf("failed to terminate postgres container: %v", err)
+		}
 	})
 
 	return env
