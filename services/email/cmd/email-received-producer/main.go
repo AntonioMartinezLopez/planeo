@@ -4,6 +4,7 @@ import (
 	"context"
 	"os/signal"
 	"planeo/libs/events/contracts"
+	"planeo/libs/kafka"
 	"planeo/libs/logger"
 	"planeo/libs/outbox"
 	domainoutbox "planeo/services/email/internal/domain/outbox"
@@ -28,11 +29,19 @@ func main() {
 	defer db.Close()
 
 	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	producer, kafkaClient, err := outbox.NewProducer(brokers)
+	kafkaClient, err := kafka.NewClient(kafka.Config{
+		Brokers:    brokers,
+		Username:   cfg.KafkaSaslUsername,
+		Password:   cfg.KafkaSaslPassword,
+		Mechanism:  cfg.KafkaSaslMechanism,
+		TLSEnabled: cfg.KafkaTlsEnabled,
+	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 	defer kafkaClient.Close()
+
+	producer := outbox.NewProducer(kafkaClient)
 
 	outboxService := domainoutbox.NewService(db, producer)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(

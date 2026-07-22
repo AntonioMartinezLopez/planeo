@@ -12,16 +12,20 @@ import (
 )
 
 type Config struct {
-	DbHost       string
-	DbPort       string
-	DbUser       string
-	DbPassword   string
-	DbName       string
-	KafkaBrokers string
-	PollInterval time.Duration
-	BatchSize    int
-	MaxAttempts  int
-	ClaimTTL     time.Duration
+	DbHost             string
+	DbPort             string
+	DbUser             string
+	DbPassword         string
+	DbName             string
+	KafkaBrokers       string
+	KafkaSaslUsername  string
+	KafkaSaslPassword  string
+	KafkaSaslMechanism string
+	KafkaTlsEnabled    bool
+	PollInterval       time.Duration
+	BatchSize          int
+	MaxAttempts        int
+	ClaimTTL           time.Duration
 }
 
 func (c *Config) DatabaseConfig() string {
@@ -36,16 +40,20 @@ func LoadConfig(ctx context.Context, filenames ...string) *Config {
 	}
 
 	return &Config{
-		DbHost:       readEnvVariable(ctx, "DB_HOST"),
-		DbPort:       readEnvVariable(ctx, "DB_PORT"),
-		DbUser:       readEnvVariable(ctx, "DB_USER"),
-		DbPassword:   readEnvVariable(ctx, "DB_PASSWORD"),
-		DbName:       readEnvVariable(ctx, "DB_NAME"),
-		KafkaBrokers: readEnvVariable(ctx, "KAFKA_BROKERS"),
-		PollInterval: readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL", 1*time.Second),
-		BatchSize:    readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_BATCH_SIZE", 100),
-		MaxAttempts:  readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS", 5),
-		ClaimTTL:     readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_CLAIM_TTL", 30*time.Second),
+		DbHost:             readEnvVariable(ctx, "DB_HOST"),
+		DbPort:             readEnvVariable(ctx, "DB_PORT"),
+		DbUser:             readEnvVariable(ctx, "DB_USER"),
+		DbPassword:         readEnvVariable(ctx, "DB_PASSWORD"),
+		DbName:             readEnvVariable(ctx, "DB_NAME"),
+		KafkaBrokers:       readEnvVariable(ctx, "KAFKA_BROKERS"),
+		KafkaSaslUsername:  readEnvVariable(ctx, "KAFKA_SASL_USERNAME"),
+		KafkaSaslPassword:  readEnvVariable(ctx, "KAFKA_SASL_PASSWORD"),
+		KafkaSaslMechanism: readStringEnvVariableWithDefault("KAFKA_SASL_MECHANISM", "SCRAM-SHA-256"),
+		KafkaTlsEnabled:    readBoolEnvVariableWithDefault("KAFKA_TLS_ENABLED", false),
+		PollInterval:       readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL", 1*time.Second),
+		BatchSize:          readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_BATCH_SIZE", 100),
+		MaxAttempts:        readIntEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS", 5),
+		ClaimTTL:           readDurationEnvVariable(ctx, "EMAIL_RECEIVED_PRODUCER_CLAIM_TTL", 30*time.Second),
 	}
 }
 
@@ -56,6 +64,26 @@ func readEnvVariable(ctx context.Context, name string) string {
 		l.Fatal().Msgf("Missing env variable '%s'. Aborting...\n", name)
 	}
 	return v
+}
+
+func readStringEnvVariableWithDefault(name string, def string) string {
+	v, ok := os.LookupEnv(name)
+	if !ok {
+		return def
+	}
+	return v
+}
+
+func readBoolEnvVariableWithDefault(name string, def bool) bool {
+	v, ok := os.LookupEnv(name)
+	if !ok {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
 
 func readDurationEnvVariable(ctx context.Context, name string, def time.Duration) time.Duration {
