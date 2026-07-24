@@ -21,7 +21,6 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
 	github.com/tmc/langchaingo v0.1.14
 	github.com/twmb/franz-go v1.21.5
-	go.uber.org/goleak v1.3.0
 )
 
 require (
