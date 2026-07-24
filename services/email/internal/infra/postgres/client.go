@@ -8,16 +8,20 @@ import (
 )
 
 type Client struct {
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	conn *db.DBConnection
 }
 
 func NewClient(ctx context.Context, connString string) *Client {
 	conn := db.InitializeDatabaseConnection(ctx, connString)
-	return &Client{db: conn.DB}
+	return &Client{db: conn.DB, conn: conn}
 }
 
+// Close delegates to DBConnection.Close, which stops the background ping
+// goroutine before closing the pool - closing c.db directly would leave
+// that goroutine running against an already-closed pool.
 func (c *Client) Close() {
-	c.db.Close()
+	c.conn.Close()
 }
 
 // Pool exposes the underlying connection pool for callers that need to run
