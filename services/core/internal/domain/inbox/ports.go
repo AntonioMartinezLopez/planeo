@@ -13,6 +13,7 @@ import (
 // inbox ever receives a second topic, two consumers can't steal each
 // other's rows — mirroring the producer-side outbox.Repository.
 type Repository interface {
+	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (bool, error)
 	FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error)
 	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	MarkProcessed(ctx context.Context, id int64) error
@@ -34,6 +35,7 @@ type LLMClient interface {
 // since a future second topic would need its own dedicated payload handling,
 // not a shared one.
 type Service interface {
+	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (bool, error)
 	FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error)
 	ProcessEmailReceived(ctx context.Context, rec libsinbox.Record, maxAttempts int) error
 }

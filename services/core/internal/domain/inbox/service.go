@@ -34,6 +34,10 @@ func NewService(
 	}
 }
 
+func (s *service) Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (bool, error) {
+	return s.repo.Save(ctx, topic, partition, offset, payload)
+}
+
 func (s *service) FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error) {
 	return s.repo.FetchBatch(ctx, topic, instanceID, limit, claimTTL)
 }
