@@ -187,15 +187,30 @@ Instead, the outbox row stores the **JSON-marshaled generated struct** (Section 
 ALTER TABLE outbox ALTER COLUMN payload TYPE JSONB USING convert_from(payload, 'UTF8')::jsonb;
 ```
 
-The Avro encode + registry-ID lookup happens later, in the `email-received-producer` sidecar (`services/email/cmd/email-received-producer/`), immediately before calling `kgo.Client.ProduceSync`:
+The Avro encode + registry-ID lookup happens later, in the `email-received-producer` sidecar (`services/email/cmd/email-received-producer/`), immediately before the bytes reach Kafka.
+
+This has to be placed carefully. `domain/outbox` (the relay sidecar's own domain package, distinct from `domain/mail`) already defines `Service.ProcessRecord(ctx, rec libsoutbox.Record, maxAttempts int) error`, which today forwards `rec.Payload` straight to `Producer.ProduceSync(ctx, topic string, key, value []byte) error` unchanged — that's correct today because the outbox payload already is the final wire bytes. Putting the JSON-unmarshal-then-Avro-encode step inside `ProcessRecord` would make `domain/outbox` import `contracts`, reintroducing the same violation this spec fixes elsewhere. `ProcessRecord` is left untouched; instead, a new infra adapter wraps the `Producer` port so the conversion happens beneath the domain layer, invisibly to it:
 
 ```go
-var wire contracts.EmailCreated
-if err := json.Unmarshal(outboxRow.Payload, &wire); err != nil { /* mark failed */ }
-avroBytes, err := contracts.EncodeEmailCreated(wire) // avro.Marshal + registry ID lookup, cached
-if err != nil { /* mark failed, retry */ }
-producer.ProduceSync(ctx, outboxRow.Topic, outboxRow.Key, avroBytes)
+// infra/events/email_created_producer.go — new
+type EmailCreatedProducer struct {
+    inner outbox.Producer // the real franz-go-backed producer (libsoutbox.NewProducer's return value)
+}
+
+func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
+    var wire contracts.EmailCreated
+    if err := json.Unmarshal(value, &wire); err != nil {
+        return fmt.Errorf("decode staged outbox payload: %w", err)
+    }
+    avroBytes, err := contracts.EncodeEmailCreated(wire) // avro.Marshal + registry ID lookup, cached
+    if err != nil {
+        return fmt.Errorf("avro encode: %w", err)
+    }
+    return p.inner.ProduceSync(ctx, topic, key, avroBytes)
+}
 ```
+
+`cmd/main.go` wires `EmailCreatedProducer{inner: libsoutbox.NewProducer(...)}` in as the `outbox.Producer` implementation passed into `outbox.NewService(...)`, in place of the raw producer used today. `domain/outbox.Service.ProcessRecord` requires no code change at all — it keeps calling `s.producer.ProduceSync(ctx, rec.Topic, rec.Key, rec.Payload)` exactly as it does now, unaware that the bytes it passes get converted from JSON to Avro underneath.
 
 This keeps the registry dependency entirely out of the transactional write path, and keeps pending outbox rows human-readable via plain SQL (`SELECT payload FROM outbox WHERE status = 'pending'`) instead of opaque binary — useful for debugging stuck rows.
 
@@ -205,7 +220,7 @@ This keeps the registry dependency entirely out of the transactional write path,
 
 The inbox table's `payload BYTEA` column is unchanged — it has to keep storing raw wire bytes (Avro-encoded, Confluent-enveloped) as received from Kafka, since durability must happen before any decode attempt (which requires a registry round-trip) is even possible. Only the *decode call site* moves.
 
-Today, `domain/inbox/service.go`'s `ProcessEmailReceived(ctx, rec libsinbox.Record, maxAttempts int)` does `json.Unmarshal(rec.Payload, &payload)` itself. This spec moves the decode into `infra/inbox/email_received_consumer.go`, which already imports and calls `contracts` indirectly is not required today — this is the new import it gains:
+Today, `domain/inbox/service.go`'s `ProcessEmailReceived(ctx, rec libsinbox.Record, maxAttempts int)` does `json.Unmarshal(rec.Payload, &payload)` itself. This spec moves the decode into `infra/inbox/email_received_consumer.go` — `contracts` is a new import for that adapter, which doesn't need it today:
 
 ```go
 // domain/inbox/model.go — new
