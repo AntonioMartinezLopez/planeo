@@ -68,7 +68,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 
-	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, db)
+	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, inboxService)
 	if err := consumer.Run(runCtx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
 	}
