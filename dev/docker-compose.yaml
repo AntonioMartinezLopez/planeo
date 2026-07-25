@@ -66,23 +66,43 @@ services:
       - ROUNDCUBEMAIL_SMTP_PORT=3025 # SMTP port
 
   # kafka messaging (single node, KRaft mode - no Zookeeper)
+  # LOCAL DEV ONLY: KAFKA_SUPER_USERS grants User:ANONYMOUS full cluster-admin
+  # rights (required so the broker's own controller/broker self-registration,
+  # which is unavoidably PLAINTEXT/unauthenticated in this single-node KRaft
+  # setup, isn't rejected by the authorizer). Combined with the unauthenticated
+  # PLAINTEXT/PLAINTEXT_HOST listeners on 19092/9092 below, this means anyone
+  # who can reach this broker has full admin access with no credentials at all.
+  # Do not copy this KAFKA_SUPER_USERS/listener combination to a host-reachable
+  # or non-local environment - only the SASL_INTERNAL/SASL_HOST listeners
+  # (19094/9094) are actually authenticated.
   kafka:
     container_name: kafka
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:9092,SASL_INTERNAL://0.0.0.0:19094,SASL_HOST://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092,SASL_INTERNAL://kafka:19094,SASL_HOST://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SASL_INTERNAL:SASL_PLAINTEXT,SASL_HOST:SASL_PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/kafka_server_jaas.conf
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin;User:ANONYMOUS
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_BOOTSTRAP_ADMIN_PASSWORD: ${KAFKA_BOOTSTRAP_ADMIN_PASSWORD}
+    volumes:
+      - ./kafka/kafka_server_jaas.conf:/etc/kafka/secrets/kafka_server_jaas.conf:ro
+      - ./kafka/bootstrap.sh:/etc/kafka/docker/bootstrap.sh:ro
+    entrypoint: ["/bin/bash", "/etc/kafka/docker/bootstrap.sh"]
     ports:
       - 9092:9092
+      - 9094:9094
 
   # kafka UI for inspecting topics, consumer groups and messages
   kafka-ui:
@@ -108,13 +128,25 @@ services:
     depends_on:
       - postgres
       - kafka
+    # Gated behind a profile so a bare `docker compose up` (what start.sh
+    # runs first) never starts these with a blank Kafka SASL password.
+    # They're started explicitly, by name, once real credentials exist in
+    # dev/.env — see start.sh. Naming a service explicitly always starts it
+    # regardless of its profile, so this only affects the bare, no-args
+    # `docker compose up` case.
+    profiles:
+      - kafka-clients
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_USER: planeo
       DB_PASSWORD: planeo
       DB_NAME: mail
-      KAFKA_BROKERS: kafka:19092
+      KAFKA_BROKERS: kafka:19094
+      KAFKA_SASL_USERNAME: email-received-producer
+      KAFKA_SASL_PASSWORD: ${EMAIL_PRODUCER_KAFKA_SASL_PASSWORD}
+      KAFKA_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_TLS_ENABLED: "false"
       EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL: 1s
       EMAIL_RECEIVED_PRODUCER_BATCH_SIZE: "100"
       EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS: "5"
@@ -135,13 +167,25 @@ services:
     depends_on:
       - postgres
       - kafka
+    # Gated behind a profile so a bare `docker compose up` (what start.sh
+    # runs first) never starts these with a blank Kafka SASL password.
+    # They're started explicitly, by name, once real credentials exist in
+    # dev/.env — see start.sh. Naming a service explicitly always starts it
+    # regardless of its profile, so this only affects the bare, no-args
+    # `docker compose up` case.
+    profiles:
+      - kafka-clients
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_USER: planeo
       DB_PASSWORD: planeo
       DB_NAME: planeo
-      KAFKA_BROKERS: kafka:19092
+      KAFKA_BROKERS: kafka:19094
+      KAFKA_SASL_USERNAME: core-email-received-consumer
+      KAFKA_SASL_PASSWORD: ${CORE_CONSUMER_KAFKA_SASL_PASSWORD}
+      KAFKA_SASL_MECHANISM: SCRAM-SHA-256
+      KAFKA_TLS_ENABLED: "false"
       EMAIL_RECEIVED_CONSUMER_GROUP_NAME: core-email-received-consumer
       EMAIL_RECEIVED_CONSUMER_POLL_INTERVAL: 1s
       EMAIL_RECEIVED_CONSUMER_BATCH_SIZE: "100"

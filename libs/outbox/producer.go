@@ -13,8 +13,17 @@ type Producer interface {
 	ProduceSync(ctx context.Context, topic string, key, value []byte) error
 }
 
+// syncProducer is the narrow slice of *kgo.Client's API kafkaProducer needs -
+// declared here (not imported) so kafkaProducer can be driven by a fake in
+// tests without a live broker. *kgo.Client (built via planeo/libs/kafka.NewClient)
+// satisfies this structurally; production code never constructs a
+// syncProducer value directly, it passes a real *kgo.Client.
+type syncProducer interface {
+	ProduceSync(ctx context.Context, rs ...*kgo.Record) kgo.ProduceResults
+}
+
 type kafkaProducer struct {
-	client *kgo.Client
+	client syncProducer
 }
 
 func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
@@ -22,18 +31,10 @@ func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, valu
 	return result.FirstErr()
 }
 
-// NewProducer creates a Producer backed by a new franz-go client connected
-// to brokers, with broker-side auto-topic-creation enabled (without this,
-// franz-go disables it client-side by default regardless of the broker's
-// own auto.create.topics.enable setting). The returned *kgo.Client is also
-// returned so the caller can Close it on shutdown.
-func NewProducer(brokers []string) (Producer, *kgo.Client, error) {
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(brokers...),
-		kgo.AllowAutoTopicCreation(),
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	return &kafkaProducer{client: client}, client, nil
+// NewProducer wraps an already-authenticated *kgo.Client (see
+// planeo/libs/kafka.NewClient) as a Producer. This package no longer
+// constructs or owns the client's lifecycle - the caller does, and is
+// responsible for calling client.Close() on shutdown.
+func NewProducer(client syncProducer) Producer {
+	return &kafkaProducer{client: client}
 }

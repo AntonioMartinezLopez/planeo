@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"planeo/libs/events/contracts"
 	"planeo/libs/inbox"
+	"planeo/libs/kafka"
 	"planeo/libs/logger"
 	"planeo/services/core/internal/domain/category"
 	domaininbox "planeo/services/core/internal/domain/inbox"
@@ -16,6 +17,7 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func main() {
@@ -50,7 +52,23 @@ func main() {
 	defer stop()
 
 	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	consumer := inbox.NewConsumer(brokers, cfg.GroupName, contracts.EmailReceivedTopic, db)
+	kafkaClient, err := kafka.NewClient(
+		kafka.Config{
+			Brokers:    brokers,
+			Username:   cfg.KafkaSaslUsername,
+			Password:   cfg.KafkaSaslPassword,
+			Mechanism:  cfg.KafkaSaslMechanism,
+			TLSEnabled: cfg.KafkaTlsEnabled,
+		},
+		kgo.ConsumerGroup(cfg.GroupName),
+		kgo.ConsumeTopics(contracts.EmailReceivedTopic),
+		kgo.DisableAutoCommit(),
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
+	}
+
+	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, db)
 	if err := consumer.Run(runCtx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
 	}

@@ -9,17 +9,22 @@ import (
 
 type Client struct {
 	// Database connection and other fields would be defined here
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	conn *db.DBConnection
 }
 
 // NewClient creates a new instance of the Postgres client
 func NewClient(ctx context.Context, connectionUrl string) *Client {
-	db := db.InitializeDatabaseConnection(ctx, connectionUrl)
+	conn := db.InitializeDatabaseConnection(ctx, connectionUrl)
 	return &Client{
-		db: db.DB,
+		db:   conn.DB,
+		conn: conn,
 	}
 }
 
+// Close delegates to DBConnection.Close, which stops the background ping
+// goroutine before closing the pool - closing c.db directly would leave
+// that goroutine running against an already-closed pool.
 func (c Client) Close() {
-	c.db.Close()
+	c.conn.Close()
 }
