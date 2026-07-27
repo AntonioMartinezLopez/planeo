@@ -61,10 +61,22 @@ These are kept as two separate packages rather than one, because they change at 
 
 ```go
 // libs/schemaregistry/client.go
-// NewClient constructs a schema registry HTTP client. Thin wrapper over
-// sr.NewClient purely for a consistent construction point across this
-// codebase, matching libs/kafka.NewClient's pattern — adds no behavior.
-func NewClient(opts ...sr.ClientOpt) (*sr.Client, error) {
+// Config is the connection configuration for the schema registry client.
+// Mirrors libs/kafka.Config's shape and purpose: plain data for the common
+// case (today just the URL — auth fields get added here once a non-local
+// registry's scheme is decided, see Non-goals), so cmd/main.go never needs
+// to import franz-go/pkg/sr directly for ordinary construction.
+type Config struct {
+    URL string
+}
+
+// NewClient constructs a schema registry HTTP client from cfg. extraOpts
+// lets a caller layer additional sr.ClientOpt values (e.g. a one-off
+// sr.DialTLSConfig) on top — this package only ever builds the connection,
+// never decides what a caller does with it, same division of concerns as
+// libs/kafka.NewClient.
+func NewClient(cfg Config, extraOpts ...sr.ClientOpt) (*sr.Client, error) {
+    opts := append([]sr.ClientOpt{sr.URLs(cfg.URL)}, extraOpts...)
     return sr.NewClient(opts...)
 }
 
@@ -99,8 +111,9 @@ func NewSerde(client *sr.Client) *Serde {
 }
 
 // RegisterEncode resolves subject's ID and registers T for encoding.
-// Called once per type, at construction time, by whichever infra adapter
-// owns that type — this is the coupling site (see below).
+// Called once per type, at startup in cmd/main.go — this is the coupling
+// site (see below): the composition root is the one place allowed to know
+// both "this concrete type" and "this concrete Serde."
 func RegisterEncode[T any](ctx context.Context, s *Serde, subject string, schema avro.Schema) error {
     id, err := Register(ctx, s.client, subject, schema)
     if err != nil {
@@ -178,7 +191,9 @@ func Decode[T any](ctx context.Context, s *Serde, b []byte, readerSchema avro.Sc
 
 (The exact `Resolve`→`Unmarshal` call sequence inside the `ErrNotRegistered` branch was verified conceptually — two schemas are genuinely required, `Resolve` is the documented API for it — but not compiled against the real library; this is the piece to double-check first if implementation doesn't match.)
 
-Each service adds a `SCHEMA_REGISTRY_URL` env var to its `internal/config/config.go` (same pattern as `NATS_URL`, `DB_*`, `KC_*`), and `cmd/main.go` constructs the client once — `schemaregistry.NewClient(sr.URLs(cfg.SchemaRegistryURL))` for local dev, with `sr.BasicAuth(...)`/`sr.BearerToken(...)`/`sr.DialTLSConfig(...)` added once a non-local registry's auth scheme is decided (out of scope; see Non-goals). This mirrors how every other external client in this codebase is wired, and means moving from the local registry to a remote one is a config change, not a code change.
+Each service adds a `SCHEMA_REGISTRY_URL` env var to its `internal/config/config.go` (same pattern as `NATS_URL`, `DB_*`, `KC_*`), and `cmd/main.go` constructs the client once — `schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})`, needing no direct `franz-go/pkg/sr` import for this common case, with auth fields added to `Config` (or, if something more custom is needed, an `extraOpts` value like `sr.BasicAuth(...)`/`sr.BearerToken(...)`/`sr.DialTLSConfig(...)`) once a non-local registry's auth scheme is decided (out of scope; see Non-goals). This mirrors how every other external client in this codebase is wired (see `libs/kafka.Config`/`NewClient`), and means moving from the local registry to a remote one is a config change, not a code change.
+
+`cmd/main.go` also constructs the `*Serde` and performs the one `RegisterEncode`/`RegisterDecode` call for `EmailCreated` right there, then passes the ready `*Serde` into the infra adapter's constructor (Sections 7, 8). This matches how `libs/kafka.NewClient`'s raw `*kgo.Client` is already handled in this codebase: it's constructed in `main.go` and handed directly to exactly one wrapping call (`outbox.NewProducer`/`inbox.NewConsumer`) — from that point on, nothing downstream sees the raw third-party type again. Keeping the adapter constructors themselves plain (no `ctx`, no error return) also matches every other existing infra adapter constructor in this codebase.
 
 ### `libs/eventschemas` — schemas and generated types
 
@@ -230,9 +245,11 @@ type EmailCreated struct {
 
 `eventschemas` has **no** dependency on `libs/schemaregistry` and defines no encode/decode functions of its own — it only holds data (schemas, generated structs, the topic/subject name constants). This is what makes it a plain, replaceable dependency: onboarding a second event type touches only this package, never `libs/schemaregistry`.
 
-### Where the coupling lives: infra adapters
+### Where the coupling lives: `cmd/main.go`
 
-Neither package couples a specific type to the generic engine — that happens explicitly in the infra adapters that need it (Sections 7 and 8), which construct their own `*schemaregistry.Serde` and call `schemaregistry.RegisterEncode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema)` (producer) or `RegisterDecode` (consumer) at construction time. This is deliberate: an adapter's job in hexagonal architecture is exactly to wire concrete things together, so this is where "which type, which subject, which schema" belongs — not hidden behind a per-type wrapper function, and not pushed into either generic package.
+Neither package couples a specific type to the generic engine — that happens explicitly in each sidecar's `cmd/main.go`, which builds the `*schemaregistry.Serde` and calls `schemaregistry.RegisterEncode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema)` (producer) or `RegisterDecode` (consumer) before constructing the infra adapter (Sections 7, 8). This is deliberate, and consistent with this codebase's existing rule that "wiring happens exclusively in `cmd/main.go`": the composition root is exactly the place where "which type, which subject, which schema" belongs — not hidden behind a per-type wrapper function, not pushed into either generic package, and not leaked into the infra adapter's own constructor signature either (see the investigation below).
+
+**A note on why this isn't in the adapter constructor, revised from an earlier draft of this section:** the first version of this design had the infra adapter's own constructor take `*sr.Client` directly and perform the `RegisterEncode`/`RegisterDecode` call itself. That leaks `franz-go/pkg/sr`'s own type one hop further than this codebase's existing convention allows — compare `libs/kafka.NewClient`, which returns the raw `*kgo.Client`, but only ever hands it to *one* further wrapping call (`outbox.NewProducer`/`inbox.NewConsumer`); nothing beyond that point ever sees the raw third-party type again. Moving registration into `cmd/main.go` restores that same one-hop discipline for the registry client: `main.go` constructs `*sr.Client` → `schemaregistry.NewSerde` → registers the type → hands the finished `*schemaregistry.Serde` (this codebase's own type) to the adapter constructor, which never imports `sr` at all. It also restores the adapter constructors to the plain, `ctx`/error-free shape every other infra adapter constructor in this codebase already has.
 
 ## 4. Schema registration
 
@@ -244,12 +261,12 @@ New Go command, `libs/eventschemas/cmd/registerschemas/main.go`, using `schemare
 
 ## 5. Runtime flow
 
-**Produce** (at adapter construction, then steady state):
-1. At startup, `schemaregistry.RegisterEncode[EmailCreated]` resolves the schema ID matching the process's compiled-in schema (real HTTP call to Apicurio) and registers it with the underlying `sr.Serde`. This is eager and can fail construction — see Section 7.
+**Produce** (in `cmd/main.go` at startup, then steady state):
+1. `main.go` calls `schemaregistry.RegisterEncode[EmailCreated]`, which resolves the schema ID matching the process's compiled-in schema (real HTTP call to Apicurio) and registers it with the underlying `sr.Serde`. This is eager and fails startup (`log.Fatal`) rather than construction of the adapter itself — see Section 7.
 2. Every `Encode` call after that is `sr.Serde.Encode`'s own cached path: `avro.Marshal` + the registered ID + magic byte, pure local computation, no per-message network call.
 
-**Consume** (at adapter construction, then steady state, then on schema change):
-1. At startup, `schemaregistry.RegisterDecode[EmailCreated]` resolves the ID matching the process's own compiled-in schema and registers it for direct decoding (no resolution needed, since a message with this exact ID was necessarily written with this exact schema) — this also fails construction fast if the registry is unreachable, rather than only surfacing that on the first message (see Section 8).
+**Consume** (in `cmd/main.go` at startup, then steady state, then on schema change):
+1. `main.go` calls `schemaregistry.RegisterDecode[EmailCreated]`, which resolves the ID matching the process's own compiled-in schema and registers it for direct decoding (no resolution needed, since a message with this exact ID was necessarily written with this exact schema) — this also fails startup fast if the registry is unreachable, rather than only surfacing that on the first message (see Section 8).
 2. Any message whose ID matches that registration decodes via `sr.Serde`'s own cached fast path.
 3. Any message with a *different* ID (an older or newer schema version this Serde hasn't registered) causes `sr.Serde.Decode` to return `ErrNotRegistered`; `schemaregistry.Decode` catches this, fetches that writer schema, resolves it against the reader schema (`SchemaCompatibility.Resolve` — see Section 3's caveat on the exact call sequence), registers the resolved decode function under that ID, and retries — filling in the reader's declared defaults for fields the writer didn't have, and dropping fields the writer had that the reader doesn't. Every subsequent message with that same ID then also hits the fast path.
 
@@ -322,23 +339,17 @@ This has to be placed carefully. `domain/outbox` (the relay sidecar's own domain
 
 ```go
 // infra/events/email_created_producer.go — new
+// EmailCreatedProducer takes an already-registered *schemaregistry.Serde —
+// it never imports franz-go/pkg/sr itself, and its constructor is plain
+// (no ctx, no error), matching every other infra adapter constructor in
+// this codebase. Registration happens in cmd/main.go instead (see below).
 type EmailCreatedProducer struct {
-    inner outbox.Producer        // the real franz-go-backed producer (libsoutbox.NewProducer's return value)
+    inner outbox.Producer // the real franz-go-backed producer (libsoutbox.NewProducer's return value)
     serde *schemaregistry.Serde
 }
 
-// NewEmailCreatedProducer registers EmailCreated for encoding once, at
-// construction time — this is the coupling site described in Section 3.
-// It takes ctx and can fail, since registration is a real registry
-// round-trip, not something deferred to the first ProduceSync call.
-func NewEmailCreatedProducer(ctx context.Context, inner outbox.Producer, client *sr.Client) (*EmailCreatedProducer, error) {
-    serde := schemaregistry.NewSerde(client)
-    if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
-        ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
-    ); err != nil {
-        return nil, fmt.Errorf("registering EmailCreated for encoding: %w", err)
-    }
-    return &EmailCreatedProducer{inner: inner, serde: serde}, nil
+func NewEmailCreatedProducer(inner outbox.Producer, serde *schemaregistry.Serde) *EmailCreatedProducer {
+    return &EmailCreatedProducer{inner: inner, serde: serde}
 }
 
 func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
@@ -354,7 +365,23 @@ func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, ke
 }
 ```
 
-`cmd/main.go` calls `events.NewEmailCreatedProducer(ctx, libsoutbox.NewProducer(...), registryClient)` and fails startup (`log.Fatal`) if it errors, then passes the result into `outbox.NewService(...)` as the `outbox.Producer` implementation, in place of the raw producer used today. `domain/outbox.Service.ProcessRecord` requires no code change at all — it keeps calling `s.producer.ProduceSync(ctx, rec.Topic, rec.Key, rec.Payload)` exactly as it does now, unaware that the bytes it passes get converted from JSON to Avro underneath.
+`cmd/main.go` does the registration and construction in sequence:
+
+```go
+registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
+if err != nil {
+    log.Fatal().Err(err).Msg("Failed to create schema registry client")
+}
+serde := schemaregistry.NewSerde(registryClient)
+if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
+    ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+); err != nil {
+    log.Fatal().Err(err).Msg("Failed to register EmailCreated for encoding")
+}
+producer := events.NewEmailCreatedProducer(libsoutbox.NewProducer(kafkaClient), serde)
+```
+
+...then passes `producer` into `outbox.NewService(...)` as the `outbox.Producer` implementation, in place of the raw producer used today. `domain/outbox.Service.ProcessRecord` requires no code change at all — it keeps calling `s.producer.ProduceSync(ctx, rec.Topic, rec.Key, rec.Payload)` exactly as it does now, unaware that the bytes it passes get converted from JSON to Avro underneath.
 
 This keeps the registry dependency entirely out of the transactional write path, and keeps pending outbox rows human-readable via plain SQL (`SELECT payload FROM outbox WHERE status = 'pending'`) instead of opaque binary — useful for debugging stuck rows.
 
@@ -399,7 +426,7 @@ type EmailReceivedEvent struct {
 }
 ```
 
-`infra/inbox/email_received_consumer.go` gains a `serde *schemaregistry.Serde` field. Its constructor registers `EmailCreated` for decoding up front via `RegisterDecode` — this is both the coupling site (matching the producer side) and a startup fail-fast check, per Section 5:
+`infra/inbox/email_received_consumer.go` gains a `serde *schemaregistry.Serde` field, passed in already-registered — same as the producer side, its constructor is plain (no `ctx`, no error, no `sr` import):
 
 ```go
 // infra/inbox/email_received_consumer.go
@@ -414,25 +441,18 @@ type EmailReceivedConsumer struct {
 }
 
 func NewEmailReceivedConsumer(
-    ctx context.Context,
     service domaininbox.Service,
-    client *sr.Client,
+    serde *schemaregistry.Serde,
     topic string,
     instanceID string,
     batchSize int,
     maxAttempts int,
     claimTTL time.Duration,
-) (*EmailReceivedConsumer, error) {
-    serde := schemaregistry.NewSerde(client)
-    if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](
-        ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
-    ); err != nil {
-        return nil, fmt.Errorf("registering EmailCreated for decoding: %w", err)
-    }
+) *EmailReceivedConsumer {
     return &EmailReceivedConsumer{
         service: service, serde: serde, topic: topic, instanceID: instanceID,
         batchSize: batchSize, claimTTL: claimTTL, maxAttempts: maxAttempts,
-    }, nil
+    }
 }
 
 // PollOnce claims a batch of pending inbox rows and processes each in turn.
@@ -466,6 +486,25 @@ func (a *EmailReceivedConsumer) PollOnce(ctx context.Context) error {
 
     return nil
 }
+```
+
+`cmd/main.go` mirrors the producer side exactly:
+
+```go
+registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
+if err != nil {
+    log.Fatal().Err(err).Msg("Failed to create schema registry client")
+}
+serde := schemaregistry.NewSerde(registryClient)
+if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](
+    ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+); err != nil {
+    log.Fatal().Err(err).Msg("Failed to register EmailCreated for decoding")
+}
+emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
+    inboxService, serde, eventschemas.EmailReceivedTopic, instanceID,
+    cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
+)
 ```
 
 `domain/inbox/service.go`'s `ProcessEmailReceived` drops its `contracts` import and `json.Unmarshal` call entirely — its signature changes to `ProcessEmailReceived(ctx context.Context, recordID int64, event EmailReceivedEvent, maxAttempts int) error`, and every `rec.ID` reference in its body becomes `recordID`. The rest of the function (categories, LLM extraction/classification, the `UpsertRequest` + `MarkProcessed` transaction, the `MarkFailed`-on-error paths) is otherwise unchanged.
