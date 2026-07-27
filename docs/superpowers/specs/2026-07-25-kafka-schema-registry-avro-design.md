@@ -100,7 +100,18 @@ type EmailCreated struct {
 }
 ```
 
-`contracts.go` adds thin serde helpers wrapping `sr.Serde`, e.g. `EncodeEmailCreated(v EmailCreated) ([]byte, error)` and `DecodeEmailCreated(b []byte, v *EmailCreated) error`, so callers never touch `sr.Serde` or the registry client directly.
+`contracts.go` adds a constructed type, not free functions, so the registry endpoint and credentials are configuration, not something baked into the package:
+
+```go
+// libs/events/contracts/contracts.go
+type Serde struct{ serde sr.Serde /* ... */ }
+
+func NewSerde(client *sr.Client) (*Serde, error) { /* registers EmailCreated's encode/decode fns against its schema ID */ }
+func (s *Serde) EncodeEmailCreated(v EmailCreated) ([]byte, error) { /* ... */ }
+func (s *Serde) DecodeEmailCreated(b []byte, v *EmailCreated) error { /* ... */ }
+```
+
+Each service adds a `SCHEMA_REGISTRY_URL` env var to its `internal/config/config.go` (same pattern as `NATS_URL`, `DB_*`, `KC_*`), and `cmd/main.go` constructs the `sr.Client` once — `sr.NewClient(sr.URLs(cfg.SchemaRegistryURL))` for local dev, with `sr.BasicAuth(...)`/`sr.BearerToken(...)`/`sr.DialTLSConfig(...)` added once a non-local registry's auth scheme is decided (out of scope here; see Non-goals) — then wraps it in `contracts.NewSerde(...)` and injects that into the infra adapters that need it (`EmailCreatedProducer`, the inbox consumer adapter, `cmd/registerschemas`) via their constructors. This mirrors how every other external client in this codebase is wired, and means moving from the local registry to a remote one is a config change, not a code change.
 
 `contracts` continues to import nothing from `email` or `core`. This is deliberate boundary discipline: since the repo is expected to split into separate repos eventually, keeping `contracts` fully self-contained (only stdlib + the Avro codec + `pkg/sr`) means a future extraction is a matter of moving the directory and giving it its own `go.mod` — not a redesign. Nothing in this spec builds that extraction; the single-module structure (`CLAUDE.md`: "Single `go.mod` at the root") is unchanged.
 
@@ -194,7 +205,8 @@ This has to be placed carefully. `domain/outbox` (the relay sidecar's own domain
 ```go
 // infra/events/email_created_producer.go — new
 type EmailCreatedProducer struct {
-    inner outbox.Producer // the real franz-go-backed producer (libsoutbox.NewProducer's return value)
+    inner outbox.Producer  // the real franz-go-backed producer (libsoutbox.NewProducer's return value)
+    serde *contracts.Serde // constructed in cmd/main.go from the configured registry client
 }
 
 func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
@@ -202,7 +214,7 @@ func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, ke
     if err := json.Unmarshal(value, &wire); err != nil {
         return fmt.Errorf("decode staged outbox payload: %w", err)
     }
-    avroBytes, err := contracts.EncodeEmailCreated(wire) // avro.Marshal + registry ID lookup, cached
+    avroBytes, err := p.serde.EncodeEmailCreated(wire) // avro.Marshal + registry ID lookup, cached
     if err != nil {
         return fmt.Errorf("avro encode: %w", err)
     }
@@ -210,7 +222,7 @@ func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, ke
 }
 ```
 
-`cmd/main.go` wires `EmailCreatedProducer{inner: libsoutbox.NewProducer(...)}` in as the `outbox.Producer` implementation passed into `outbox.NewService(...)`, in place of the raw producer used today. `domain/outbox.Service.ProcessRecord` requires no code change at all — it keeps calling `s.producer.ProduceSync(ctx, rec.Topic, rec.Key, rec.Payload)` exactly as it does now, unaware that the bytes it passes get converted from JSON to Avro underneath.
+`cmd/main.go` wires `EmailCreatedProducer{inner: libsoutbox.NewProducer(...), serde: contracts.NewSerde(registryClient)}` in as the `outbox.Producer` implementation passed into `outbox.NewService(...)`, in place of the raw producer used today. `domain/outbox.Service.ProcessRecord` requires no code change at all — it keeps calling `s.producer.ProduceSync(ctx, rec.Topic, rec.Key, rec.Payload)` exactly as it does now, unaware that the bytes it passes get converted from JSON to Avro underneath.
 
 This keeps the registry dependency entirely out of the transactional write path, and keeps pending outbox rows human-readable via plain SQL (`SELECT payload FROM outbox WHERE status = 'pending'`) instead of opaque binary — useful for debugging stuck rows.
 
@@ -242,6 +254,8 @@ MarkDecodeFailure(ctx context.Context, recordID int64, err error, maxAttempts in
 
 ```go
 // infra/inbox/email_received_consumer.go
+// EmailReceivedConsumer gains a serde *contracts.Serde field, constructed in
+// cmd/main.go from the configured registry client, same as EmailCreatedProducer.
 func (a *EmailReceivedConsumer) PollOnce(ctx context.Context) error {
     records, err := a.service.FetchBatch(ctx, a.topic, a.instanceID, a.batchSize, a.claimTTL)
     if err != nil {
@@ -249,7 +263,7 @@ func (a *EmailReceivedConsumer) PollOnce(ctx context.Context) error {
     }
     for _, rec := range records {
         var wire contracts.EmailCreated
-        if err := contracts.DecodeEmailCreated(rec.Payload, &wire); err != nil {
+        if err := a.serde.DecodeEmailCreated(rec.Payload, &wire); err != nil {
             if err := a.service.MarkDecodeFailure(ctx, rec.ID, err, a.maxAttempts); err != nil {
                 return err
             }
