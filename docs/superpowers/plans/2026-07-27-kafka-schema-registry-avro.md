@@ -4,7 +4,7 @@
 
 **Goal:** Replace hand-maintained JSON Kafka payloads with Avro schemas registered in a local Apicurio schema registry, and fix the domain-layer serialization violation in `domain/mail` and `domain/inbox` along the way.
 
-**Architecture:** Two new packages — `libs/schemaregistry` (generic Kafka/registry/Avro engine, zero app knowledge, built on `franz-go/pkg/sr`'s lower-level client + Go generics) and `libs/eventschemas` (the `email_created.avsc` schema, its `avrogen`-generated Go type, and subject/topic constants). Infra adapters (`infra/events.EmailCreatedProducer`, `infra/inbox.EmailReceivedConsumer`) are the only places that couple a specific type to the generic engine. `domain/mail` and `domain/inbox` become fully free of wire-format knowledge.
+**Architecture:** Two new packages — `libs/schemaregistry` (generic Kafka/registry/Avro engine, zero app knowledge, built on `franz-go/pkg/sr`'s lower-level client + Go generics) and `libs/eventschemas` (the `email_received.avsc` schema, its `avrogen`-generated Go type, and subject/topic constants). Infra adapters (`infra/events.EmailReceivedProducer`, `infra/inbox.EmailReceivedConsumer`) are the only places that couple a specific type to the generic engine. `domain/mail` and `domain/inbox` become fully free of wire-format knowledge.
 
 **Tech Stack:** Go 1.26.5, `github.com/twmb/franz-go/pkg/sr`, `github.com/iskorotkov/avro/v2` (+ its `avrogen` codegen tool), Apicurio Registry 3.3.0 (Docker), Task, goose, mockery, testcontainers-go.
 
@@ -401,21 +401,21 @@ git commit -m "Add libs/schemaregistry: wraps sr.Serde, adds schema-evolution re
 ## Task 3: `libs/eventschemas` — schema + generated type
 
 **Files:**
-- Create: `libs/eventschemas/schemas/email_created.avsc`
-- Create: `libs/eventschemas/email_created_gen.go`
+- Create: `libs/eventschemas/schemas/email_received.avsc`
+- Create: `libs/eventschemas/email_received_gen.go`
 - Create: `libs/eventschemas/eventschemas.go`
 - Test: `libs/eventschemas/eventschemas_test.go`
 
 **Interfaces:**
-- Produces: `eventschemas.EmailCreated` (struct), `eventschemas.EmailCreatedSchema` (`avro.Schema`), `eventschemas.EmailReceivedTopic`, `eventschemas.EmailReceivedSubject` (strings), `eventschemas.Schemas() map[string]avro.Schema`. Tasks 6, 8, 9, 10, 11, 12 all depend on these exact names.
+- Produces: `eventschemas.EmailReceived` (struct), `eventschemas.EmailReceivedSchema` (`avro.Schema`), `eventschemas.EmailReceivedTopic`, `eventschemas.EmailReceivedSubject` (strings), `eventschemas.Schemas() map[string]avro.Schema`. Tasks 6, 8, 9, 10, 11, 12 all depend on these exact names.
 
 - [ ] **Step 1: Write the `.avsc` schema**
 
 ```json
-// libs/eventschemas/schemas/email_created.avsc
+// libs/eventschemas/schemas/email_received.avsc
 {
   "type": "record",
-  "name": "EmailCreated",
+  "name": "EmailReceived",
   "namespace": "planeo.email",
   "fields": [
     {"name": "subject", "type": "string"},
@@ -442,31 +442,31 @@ import (
 	avro "github.com/iskorotkov/avro/v2"
 )
 
-func TestSchemas_includesEmailCreated(t *testing.T) {
+func TestSchemas_includesEmailReceived(t *testing.T) {
 	schemas := eventschemas.Schemas()
 	schema, ok := schemas[eventschemas.EmailReceivedSubject]
 	if !ok {
 		t.Fatalf("Schemas() missing subject %q", eventschemas.EmailReceivedSubject)
 	}
-	if schema.String() != eventschemas.EmailCreatedSchema.String() {
-		t.Errorf("Schemas()[%q] does not match EmailCreatedSchema", eventschemas.EmailReceivedSubject)
+	if schema.String() != eventschemas.EmailReceivedSchema.String() {
+		t.Errorf("Schemas()[%q] does not match EmailReceivedSchema", eventschemas.EmailReceivedSubject)
 	}
 }
 
-func TestEmailCreated_avroRoundTrip(t *testing.T) {
-	in := eventschemas.EmailCreated{
+func TestEmailReceived_avroRoundTrip(t *testing.T) {
+	in := eventschemas.EmailReceived{
 		Subject:        "hello",
 		Body:           "world",
 		From:           "a@b.com",
 		MessageId:      "msg-1",
 		OrganizationId: 7,
 	}
-	data, err := avro.Marshal(eventschemas.EmailCreatedSchema, in)
+	data, err := avro.Marshal(eventschemas.EmailReceivedSchema, in)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	var out eventschemas.EmailCreated
-	if err := avro.Unmarshal(eventschemas.EmailCreatedSchema, data, &out); err != nil {
+	var out eventschemas.EmailReceived
+	if err := avro.Unmarshal(eventschemas.EmailReceivedSchema, data, &out); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
 	if out.Subject != in.Subject || out.Body != in.Body || out.From != in.From ||
@@ -487,10 +487,10 @@ Expected: FAIL — package doesn't exist yet.
 
 ```bash
 cd libs/eventschemas
-avrogen -pkg eventschemas -o email_created_gen.go -tags json:camel schemas/email_created.avsc
+avrogen -pkg eventschemas -o email_received_gen.go -tags json:camel schemas/email_received.avsc
 ```
 
-Expected output, `libs/eventschemas/email_created_gen.go` (verify the actual `avrogen` output matches this shape; if the tool's real output differs — e.g. no `avro.Schema` var, different tag casing — keep the tool's real output, it is authoritative over this text):
+Expected output, `libs/eventschemas/email_received_gen.go` (verify the actual `avrogen` output matches this shape; if the tool's real output differs — e.g. no `avro.Schema` var, different tag casing — keep the tool's real output, it is authoritative over this text):
 
 ```go
 // Code generated by avrogen. DO NOT EDIT.
@@ -501,7 +501,7 @@ import (
 	"time"
 )
 
-type EmailCreated struct {
+type EmailReceived struct {
 	Subject        string    `avro:"subject" json:"subject"`
 	Body           string    `avro:"body" json:"body"`
 	From           string    `avro:"from" json:"from"`
@@ -530,20 +530,20 @@ const (
 	EmailReceivedSubject = "email.received-value"
 )
 
-//go:embed schemas/email_created.avsc
+//go:embed schemas/email_received.avsc
 var emailCreatedSchemaRaw string
 
-// EmailCreatedSchema is the parsed form of schemas/email_created.avsc — the
+// EmailReceivedSchema is the parsed form of schemas/email_received.avsc — the
 // single source of truth this type and its registered version are both
 // derived from.
-var EmailCreatedSchema = avro.MustParse(emailCreatedSchemaRaw)
+var EmailReceivedSchema = avro.MustParse(emailCreatedSchemaRaw)
 
 // Schemas returns every schema this package owns, keyed by registry subject
 // name. cmd/registerschemas (Task 4) walks this generically — it never
 // hardcodes which event types exist.
 func Schemas() map[string]avro.Schema {
 	return map[string]avro.Schema{
-		EmailReceivedSubject: EmailCreatedSchema,
+		EmailReceivedSubject: EmailReceivedSchema,
 	}
 }
 ```
@@ -551,7 +551,7 @@ func Schemas() map[string]avro.Schema {
 - [ ] **Step 6: Run the test to verify it passes**
 
 Run: `go test ./libs/eventschemas/... -v`
-Expected: PASS for both `TestSchemas_includesEmailCreated` and `TestEmailCreated_avroRoundTrip` (no further test changes needed — Step 1's test already used the real `avro.Marshal`/`avro.Unmarshal` calls, it was just waiting on `eventschemas.go` and the generated struct to exist).
+Expected: PASS for both `TestSchemas_includesEmailReceived` and `TestEmailReceived_avroRoundTrip` (no further test changes needed — Step 1's test already used the real `avro.Marshal`/`avro.Unmarshal` calls, it was just waiting on `eventschemas.go` and the generated struct to exist).
 
 - [ ] **Step 7: Commit**
 
@@ -915,7 +915,7 @@ git commit -m "Remove wire-format knowledge from domain/mail"
 - Modify: `services/email/internal/test/mail/mail_test.go` (integration test — adjust to the file's actual current assertions when touching it; the exact current content wasn't re-verified during planning, so confirm what it asserts today before changing it)
 
 **Interfaces:**
-- Consumes: `mail.OutboxEvent{Key, Fields}` (Task 7), `eventschemas.EmailCreated`, `eventschemas.EmailReceivedTopic` (Task 3).
+- Consumes: `mail.OutboxEvent{Key, Fields}` (Task 7), `eventschemas.EmailReceived`, `eventschemas.EmailReceivedTopic` (Task 3).
 
 - [ ] **Step 1: Update `CreateOutboxEvent`**
 
@@ -938,7 +938,7 @@ import (
 // ... FetchBatch, MarkProcessed, MarkFailed unchanged (see below, no edits needed) ...
 
 func (c *Client) CreateOutboxEvent(ctx context.Context, mailID int, event mail.OutboxEvent) error {
-	wire := eventschemas.EmailCreated{
+	wire := eventschemas.EmailReceived{
 		Subject:        event.Fields.Subject,
 		Body:           event.Fields.Body,
 		From:           event.Fields.From,
@@ -973,7 +973,7 @@ Only `CreateOutboxEvent` changes; `FetchBatch`, `MarkProcessed`, `MarkFailed` in
 
 - [ ] **Step 2: Read the current integration test before editing it**
 
-Read `services/email/internal/test/mail/mail_test.go` in full first (its exact current content was not re-verified during plan-writing — the design spec's Testing Implications section describes the intent: assert the outbox row's `payload` is valid JSON matching `eventschemas.EmailCreated`'s shape). Update whichever assertion currently checks the outbox row's payload bytes to instead `json.Unmarshal` the row into `eventschemas.EmailCreated` and assert on its fields, matching this task's new `CreateOutboxEvent` behavior. Keep every other assertion in that file (dedup behavior, transaction atomicity) unchanged.
+Read `services/email/internal/test/mail/mail_test.go` in full first (its exact current content was not re-verified during plan-writing — the design spec's Testing Implications section describes the intent: assert the outbox row's `payload` is valid JSON matching `eventschemas.EmailReceived`'s shape). Update whichever assertion currently checks the outbox row's payload bytes to instead `json.Unmarshal` the row into `eventschemas.EmailReceived` and assert on its fields, matching this task's new `CreateOutboxEvent` behavior. Keep every other assertion in that file (dedup behavior, transaction atomicity) unchanged.
 
 - [ ] **Step 3: Run the integration test**
 
@@ -989,22 +989,22 @@ git commit -m "Map EmailReceivedFields to the eventschemas wire type in CreateOu
 
 ---
 
-## Task 9: `infra/events.EmailCreatedProducer` — Avro-encode at produce time
+## Task 9: `infra/events.EmailReceivedProducer` — Avro-encode at produce time
 
 **Files:**
-- Create: `services/email/internal/infra/events/email_created_producer.go`
+- Create: `services/email/internal/infra/events/email_received_producer.go`
 - Modify: `services/email/cmd/email-received-producer/config.go`
 - Modify: `services/email/cmd/email-received-producer/main.go`
-- Test: `services/email/internal/infra/events/email_created_producer_test.go`
+- Test: `services/email/internal/infra/events/email_received_producer_test.go`
 
 **Interfaces:**
-- Consumes: `outbox.Producer` (the port `domain/outbox` already defines), `schemaregistry.Encode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailCreated` (Task 3).
-- Produces: `events.NewEmailCreatedProducer(inner, serde) *EmailCreatedProducer`, satisfying `domain/outbox.Producer` — wired into `outbox.NewService(...)` in place of the raw `outbox.NewProducer(...)` result. This constructor is plain (no `ctx`, no error) — the `*schemaregistry.Serde` it receives is already registered by `cmd/main.go` before construction (Step 6). This package never imports `github.com/twmb/franz-go/pkg/sr`.
+- Consumes: `outbox.Producer` (the port `domain/outbox` already defines), `schemaregistry.Encode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailReceived` (Task 3).
+- Produces: `events.NewEmailReceivedProducer(inner, serde) *EmailReceivedProducer`, satisfying `domain/outbox.Producer` — wired into `outbox.NewService(...)` in place of the raw `outbox.NewProducer(...)` result. This constructor is plain (no `ctx`, no error) — the `*schemaregistry.Serde` it receives is already registered by `cmd/main.go` before construction (Step 6). This package never imports `github.com/twmb/franz-go/pkg/sr`.
 
 - [ ] **Step 1: Write the failing unit test**
 
 ```go
-// services/email/internal/infra/events/email_created_producer_test.go
+// services/email/internal/infra/events/email_received_producer_test.go
 package events_test
 
 import (
@@ -1060,18 +1060,18 @@ func startRegistry(t *testing.T) *schemaregistry.Serde {
 		t.Fatalf("NewClient: %v", err)
 	}
 	serde := schemaregistry.NewSerde(client)
-	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema); err != nil {
+	if err := schemaregistry.RegisterEncode[eventschemas.EmailReceived](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema); err != nil {
 		t.Fatalf("RegisterEncode: %v", err)
 	}
 	return serde
 }
 
-func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
+func TestEmailReceivedProducer_encodesAndForwards(t *testing.T) {
 	serde := startRegistry(t)
 	fake := &fakeProducer{}
-	producer := events.NewEmailCreatedProducer(fake, serde)
+	producer := events.NewEmailReceivedProducer(fake, serde)
 
-	wire := eventschemas.EmailCreated{
+	wire := eventschemas.EmailReceived{
 		Subject: "hi", Body: "body", From: "a@b.com",
 		MessageId: "msg-1", OrganizationId: 1,
 	}
@@ -1095,8 +1095,8 @@ func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
 	// Decode what was actually passed to the inner producer using the same
 	// serde, proving the bytes are genuinely Avro-encoded, not just passed
 	// through unchanged.
-	var decoded eventschemas.EmailCreated
-	if err := schemaregistry.Decode(context.Background(), serde, fake.gotVal, eventschemas.EmailCreatedSchema, &decoded); err != nil {
+	var decoded eventschemas.EmailReceived
+	if err := schemaregistry.Decode(context.Background(), serde, fake.gotVal, eventschemas.EmailReceivedSchema, &decoded); err != nil {
 		t.Fatalf("decoding what was passed to inner producer: %v", err)
 	}
 	if decoded.Subject != "hi" || decoded.OrganizationId != 1 {
@@ -1104,10 +1104,10 @@ func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
 	}
 }
 
-func TestEmailCreatedProducer_badJSONPayload(t *testing.T) {
+func TestEmailReceivedProducer_badJSONPayload(t *testing.T) {
 	serde := startRegistry(t)
 	fake := &fakeProducer{}
-	producer := events.NewEmailCreatedProducer(fake, serde)
+	producer := events.NewEmailReceivedProducer(fake, serde)
 
 	err := producer.ProduceSync(context.Background(), "email.received", []byte("1"), []byte("not-json"))
 	if err == nil {
@@ -1128,7 +1128,7 @@ Expected: FAIL — package doesn't exist.
 - [ ] **Step 3: Write the implementation**
 
 ```go
-// services/email/internal/infra/events/email_created_producer.go
+// services/email/internal/infra/events/email_received_producer.go
 package events
 
 import (
@@ -1141,25 +1141,31 @@ import (
 	domainoutbox "planeo/services/email/internal/domain/outbox"
 )
 
-// EmailCreatedProducer wraps the real Kafka producer so the JSON-staged
+// EmailReceivedProducer wraps the real Kafka producer so the JSON-staged
 // outbox payload gets Avro-encoded right before it reaches Kafka — this is
 // the coupling site described in the design spec's Section 3:
 // domain/outbox.Service.ProcessRecord stays completely unaware this
-// conversion happens. serde is already registered for EmailCreated by the
+// conversion happens. serde is already registered for EmailReceived by the
 // time it reaches here (see cmd/main.go, Step 6) — this package never
 // imports franz-go/pkg/sr, and this constructor is plain, matching every
 // other infra adapter constructor in this codebase.
-type EmailCreatedProducer struct {
+//
+// Note: services/email/internal/infra/outbox.EmailReceivedProducer already
+// exists (the driving adapter owning the polling loop, calling
+// domain/outbox.Service.ProcessRecord) — this is a deliberate near-duplicate
+// name, a different type in a different package (infra/events, not
+// infra/outbox), disambiguated only by package qualification.
+type EmailReceivedProducer struct {
 	inner domainoutbox.Producer
 	serde *schemaregistry.Serde
 }
 
-func NewEmailCreatedProducer(inner domainoutbox.Producer, serde *schemaregistry.Serde) *EmailCreatedProducer {
-	return &EmailCreatedProducer{inner: inner, serde: serde}
+func NewEmailReceivedProducer(inner domainoutbox.Producer, serde *schemaregistry.Serde) *EmailReceivedProducer {
+	return &EmailReceivedProducer{inner: inner, serde: serde}
 }
 
-func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
-	var wire eventschemas.EmailCreated
+func (p *EmailReceivedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
+	var wire eventschemas.EmailReceived
 	if err := json.Unmarshal(value, &wire); err != nil {
 		return fmt.Errorf("decode staged outbox payload: %w", err)
 	}
@@ -1260,14 +1266,14 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create schema registry client")
 	}
 	serde := schemaregistry.NewSerde(registryClient)
-	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
-		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+	if err := schemaregistry.RegisterEncode[eventschemas.EmailReceived](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema,
 	); err != nil {
-		log.Fatal().Err(err).Msg("Failed to register EmailCreated for encoding")
+		log.Fatal().Err(err).Msg("Failed to register EmailReceived for encoding")
 	}
 
 	rawProducer := outbox.NewProducer(kafkaClient)
-	producer := events.NewEmailCreatedProducer(rawProducer, serde)
+	producer := events.NewEmailReceivedProducer(rawProducer, serde)
 
 	outboxService := domainoutbox.NewService(db, producer)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
@@ -1297,7 +1303,7 @@ Expected: exits 0.
 
 ```bash
 git add services/email/internal/infra/events services/email/cmd/email-received-producer
-git commit -m "Add EmailCreatedProducer: Avro-encode at produce time, wired into the sidecar"
+git commit -m "Add EmailReceivedProducer: Avro-encode at produce time, wired into the sidecar"
 ```
 
 ---
@@ -1748,7 +1754,7 @@ git commit -m "Remove wire-format knowledge from domain/inbox, add Service.MarkF
 - Test: `services/core/internal/infra/inbox/email_received_consumer_test.go` (new)
 
 **Interfaces:**
-- Consumes: `inbox.Service.MarkFailed`, `inbox.Service.ProcessEmailReceived`, `inbox.EmailReceivedEvent` (Task 10); `schemaregistry.Decode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailCreated` (Task 3).
+- Consumes: `inbox.Service.MarkFailed`, `inbox.Service.ProcessEmailReceived`, `inbox.EmailReceivedEvent` (Task 10); `schemaregistry.Decode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailReceived` (Task 3).
 - Produces: `inbox.NewEmailReceivedConsumer(service, serde, topic, instanceID, batchSize, maxAttempts, claimTTL) *EmailReceivedConsumer`. This constructor is plain (no `ctx`, no error) — the `*schemaregistry.Serde` it receives is already registered by `cmd/main.go` before construction (Step 6), mirroring the producer side in Task 9. This package never imports `github.com/twmb/franz-go/pkg/sr`.
 
 - [ ] **Step 1: Write the failing test**
@@ -1803,7 +1809,7 @@ func startRegistry(t *testing.T) *schemaregistry.Serde {
 		t.Fatalf("NewClient: %v", err)
 	}
 	serde := schemaregistry.NewSerde(client)
-	if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema); err != nil {
+	if err := schemaregistry.RegisterDecode[eventschemas.EmailReceived](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema); err != nil {
 		t.Fatalf("RegisterDecode: %v", err)
 	}
 	return serde
@@ -1812,7 +1818,7 @@ func startRegistry(t *testing.T) *schemaregistry.Serde {
 func TestPollOnce_decodesAndProcesses(t *testing.T) {
 	serde := startRegistry(t)
 
-	wire := eventschemas.EmailCreated{
+	wire := eventschemas.EmailReceived{
 		Subject: "hi", Body: "body", From: "a@b.com",
 		Date: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		MessageId: "msg-1", OrganizationId: 7,
@@ -1887,7 +1893,7 @@ import (
 // topic: it fetches a batch of claimed rows, Avro-decodes each payload
 // (this is the coupling site described in the design spec's Section 3),
 // and hands the decoded event to the domain service. serde is already
-// registered for EmailCreated by the time it reaches here (see
+// registered for EmailReceived by the time it reaches here (see
 // cmd/main.go, Step 6) — this package never imports franz-go/pkg/sr, and
 // this constructor is plain, matching every other infra adapter
 // constructor in this codebase.
@@ -1933,8 +1939,8 @@ func (a *EmailReceivedConsumer) PollOnce(ctx context.Context) error {
 	for _, rec := range records {
 		log.Info().Str("topic", rec.Topic).Int64("inbox_id", rec.ID).Msg("received inbox record")
 
-		var wire eventschemas.EmailCreated
-		if err := schemaregistry.Decode(ctx, a.serde, rec.Payload, eventschemas.EmailCreatedSchema, &wire); err != nil {
+		var wire eventschemas.EmailReceived
+		if err := schemaregistry.Decode(ctx, a.serde, rec.Payload, eventschemas.EmailReceivedSchema, &wire); err != nil {
 			if markErr := a.service.MarkFailed(ctx, rec.ID, err, a.maxAttempts); markErr != nil {
 				log.Error().Err(markErr).Int64("inbox_id", rec.ID).Msg("failed to mark inbox record failed after decode error")
 			}
@@ -2044,10 +2050,10 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create schema registry client")
 	}
 	serde := schemaregistry.NewSerde(registryClient)
-	if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](
-		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+	if err := schemaregistry.RegisterDecode[eventschemas.EmailReceived](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema,
 	); err != nil {
-		log.Fatal().Err(err).Msg("Failed to register EmailCreated for decoding")
+		log.Fatal().Err(err).Msg("Failed to register EmailReceived for decoding")
 	}
 
 	instanceID := uuid.NewString()
