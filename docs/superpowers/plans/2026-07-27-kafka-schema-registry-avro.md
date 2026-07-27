@@ -13,7 +13,7 @@
 - Module: `planeo`, Go `1.26.5` (per root `go.mod` — the `1.24.5` figure in `CLAUDE.md` is stale; use the real toolchain version).
 - Compatibility mode: BACKWARD (spec Section 1) — not configured by this plan (Apicurio's default; no per-subject rule-setting code is in scope for v1).
 - Wire format: Confluent standard envelope (magic byte + 4-byte schema ID), via `sr.ConfluentHeader` — never hand-rolled.
-- Subject naming: TopicNameStrategy — `email.received-value`.
+- Subject naming: TopicNameStrategy — `email-received-value`.
 - `libs/schemaregistry` must never import `libs/eventschemas`, `services/email`, or `services/core`. `libs/eventschemas` must never import `libs/schemaregistry`.
 - No placeholder/TODO code — every task below is complete, runnable code.
 - Every new Task target follows the existing `Taskfile.yml` style (`desc:`, `dir:` where needed, `cmds:`).
@@ -526,8 +526,8 @@ import (
 )
 
 const (
-	EmailReceivedTopic   = "email.received"
-	EmailReceivedSubject = "email.received-value"
+	EmailReceivedTopic   = "email-received"
+	EmailReceivedSubject = "email-received-value"
 )
 
 //go:embed schemas/email_received.avsc
@@ -557,7 +557,7 @@ Expected: PASS for both `TestSchemas_includesEmailReceived` and `TestEmailReceiv
 
 ```bash
 git add libs/eventschemas
-git commit -m "Add libs/eventschemas: email.received Avro schema and generated type"
+git commit -m "Add libs/eventschemas: email-received Avro schema and generated type"
 ```
 
 ---
@@ -791,7 +791,7 @@ Expected: FAIL to compile — `OutboxEvent` has no field `Fields` yet (current s
 
 ```go
 // services/email/internal/domain/mail/model.go — replace OutboxEvent, add EmailReceivedFields
-// EmailReceivedFields is the plain domain shape of an email.received event —
+// EmailReceivedFields is the plain domain shape of an email-received event —
 // no wire-format knowledge (no avro/json tags, no schema import). The
 // mapping into the wire type lives in the infra repository (see
 // infra/postgres/outbox_repository.go), not here.
@@ -1080,13 +1080,13 @@ func TestEmailReceivedProducer_encodesAndForwards(t *testing.T) {
 		t.Fatalf("json.Marshal: %v", err)
 	}
 
-	err = producer.ProduceSync(context.Background(), "email.received", []byte("1"), jsonPayload)
+	err = producer.ProduceSync(context.Background(), "email-received", []byte("1"), jsonPayload)
 	if err != nil {
 		t.Fatalf("ProduceSync: %v", err)
 	}
 
-	if fake.gotTopic != "email.received" {
-		t.Errorf("got topic %q, want %q", fake.gotTopic, "email.received")
+	if fake.gotTopic != "email-received" {
+		t.Errorf("got topic %q, want %q", fake.gotTopic, "email-received")
 	}
 	if string(fake.gotKey) != "1" {
 		t.Errorf("got key %q, want %q", fake.gotKey, "1")
@@ -1109,7 +1109,7 @@ func TestEmailReceivedProducer_badJSONPayload(t *testing.T) {
 	fake := &fakeProducer{}
 	producer := events.NewEmailReceivedProducer(fake, serde)
 
-	err := producer.ProduceSync(context.Background(), "email.received", []byte("1"), []byte("not-json"))
+	err := producer.ProduceSync(context.Background(), "email-received", []byte("1"), []byte("not-json"))
 	if err == nil {
 		t.Fatal("expected an error for malformed JSON payload, got nil")
 	}
@@ -1315,9 +1315,12 @@ git commit -m "Add EmailReceivedProducer: Avro-encode at produce time, wired int
 - Modify: `services/core/internal/domain/inbox/ports.go`
 - Modify: `services/core/internal/domain/inbox/service.go`
 - Modify: `services/core/internal/domain/inbox/service_test.go`
+- Modify: `services/core/internal/test/inbox/email_received_consumer_rollback_test.go`
 
 **Interfaces:**
 - Produces: `inbox.EmailReceivedEvent`, `inbox.Service.ProcessEmailReceived(ctx, recordID int64, event EmailReceivedEvent, maxAttempts int) error`, `inbox.Service.MarkFailed(ctx, id int64, procErr error, maxAttempts int) error` — Task 11 (the consumer adapter) depends on these exact names/signatures.
+
+This task is also where every remaining reference to `libs/events/contracts` outside `domain/mail` gets removed — `services/core/internal/test/inbox/email_received_consumer_rollback_test.go` is a real integration test (verified by `grep -rln "planeo/libs/events/contracts"`) that constructs `contracts.EmailCreatedPayload`, JSON-marshals it, and calls the old `ProcessEmailReceived(ctx, rec, maxAttempts)` signature — it was not caught by the earlier design review and would fail to compile once this task's signature change lands, if left unfixed.
 
 - [ ] **Step 1: Rewrite `service_test.go` first**
 
@@ -1736,10 +1739,99 @@ cd services/core && mockery
 
 Verify `services/core/internal/domain/inbox/mocks/service_mock.go` now has a `MarkFailed` method and the new `ProcessEmailReceived` signature.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 8: Fix the rollback integration test**
+
+This test needs a real inbox row to exist (so `MarkFailed`/`FetchBatch` operate against real data), but since `ProcessEmailReceived` no longer decodes anything itself, the row's payload bytes are never read by the code path under test — they can be anything. Replace the `contracts.EmailCreatedPayload`/`json.Marshal` construction with a plain `inbox.EmailReceivedEvent`, and update the `ProcessEmailReceived` call to the new signature:
+
+```go
+// services/core/internal/test/inbox/email_received_consumer_rollback_test.go
+package inbox_test
+
+import (
+	"context"
+	"planeo/services/core/internal/domain/category"
+	"planeo/services/core/internal/domain/inbox"
+	"planeo/services/core/internal/domain/inbox/mocks"
+	"planeo/services/core/internal/domain/request"
+	"planeo/services/core/internal/test/utils"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+func TestEmailReceivedConsumerServiceRollback(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	env := utils.NewIntegrationTestEnvironment(t)
+
+	categoryService := category.NewService(env.DB)
+	requestService := request.NewService(env.DB)
+
+	mockLLMClient := mocks.NewMockLLMClient(t)
+	mockLLMClient.EXPECT().
+		ExtractRequestFields(mock.Anything, mock.Anything).
+		Return(inbox.ExtractorOutput{}, nil)
+	mockLLMClient.EXPECT().
+		ClassifyRequest(mock.Anything, mock.Anything, mock.Anything).
+		Return(0, nil)
+
+	service := inbox.NewService(env.DB, requestService, categoryService, mockLLMClient)
+
+	// organization 999999 does not exist, so CreateRequest's INSERT violates
+	// the requests.organization_id foreign key and the transaction aborts.
+	// The saved payload bytes are never decoded by the code path under test
+	// (ProcessEmailReceived takes an already-decoded event, not raw bytes) —
+	// only a real row needs to exist for FetchBatch/MarkFailed to act on.
+	_, err := env.DB.Save(context.Background(), "email-received", 0, 1, []byte("{}"))
+	assert.Nil(t, err)
+
+	records, err := env.DB.FetchBatch(context.Background(), "email-received", "instance-a", 10, 30*time.Second)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(records))
+	rec := records[0]
+
+	event := inbox.EmailReceivedEvent{
+		Subject:        "Broken organization reference",
+		Body:           "body",
+		From:           "someone@example.com",
+		Date:           time.Now(),
+		MessageID:      "rollback-test-1",
+		OrganizationID: 999999,
+	}
+
+	// maxAttempts=2 so the failure resets the row to 'pending' (attempts=1 <
+	// maxAttempts=2) rather than quarantining it. This is the only outcome
+	// that can distinguish correct behavior from the regression: FetchBatch
+	// lets ANY instance claim a 'pending' row regardless of claimed_by/TTL,
+	// but a row stuck at 'processing' is only reclaimable by a different
+	// instance once its claimTTL elapses. A quarantined ('failed') row would
+	// be invisible to everyone either way, masking the distinction.
+	err = service.ProcessEmailReceived(context.Background(), rec.ID, event, 2)
+	assert.Nil(t, err, "ProcessEmailReceived succeeds once MarkFailed successfully records the failure")
+
+	// A different instance, well within the original claim's TTL, must see
+	// the row - which only happens if MarkFailed reset it to 'pending' using
+	// the outer (non-aborted) context. If MarkFailed had instead been called
+	// with the aborted transaction's context, that call would itself fail,
+	// leaving the row stuck at status='processing' under instance-a's claim -
+	// invisible to a different instance until the TTL elapses.
+	reclaimed, err := env.DB.FetchBatch(context.Background(), "email-received", "instance-b", 10, 30*time.Second)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(reclaimed), "MarkFailed must reset the row to pending outside the aborted transaction")
+}
+```
+
+Run: `task test:core:integration`
+Expected: PASS (requires Docker for the Postgres testcontainer).
+
+- [ ] **Step 9: Commit**
 
 ```bash
-git add services/core/internal/domain/inbox
+git add services/core/internal/domain/inbox services/core/internal/test/inbox/email_received_consumer_rollback_test.go
 git commit -m "Remove wire-format knowledge from domain/inbox, add Service.MarkFailed"
 ```
 
@@ -1830,8 +1922,8 @@ func TestPollOnce_decodesAndProcesses(t *testing.T) {
 
 	mockService := mocks.NewMockService(t)
 	mockService.EXPECT().
-		FetchBatch(context.Background(), "email.received", "instance-a", 10, 30*time.Second).
-		Return([]libsinbox.Record{{ID: 1, Topic: "email.received", Payload: encoded}}, nil)
+		FetchBatch(context.Background(), "email-received", "instance-a", 10, 30*time.Second).
+		Return([]libsinbox.Record{{ID: 1, Topic: "email-received", Payload: encoded}}, nil)
 	mockService.EXPECT().
 		ProcessEmailReceived(context.Background(), int64(1), domaininbox.EmailReceivedEvent{
 			Subject: "hi", Body: "body", From: "a@b.com",
@@ -1840,7 +1932,7 @@ func TestPollOnce_decodesAndProcesses(t *testing.T) {
 		}, 5).
 		Return(nil)
 
-	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email.received", "instance-a", 10, 5, 30*time.Second)
+	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email-received", "instance-a", 10, 5, 30*time.Second)
 
 	if err := consumer.PollOnce(context.Background()); err != nil {
 		t.Fatalf("PollOnce: %v", err)
@@ -1852,15 +1944,15 @@ func TestPollOnce_decodeFailureMarksFailedAndContinues(t *testing.T) {
 
 	mockService := mocks.NewMockService(t)
 	mockService.EXPECT().
-		FetchBatch(context.Background(), "email.received", "instance-a", 10, 30*time.Second).
+		FetchBatch(context.Background(), "email-received", "instance-a", 10, 30*time.Second).
 		Return([]libsinbox.Record{
-			{ID: 1, Topic: "email.received", Payload: []byte("not-a-valid-avro-envelope")},
+			{ID: 1, Topic: "email-received", Payload: []byte("not-a-valid-avro-envelope")},
 		}, nil)
 	mockService.EXPECT().
 		MarkFailed(context.Background(), int64(1), mock.Anything, 5).
 		Return(nil)
 
-	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email.received", "instance-a", 10, 5, 30*time.Second)
+	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email-received", "instance-a", 10, 5, 30*time.Second)
 
 	if err := consumer.PollOnce(context.Background()); err != nil {
 		t.Fatalf("PollOnce should not abort the batch on a decode failure, got: %v", err)
@@ -2113,7 +2205,42 @@ git commit -m "Add Avro-decode to EmailReceivedConsumer, wired into the sidecar"
 
 ---
 
-## Task 12: Full verification
+## Task 12: Delete the now-dead `libs/events/contracts` package
+
+**Files:**
+- Delete: `libs/events/contracts/contracts.go`
+
+**Interfaces:** none produced — this is a cleanup-only task, safe once Tasks 7, 9, 10, and 11 have removed every real usage.
+
+`libs/events/contracts` held the hand-maintained `EmailCreatedPayload`/`EmailReceivedTopic` this whole spec exists to replace. `libs/events` contains nothing else (`find libs/events -type f` returns only this one file, confirmed during design review — the old NATS `EventService` machinery was already removed in a prior cleanup cycle), so deleting this file makes the whole `libs/events` directory empty and it should go too.
+
+- [ ] **Step 1: Verify there are no remaining references**
+
+Run: `grep -rln "planeo/libs/events/contracts" --include="*.go" .`
+Expected: empty output. If anything prints, that file was missed by an earlier task and needs fixing first — do not proceed with deletion until this is empty.
+
+- [ ] **Step 2: Delete the package**
+
+```bash
+git rm libs/events/contracts/contracts.go
+rmdir libs/events/contracts libs/events
+```
+
+- [ ] **Step 3: Verify the build still succeeds**
+
+Run: `go build ./...`
+Expected: exits 0.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add -A
+git commit -m "Remove libs/events/contracts, fully superseded by libs/eventschemas"
+```
+
+---
+
+## Task 13: Full verification
 
 **Files:** none (verification only)
 
@@ -2150,7 +2277,7 @@ task up
 docker compose -f dev/docker-compose.yaml --profile kafka-clients up -d schema-registry email-received-producer email-received-consumer
 curl -s http://localhost:8083/apis/ccompat/v7/subjects
 ```
-Expected: the curl output includes `"email.received-value"`, proving `task register:schemas` (wired into `task up` in Task 4) ran successfully against the freshly-started registry.
+Expected: the curl output includes `"email-received-value"`, proving `task register:schemas` (wired into `task up` in Task 4) ran successfully against the freshly-started registry.
 
 - [ ] **Step 5: Commit any final fixups discovered during verification**
 
@@ -2166,4 +2293,4 @@ If any of the above steps required a fix, commit it with a message describing wh
 - Multi-schema/multi-topic governance tooling; schema-drift alerting.
 - Production/staging registry provisioning, or picking a non-local registry auth scheme.
 - Protobuf/JSON-Schema support.
-- Any event type other than `email.received`.
+- Any event type other than `email-received`.

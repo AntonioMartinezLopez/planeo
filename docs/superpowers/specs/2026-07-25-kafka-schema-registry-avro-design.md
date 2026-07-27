@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`services/email` and `services/core` currently exchange the `email.received` event as raw JSON, with the wire shape (`contracts.EmailCreatedPayload`) hand-maintained as a Go struct with no schema enforcement, no compatibility checking, and no protection against producer/consumer drift. This spec introduces Avro + a schema registry (Apicurio) as the serialization mechanism for Kafka messages, replacing hand-maintained JSON types with schema-generated ones, and fixes a pre-existing hexagonal-architecture violation where both `domain/mail` and `domain/inbox` perform serialization directly instead of leaving it to the infra layer.
+`services/email` and `services/core` currently exchange the `email-received` event as raw JSON, with the wire shape (`contracts.EmailCreatedPayload`) hand-maintained as a Go struct with no schema enforcement, no compatibility checking, and no protection against producer/consumer drift. This spec introduces Avro + a schema registry (Apicurio) as the serialization mechanism for Kafka messages, replacing hand-maintained JSON types with schema-generated ones, and fixes a pre-existing hexagonal-architecture violation where both `domain/mail` and `domain/inbox` perform serialization directly instead of leaving it to the infra layer.
 
 This is the phase explicitly deferred by `2026-07-09-nats-to-kafka-migration-design.md` ("Explicitly deferred: Schema registry, Avro/Protobuf...").
 
@@ -21,7 +21,7 @@ This is the phase explicitly deferred by `2026-07-09-nats-to-kafka-migration-des
 - Alternate subject-naming strategies beyond TopicNameStrategy.
 - Production/staging registry provisioning (would go through OpenTofu, like the existing Kafka topics/credentials — separate future work), including which registry auth scheme to use there.
 - Protobuf/JSON-Schema support (Apicurio supports both, but only Avro is in scope here).
-- Any event type other than `email.received`.
+- Any event type other than `email-received`.
 
 ## 1. Registry: Apicurio, local dev infra
 
@@ -44,14 +44,14 @@ Port `8083` is used because 8080/8081/8082 are already taken by Keycloak, pgadmi
 
 Apicurio exposes a Confluent-compatible REST API at `/apis/ccompat/v7` on the same port. This is the endpoint `libs/schemaregistry` (Section 3) and the registration CLI (Section 4) target: `http://localhost:8083/apis/ccompat/v7` from the host, `http://schema-registry:8080/apis/ccompat/v7` from other containers.
 
-**Compatibility mode: BACKWARD**, set as the registry's default for the `email.received-value` subject. A new schema version must be readable using the previous schema — in practice, new fields must declare an Avro `default`. Operational consequence: consumers get deployed before producers when rolling out a compatible schema change, since BACKWARD guarantees new-reader-reads-old-data but not the reverse.
+**Compatibility mode: BACKWARD**, set as the registry's default for the `email-received-value` subject. A new schema version must be readable using the previous schema — in practice, new fields must declare an Avro `default`. Operational consequence: consumers get deployed before producers when rolling out a compatible schema change, since BACKWARD guarantees new-reader-reads-old-data but not the reverse.
 
 ## 2. Libraries
 
 - **`github.com/iskorotkov/avro`** (actively maintained fork of `hamba/avro`, which was archived January 2026) — the Avro codec, plus its `avrogen` code-generation tool. Chosen over `linkedin/goavro` because goavro only supports generic `map[string]interface{}` values with no struct-tag binding and no codegen — using it would mean writing manual, unchecked-until-runtime field access/construction code on both produce and consume, a regression from today's typed `json.Unmarshal` into `EmailCreatedPayload`.
 - **`github.com/twmb/franz-go/pkg/sr`** — used via its `sr.Client` (`LookupSchema`/`SchemaByID`, the content-based lookup-or-register call) **and** its `sr.Serde` convenience type, wrapped rather than reimplemented. `Serde` provides its own wire-envelope framing and per-ID encode/decode dispatch and caching — reimplementing that by hand (an earlier version of this design did) duplicates tested library code for no benefit. The one thing `Serde` doesn't provide is Avro schema evolution: `Serde.Register(id, ...)` binds to one *exact* schema ID, and `Serde.Decode` returns `sr.ErrNotRegistered` for any ID it wasn't told about — it does not fall back to resolving schema differences. `libs/schemaregistry`'s `Serde` wrapper (Section 3) handles exactly that gap, using franz-go's own documented pattern for it: catch `ErrNotRegistered`, fetch the writer schema, resolve it against the reader schema, register the result, and retry — rather than requiring every historical schema ID to be pre-registered by hand.
 - Wire format: the Confluent standard envelope (magic byte `0x0` + 4-byte schema ID + Avro payload), via `sr.ConfluentHeader`, since that's what registry-aware tooling expects natively.
-- Subject naming: **TopicNameStrategy** — `email.received-value`.
+- Subject naming: **TopicNameStrategy** — `email-received-value`.
 
 ## 3. Two packages: `libs/schemaregistry` (generic) and `libs/eventschemas` (app-specific)
 
@@ -531,4 +531,4 @@ emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
 - Schema-drift alerting/notification tooling.
 - Production/staging registry provisioning via OpenTofu, including which registry auth scheme (Basic/Bearer/OIDC) to use there.
 - Protobuf/JSON-Schema support in Apicurio (registry supports it; not used here).
-- Retrofitting any event type other than `email.received`.
+- Retrofitting any event type other than `email-received`.
