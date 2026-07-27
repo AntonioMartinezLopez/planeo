@@ -70,7 +70,7 @@ git commit -m "Add franz-go/pkg/sr and iskorotkov/avro dependencies"
 - Test: `libs/schemaregistry/serde_test.go`
 
 **Interfaces:**
-- Produces: `schemaregistry.NewClient(opts ...sr.ClientOpt) (*sr.Client, error)`, `schemaregistry.Register(ctx, client *sr.Client, subject string, schema avro.Schema) (int, error)`, `schemaregistry.NewSerde(client *sr.Client) *Serde`, `schemaregistry.RegisterEncode[T any](ctx, s *Serde, subject string, schema avro.Schema) error`, `schemaregistry.RegisterDecode[T any](ctx, s *Serde, subject string, schema avro.Schema) error`, `schemaregistry.Encode[T any](s *Serde, v T) ([]byte, error)`, `schemaregistry.Decode[T any](ctx, s *Serde, b []byte, readerSchema avro.Schema, v *T) error`. Tasks 4, 9, 11 depend on these exact names.
+- Produces: `schemaregistry.Config{URL string}`, `schemaregistry.NewClient(cfg Config, extraOpts ...sr.ClientOpt) (*sr.Client, error)`, `schemaregistry.Register(ctx, client *sr.Client, subject string, schema avro.Schema) (int, error)`, `schemaregistry.NewSerde(client *sr.Client) *Serde`, `schemaregistry.RegisterEncode[T any](ctx, s *Serde, subject string, schema avro.Schema) error`, `schemaregistry.RegisterDecode[T any](ctx, s *Serde, subject string, schema avro.Schema) error`, `schemaregistry.Encode[T any](s *Serde, v T) ([]byte, error)`, `schemaregistry.Decode[T any](ctx, s *Serde, b []byte, readerSchema avro.Schema, v *T) error`. Tasks 4, 9, 11 depend on these exact names.
 
 This wraps franz-go's own `sr.Serde` (its wire-envelope framing, per-ID dispatch, and caching are used as-is) rather than reimplementing them — see design spec Section 2 for why an earlier fully-hand-rolled version was replaced with this. The only thing added on top is what `sr.Serde` doesn't provide: resolving Avro schema evolution for an incoming ID it wasn't told about in advance, via franz-go's own documented "discover on `ErrNotRegistered`" pattern.
 
@@ -146,7 +146,7 @@ func startRegistry(t *testing.T) *sr.Client {
 	if err != nil {
 		t.Fatalf("failed to get mapped port: %v", err)
 	}
-	client, err := schemaregistry.NewClient(sr.URLs("http://" + host + ":" + port.Port() + "/apis/ccompat/v7"))
+	client, err := schemaregistry.NewClient(schemaregistry.Config{URL: "http://" + host + ":" + port.Port() + "/apis/ccompat/v7"})
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
@@ -242,12 +242,22 @@ import (
 	"github.com/twmb/franz-go/pkg/sr"
 )
 
-// NewClient constructs a schema registry HTTP client. Thin wrapper over
-// sr.NewClient purely for a consistent construction point across this
-// codebase, matching libs/kafka.NewClient's pattern — adds no behavior.
-// Pass sr.URLs(...) plus whichever auth option (sr.BasicAuth, sr.BearerToken,
-// sr.DialTLSConfig, ...) the target registry requires.
-func NewClient(opts ...sr.ClientOpt) (*sr.Client, error) {
+// Config is the connection configuration for the schema registry client.
+// Mirrors libs/kafka.Config's shape and purpose: plain data for the common
+// case (today just the URL — auth fields get added here once a non-local
+// registry's scheme is decided), so cmd/main.go never needs to import
+// franz-go/pkg/sr directly for ordinary construction.
+type Config struct {
+	URL string
+}
+
+// NewClient constructs a schema registry HTTP client from cfg. extraOpts
+// lets a caller layer additional sr.ClientOpt values (e.g. a one-off
+// sr.DialTLSConfig) on top — this package only ever builds the connection,
+// never decides what a caller does with it, same division of concerns as
+// libs/kafka.NewClient.
+func NewClient(cfg Config, extraOpts ...sr.ClientOpt) (*sr.Client, error) {
+	opts := append([]sr.ClientOpt{sr.URLs(cfg.URL)}, extraOpts...)
 	return sr.NewClient(opts...)
 }
 
@@ -575,8 +585,6 @@ import (
 
 	"planeo/libs/eventschemas"
 	"planeo/libs/schemaregistry"
-
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 func main() {
@@ -586,7 +594,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	client, err := schemaregistry.NewClient(sr.URLs(registryURL))
+	client, err := schemaregistry.NewClient(schemaregistry.Config{URL: registryURL})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "creating schema registry client: %v\n", err)
 		os.Exit(1)
@@ -604,7 +612,7 @@ func main() {
 }
 ```
 
-This uses `schemaregistry.Register` (Task 2's `client.go`) directly — it's already the right shape for this: a one-shot, content-based lookup-or-register call with no concrete Go type involved, since this CLI walks `eventschemas.Schemas()`'s `map[string]avro.Schema` generically.
+This uses `schemaregistry.Register` (Task 2's `client.go`) directly — it's already the right shape for this: a one-shot, content-based lookup-or-register call with no concrete Go type involved, since this CLI walks `eventschemas.Schemas()`'s `map[string]avro.Schema` generically. Note this file never imports `github.com/twmb/franz-go/pkg/sr` — `schemaregistry.Config{URL: ...}` is enough for the common case, same as `libs/kafka.Config` elsewhere in this codebase.
 
 - [ ] **Step 2: Verify it builds**
 
@@ -990,8 +998,8 @@ git commit -m "Map EmailReceivedFields to the eventschemas wire type in CreateOu
 - Test: `services/email/internal/infra/events/email_created_producer_test.go`
 
 **Interfaces:**
-- Consumes: `outbox.Producer` (the port `domain/outbox` already defines), `schemaregistry.NewSerde`/`RegisterEncode`/`Encode` (Task 2), `eventschemas.EmailCreated`/`EmailReceivedSubject`/`EmailCreatedSchema` (Task 3).
-- Produces: `events.NewEmailCreatedProducer(ctx, inner, client) (*EmailCreatedProducer, error)`, satisfying `domain/outbox.Producer` — wired into `outbox.NewService(...)` in place of the raw `outbox.NewProducer(...)` result. Note this constructor takes `ctx` and can fail (registration is a real registry round-trip), unlike a plain struct literal.
+- Consumes: `outbox.Producer` (the port `domain/outbox` already defines), `schemaregistry.Encode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailCreated` (Task 3).
+- Produces: `events.NewEmailCreatedProducer(inner, serde) *EmailCreatedProducer`, satisfying `domain/outbox.Producer` — wired into `outbox.NewService(...)` in place of the raw `outbox.NewProducer(...)` result. This constructor is plain (no `ctx`, no error) — the `*schemaregistry.Serde` it receives is already registered by `cmd/main.go` before construction (Step 6). This package never imports `github.com/twmb/franz-go/pkg/sr`.
 
 - [ ] **Step 1: Write the failing unit test**
 
@@ -1012,7 +1020,6 @@ import (
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 type fakeProducer struct {
@@ -1026,7 +1033,7 @@ func (f *fakeProducer) ProduceSync(ctx context.Context, topic string, key, value
 	return f.err
 }
 
-func startRegistry(t *testing.T) *sr.Client {
+func startRegistry(t *testing.T) *schemaregistry.Serde {
 	t.Helper()
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
@@ -1048,20 +1055,21 @@ func startRegistry(t *testing.T) *sr.Client {
 	})
 	host, _ := container.Host(ctx)
 	port, _ := container.MappedPort(ctx, "8080")
-	client, err := schemaregistry.NewClient(sr.URLs("http://" + host + ":" + port.Port() + "/apis/ccompat/v7"))
+	client, err := schemaregistry.NewClient(schemaregistry.Config{URL: "http://" + host + ":" + port.Port() + "/apis/ccompat/v7"})
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
-	return client
+	serde := schemaregistry.NewSerde(client)
+	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema); err != nil {
+		t.Fatalf("RegisterEncode: %v", err)
+	}
+	return serde
 }
 
 func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
-	client := startRegistry(t)
+	serde := startRegistry(t)
 	fake := &fakeProducer{}
-	producer, err := events.NewEmailCreatedProducer(context.Background(), fake, client)
-	if err != nil {
-		t.Fatalf("NewEmailCreatedProducer: %v", err)
-	}
+	producer := events.NewEmailCreatedProducer(fake, serde)
 
 	wire := eventschemas.EmailCreated{
 		Subject: "hi", Body: "body", From: "a@b.com",
@@ -1084,12 +1092,11 @@ func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
 		t.Errorf("got key %q, want %q", fake.gotKey, "1")
 	}
 
-	// Decode what was actually passed to the inner producer using a
-	// fresh Serde (a different "process"), proving the bytes are genuinely
-	// Avro-encoded and registry-resolvable, not just passed through.
-	decoderSerde := schemaregistry.NewSerde(client)
+	// Decode what was actually passed to the inner producer using the same
+	// serde, proving the bytes are genuinely Avro-encoded, not just passed
+	// through unchanged.
 	var decoded eventschemas.EmailCreated
-	if err := schemaregistry.Decode(context.Background(), decoderSerde, fake.gotVal, eventschemas.EmailCreatedSchema, &decoded); err != nil {
+	if err := schemaregistry.Decode(context.Background(), serde, fake.gotVal, eventschemas.EmailCreatedSchema, &decoded); err != nil {
 		t.Fatalf("decoding what was passed to inner producer: %v", err)
 	}
 	if decoded.Subject != "hi" || decoded.OrganizationId != 1 {
@@ -1098,14 +1105,11 @@ func TestEmailCreatedProducer_encodesAndForwards(t *testing.T) {
 }
 
 func TestEmailCreatedProducer_badJSONPayload(t *testing.T) {
-	client := startRegistry(t)
+	serde := startRegistry(t)
 	fake := &fakeProducer{}
-	producer, err := events.NewEmailCreatedProducer(context.Background(), fake, client)
-	if err != nil {
-		t.Fatalf("NewEmailCreatedProducer: %v", err)
-	}
+	producer := events.NewEmailCreatedProducer(fake, serde)
 
-	err = producer.ProduceSync(context.Background(), "email.received", []byte("1"), []byte("not-json"))
+	err := producer.ProduceSync(context.Background(), "email.received", []byte("1"), []byte("not-json"))
 	if err == nil {
 		t.Fatal("expected an error for malformed JSON payload, got nil")
 	}
@@ -1135,32 +1139,23 @@ import (
 	"planeo/libs/eventschemas"
 	"planeo/libs/schemaregistry"
 	domainoutbox "planeo/services/email/internal/domain/outbox"
-
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 // EmailCreatedProducer wraps the real Kafka producer so the JSON-staged
-// outbox payload gets Avro-encoded (with a schema-registry ID lookup) right
-// before it reaches Kafka — this is the coupling site described in the
-// design spec's Section 3: domain/outbox.Service.ProcessRecord stays
-// completely unaware this conversion happens.
+// outbox payload gets Avro-encoded right before it reaches Kafka — this is
+// the coupling site described in the design spec's Section 3:
+// domain/outbox.Service.ProcessRecord stays completely unaware this
+// conversion happens. serde is already registered for EmailCreated by the
+// time it reaches here (see cmd/main.go, Step 6) — this package never
+// imports franz-go/pkg/sr, and this constructor is plain, matching every
+// other infra adapter constructor in this codebase.
 type EmailCreatedProducer struct {
 	inner domainoutbox.Producer
 	serde *schemaregistry.Serde
 }
 
-// NewEmailCreatedProducer registers EmailCreated for encoding once, at
-// construction time. It takes ctx and can fail, since registration is a
-// real registry round-trip (a content-based lookup), not something
-// deferred to the first ProduceSync call.
-func NewEmailCreatedProducer(ctx context.Context, inner domainoutbox.Producer, client *sr.Client) (*EmailCreatedProducer, error) {
-	serde := schemaregistry.NewSerde(client)
-	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
-		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
-	); err != nil {
-		return nil, fmt.Errorf("registering EmailCreated for encoding: %w", err)
-	}
-	return &EmailCreatedProducer{inner: inner, serde: serde}, nil
+func NewEmailCreatedProducer(inner domainoutbox.Producer, serde *schemaregistry.Serde) *EmailCreatedProducer {
+	return &EmailCreatedProducer{inner: inner, serde: serde}
 }
 
 func (p *EmailCreatedProducer) ProduceSync(ctx context.Context, topic string, key, value []byte) error {
@@ -1233,7 +1228,6 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 func main() {
@@ -1261,16 +1255,19 @@ func main() {
 	}
 	defer kafkaClient.Close()
 
-	registryClient, err := schemaregistry.NewClient(sr.URLs(cfg.SchemaRegistryURL))
+	registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create schema registry client")
 	}
-
-	rawProducer := outbox.NewProducer(kafkaClient)
-	producer, err := events.NewEmailCreatedProducer(ctx, rawProducer, registryClient)
-	if err != nil {
+	serde := schemaregistry.NewSerde(registryClient)
+	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+	); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register EmailCreated for encoding")
 	}
+
+	rawProducer := outbox.NewProducer(kafkaClient)
+	producer := events.NewEmailCreatedProducer(rawProducer, serde)
 
 	outboxService := domainoutbox.NewService(db, producer)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
@@ -1289,7 +1286,7 @@ func main() {
 }
 ```
 
-(Note: `contracts.EmailReceivedTopic` becomes `eventschemas.EmailReceivedTopic` — the `contracts` import is dropped from this file.)
+(Note: `contracts.EmailReceivedTopic` becomes `eventschemas.EmailReceivedTopic` — the `contracts` import is dropped from this file. This file no longer imports `github.com/twmb/franz-go/pkg/sr` either — `schemaregistry.Config` covers the common case.)
 
 - [ ] **Step 7: Verify it builds**
 
@@ -1751,8 +1748,8 @@ git commit -m "Remove wire-format knowledge from domain/inbox, add Service.MarkF
 - Test: `services/core/internal/infra/inbox/email_received_consumer_test.go` (new)
 
 **Interfaces:**
-- Consumes: `inbox.Service.MarkFailed`, `inbox.Service.ProcessEmailReceived`, `inbox.EmailReceivedEvent` (Task 10); `schemaregistry.NewSerde`/`RegisterDecode`/`Decode` (Task 2), `eventschemas.EmailCreated`/`EmailCreatedSchema` (Task 3).
-- Produces: `inbox.NewEmailReceivedConsumer(ctx, service, client, topic, instanceID, batchSize, maxAttempts, claimTTL) (*EmailReceivedConsumer, error)`. Note this constructor takes `ctx` and can fail (it eagerly registers `EmailCreated` for decoding), mirroring the producer side in Task 9.
+- Consumes: `inbox.Service.MarkFailed`, `inbox.Service.ProcessEmailReceived`, `inbox.EmailReceivedEvent` (Task 10); `schemaregistry.Decode`/`*schemaregistry.Serde` (Task 2), `eventschemas.EmailCreated` (Task 3).
+- Produces: `inbox.NewEmailReceivedConsumer(service, serde, topic, instanceID, batchSize, maxAttempts, claimTTL) *EmailReceivedConsumer`. This constructor is plain (no `ctx`, no error) — the `*schemaregistry.Serde` it receives is already registered by `cmd/main.go` before construction (Step 6), mirroring the producer side in Task 9. This package never imports `github.com/twmb/franz-go/pkg/sr`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1777,10 +1774,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
-func startRegistry(t *testing.T) *sr.Client {
+func startRegistry(t *testing.T) *schemaregistry.Serde {
 	t.Helper()
 	ctx := context.Background()
 	req := testcontainers.ContainerRequest{
@@ -1802,30 +1798,26 @@ func startRegistry(t *testing.T) *sr.Client {
 	})
 	host, _ := container.Host(ctx)
 	port, _ := container.MappedPort(ctx, "8080")
-	client, err := schemaregistry.NewClient(sr.URLs("http://" + host + ":" + port.Port() + "/apis/ccompat/v7"))
+	client, err := schemaregistry.NewClient(schemaregistry.Config{URL: "http://" + host + ":" + port.Port() + "/apis/ccompat/v7"})
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
-	return client
+	serde := schemaregistry.NewSerde(client)
+	if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema); err != nil {
+		t.Fatalf("RegisterDecode: %v", err)
+	}
+	return serde
 }
 
 func TestPollOnce_decodesAndProcesses(t *testing.T) {
-	client := startRegistry(t)
+	serde := startRegistry(t)
 
-	// Produce with a separate Serde, simulating the producer sidecar as a
-	// distinct process from the consumer under test.
-	producerSerde := schemaregistry.NewSerde(client)
-	if err := schemaregistry.RegisterEncode[eventschemas.EmailCreated](
-		context.Background(), producerSerde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
-	); err != nil {
-		t.Fatalf("RegisterEncode: %v", err)
-	}
 	wire := eventschemas.EmailCreated{
 		Subject: "hi", Body: "body", From: "a@b.com",
 		Date: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		MessageId: "msg-1", OrganizationId: 7,
 	}
-	encoded, err := schemaregistry.Encode(producerSerde, wire)
+	encoded, err := schemaregistry.Encode(serde, wire)
 	if err != nil {
 		t.Fatalf("Encode: %v", err)
 	}
@@ -1842,10 +1834,7 @@ func TestPollOnce_decodesAndProcesses(t *testing.T) {
 		}, 5).
 		Return(nil)
 
-	consumer, err := inbox.NewEmailReceivedConsumer(context.Background(), mockService, client, "email.received", "instance-a", 10, 5, 30*time.Second)
-	if err != nil {
-		t.Fatalf("NewEmailReceivedConsumer: %v", err)
-	}
+	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email.received", "instance-a", 10, 5, 30*time.Second)
 
 	if err := consumer.PollOnce(context.Background()); err != nil {
 		t.Fatalf("PollOnce: %v", err)
@@ -1853,7 +1842,7 @@ func TestPollOnce_decodesAndProcesses(t *testing.T) {
 }
 
 func TestPollOnce_decodeFailureMarksFailedAndContinues(t *testing.T) {
-	client := startRegistry(t)
+	serde := startRegistry(t)
 
 	mockService := mocks.NewMockService(t)
 	mockService.EXPECT().
@@ -1865,10 +1854,7 @@ func TestPollOnce_decodeFailureMarksFailedAndContinues(t *testing.T) {
 		MarkFailed(context.Background(), int64(1), mock.Anything, 5).
 		Return(nil)
 
-	consumer, err := inbox.NewEmailReceivedConsumer(context.Background(), mockService, client, "email.received", "instance-a", 10, 5, 30*time.Second)
-	if err != nil {
-		t.Fatalf("NewEmailReceivedConsumer: %v", err)
-	}
+	consumer := inbox.NewEmailReceivedConsumer(mockService, serde, "email.received", "instance-a", 10, 5, 30*time.Second)
 
 	if err := consumer.PollOnce(context.Background()); err != nil {
 		t.Fatalf("PollOnce should not abort the batch on a decode failure, got: %v", err)
@@ -1879,7 +1865,7 @@ func TestPollOnce_decodeFailureMarksFailedAndContinues(t *testing.T) {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `go test ./services/core/internal/infra/inbox/... -v`
-Expected: FAIL to compile — `NewEmailReceivedConsumer`'s signature doesn't take `ctx`/`*sr.Client`/return an error yet.
+Expected: FAIL to compile — `NewEmailReceivedConsumer`'s signature doesn't take a `*schemaregistry.Serde` yet.
 
 - [ ] **Step 3: Update the adapter**
 
@@ -1889,21 +1875,22 @@ package inbox
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"planeo/libs/eventschemas"
 	"planeo/libs/logger"
 	"planeo/libs/schemaregistry"
 	domaininbox "planeo/services/core/internal/domain/inbox"
-
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 // EmailReceivedConsumer owns the polling loop for the "email-received"
 // topic: it fetches a batch of claimed rows, Avro-decodes each payload
 // (this is the coupling site described in the design spec's Section 3),
-// and hands the decoded event to the domain service.
+// and hands the decoded event to the domain service. serde is already
+// registered for EmailCreated by the time it reaches here (see
+// cmd/main.go, Step 6) — this package never imports franz-go/pkg/sr, and
+// this constructor is plain, matching every other infra adapter
+// constructor in this codebase.
 type EmailReceivedConsumer struct {
 	service     domaininbox.Service
 	serde       *schemaregistry.Serde
@@ -1914,27 +1901,15 @@ type EmailReceivedConsumer struct {
 	maxAttempts int
 }
 
-// NewEmailReceivedConsumer registers EmailCreated for decoding up front via
-// RegisterDecode — this is both the coupling site (matching the producer
-// side) and a startup fail-fast check: construction errors immediately if
-// the registry is unreachable or has no entry for this schema, rather than
-// only surfacing that on the first real message.
 func NewEmailReceivedConsumer(
-	ctx context.Context,
 	service domaininbox.Service,
-	client *sr.Client,
+	serde *schemaregistry.Serde,
 	topic string,
 	instanceID string,
 	batchSize int,
 	maxAttempts int,
 	claimTTL time.Duration,
-) (*EmailReceivedConsumer, error) {
-	serde := schemaregistry.NewSerde(client)
-	if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](
-		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
-	); err != nil {
-		return nil, fmt.Errorf("registering EmailCreated for decoding: %w", err)
-	}
+) *EmailReceivedConsumer {
 	return &EmailReceivedConsumer{
 		service:     service,
 		serde:       serde,
@@ -1943,7 +1918,7 @@ func NewEmailReceivedConsumer(
 		batchSize:   batchSize,
 		claimTTL:    claimTTL,
 		maxAttempts: maxAttempts,
-	}, nil
+	}
 }
 
 // PollOnce claims a batch of pending inbox rows and processes each in turn.
@@ -2042,7 +2017,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"github.com/twmb/franz-go/pkg/sr"
 )
 
 func main() {
@@ -2065,21 +2039,24 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create LLM client")
 	}
 
-	registryClient, err := schemaregistry.NewClient(sr.URLs(cfg.SchemaRegistryURL))
+	registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create schema registry client")
+	}
+	serde := schemaregistry.NewSerde(registryClient)
+	if err := schemaregistry.RegisterDecode[eventschemas.EmailCreated](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailCreatedSchema,
+	); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register EmailCreated for decoding")
 	}
 
 	instanceID := uuid.NewString()
 
 	inboxService := domaininbox.NewService(db, requestService, categoryService, llmClient)
-	emailReceivedConsumer, err := coreinbox.NewEmailReceivedConsumer(
-		ctx, inboxService, registryClient, eventschemas.EmailReceivedTopic, instanceID,
+	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
+		inboxService, serde, eventschemas.EmailReceivedTopic, instanceID,
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to register EmailCreated for decoding")
-	}
 
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -2114,7 +2091,7 @@ func main() {
 }
 ```
 
-(Note: `contracts.EmailReceivedTopic` becomes `eventschemas.EmailReceivedTopic`, both in the `NewEmailReceivedConsumer` call and the two `libs/inbox`-facing calls — the `contracts` import is dropped from this file.)
+(Note: `contracts.EmailReceivedTopic` becomes `eventschemas.EmailReceivedTopic`, both in the `NewEmailReceivedConsumer` call and the two `libs/inbox`-facing calls — the `contracts` import is dropped from this file. This file no longer imports `github.com/twmb/franz-go/pkg/sr` either — `schemaregistry.Config` covers the common case.)
 
 - [ ] **Step 7: Verify it builds**
 
