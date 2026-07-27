@@ -193,6 +193,39 @@ func Decode[T any](ctx context.Context, s *Serde, b []byte, readerSchema avro.Sc
 
 Each service adds a `SCHEMA_REGISTRY_URL` env var to its `internal/config/config.go` (same pattern as `NATS_URL`, `DB_*`, `KC_*`), and `cmd/main.go` constructs the client once — `schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})`, needing no direct `franz-go/pkg/sr` import for this common case, with auth fields added to `Config` (or, if something more custom is needed, an `extraOpts` value like `sr.BasicAuth(...)`/`sr.BearerToken(...)`/`sr.DialTLSConfig(...)`) once a non-local registry's auth scheme is decided (out of scope; see Non-goals). This mirrors how every other external client in this codebase is wired (see `libs/kafka.Config`/`NewClient`), and means moving from the local registry to a remote one is a config change, not a code change.
 
+**Future extension point: remote registries and auth (documented now, not built).** `libs/schemaregistry` is built entirely on `franz-go/pkg/sr`'s Confluent-compatible REST API (`LookupSchema`, `SchemaByID`, the `Serde`/`ConfluentHeader` wire envelope) — that's the same protocol Confluent Schema Registry, Karapace, and Apicurio's own `ccompat` mode (what's already in use here) all speak. Pointing `SCHEMA_REGISTRY_URL` at any of those requires zero code changes to this package, only a URL change — as long as the target registry actually exposes that Confluent-compatible API (a registry with a genuinely different native API would need a different client, a vendor choice outside this design's control).
+
+Auth is the one piece that does need code once a scheme is chosen, and it should follow the exact pattern `libs/kafka.Config` already uses for SASL mechanisms — a string field selected by env var, switched internally to the concrete `sr.ClientOpt`:
+
+```go
+// libs/schemaregistry/client.go — illustrative future shape, not built in this spec
+type Config struct {
+    URL      string
+    AuthType string // "none" (default), "basic", "bearer"
+    Username string // for AuthType "basic"
+    Password string // for AuthType "basic"
+    Token    string // for AuthType "bearer"
+}
+
+func NewClient(cfg Config, extraOpts ...sr.ClientOpt) (*sr.Client, error) {
+    opts := []sr.ClientOpt{sr.URLs(cfg.URL)}
+    switch cfg.AuthType {
+    case "", "none":
+    case "basic":
+        opts = append(opts, sr.BasicAuth(cfg.Username, cfg.Password))
+    case "bearer":
+        opts = append(opts, sr.BearerToken(cfg.Token))
+    default:
+        return nil, fmt.Errorf("unsupported SCHEMA_REGISTRY_AUTH_TYPE %q", cfg.AuthType)
+    }
+    return sr.NewClient(append(opts, extraOpts...)...)
+}
+```
+
+With `SCHEMA_REGISTRY_AUTH_TYPE`/`SCHEMA_REGISTRY_USERNAME`/`SCHEMA_REGISTRY_PASSWORD`/`SCHEMA_REGISTRY_TOKEN` added to each sidecar's `config.go` the same way `KAFKA_SASL_MECHANISM` already works there today (`readStringEnvVariableWithDefault(..., "none")`).
+
+This isn't built into the plan because the fields would be config nobody can test against a real remote registry yet — the actual target and its auth scheme are still undecided (Non-goals). When they are decided, adding this is a small, well-scoped change with a known shape (the same shape as adding a third SCRAM mechanism to `kafka.Config` would be), not a redesign — if `sr.BasicAuth`/`sr.BearerToken` turn out not to cover what's needed (e.g. a refreshed OIDC token), `sr.PreReq(func(req *http.Request) error)` is franz-go's escape hatch for injecting arbitrary per-request logic, also without changing this package's public shape.
+
 `cmd/main.go` also constructs the `*Serde` and performs the one `RegisterEncode`/`RegisterDecode` call for `EmailReceived` right there, then passes the ready `*Serde` into the infra adapter's constructor (Sections 7, 8). This matches how `libs/kafka.NewClient`'s raw `*kgo.Client` is already handled in this codebase: it's constructed in `main.go` and handed directly to exactly one wrapping call (`outbox.NewProducer`/`inbox.NewConsumer`) — from that point on, nothing downstream sees the raw third-party type again. Keeping the adapter constructors themselves plain (no `ctx`, no error return) also matches every other existing infra adapter constructor in this codebase.
 
 ### `libs/eventschemas` — schemas and generated types
