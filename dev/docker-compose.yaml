@@ -124,8 +124,6 @@ services:
   schema-registry:
     image: apicurio/apicurio-registry:3.3.0
     container_name: schema-registry
-    profiles:
-      - kafka-clients
     ports:
       - "8083:8080"
 
