@@ -10,6 +10,7 @@ require (
 	github.com/go-co-op/gocron/v2 v2.22.0
 	github.com/goccy/go-json v0.10.6
 	github.com/google/uuid v1.6.0
+	github.com/iskorotkov/avro/v2 v2.33.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/httprc/v3 v3.0.6
@@ -21,6 +22,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
 	github.com/tmc/langchaingo v0.1.14
 	github.com/twmb/franz-go v1.21.5
+	github.com/twmb/franz-go/pkg/sr v1.8.0
 )
 
 require (
@@ -51,7 +53,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/iskorotkov/avro/v2 v2.33.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
@@ -91,7 +92,6 @@ require (
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.13.1 // indirect
-	github.com/twmb/franz-go/pkg/sr v1.8.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
