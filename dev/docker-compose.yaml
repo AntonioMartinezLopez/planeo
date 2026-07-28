@@ -133,6 +133,7 @@ services:
   # and not a regression — the poll loop continues and self-recovers once the table exists.
   email-received-producer:
     container_name: email-received-producer
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: services/email/Dockerfile.email-received-producer
@@ -173,6 +174,7 @@ services:
   # This is expected and not a regression.
   email-received-consumer:
     container_name: email-received-consumer
+    restart: unless-stopped
     build:
       context: ..
       dockerfile: services/core/Dockerfile.email-received-consumer
