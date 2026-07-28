@@ -116,6 +116,19 @@ services:
     ports:
       - 8082:8080
 
+  # schema registry for Avro-encoded Kafka messages (Confluent-compatible
+  # API at /apis/ccompat/v7). In-memory storage: task down already wipes
+  # all volumes, so persistence here buys nothing for the normal dev reset
+  # workflow. See docs/superpowers/specs/2026-07-25-kafka-schema-registry-avro-design.md
+  # Section 1 for the known limitation this implies for compatibility checking.
+  schema-registry:
+    image: apicurio/apicurio-registry:3.3.0
+    container_name: schema-registry
+    profiles:
+      - kafka-clients
+    ports:
+      - "8083:8080"
+
   # email-received producer sidecar - drains services/email's outbox table to Kafka
   # NOTE: On first `task up`, this container will log query errors for a few seconds
   # while waiting for the outbox table to be created by migrations. This is expected
@@ -147,6 +160,7 @@ services:
       KAFKA_SASL_PASSWORD: ${EMAIL_PRODUCER_KAFKA_SASL_PASSWORD}
       KAFKA_SASL_MECHANISM: SCRAM-SHA-256
       KAFKA_TLS_ENABLED: "false"
+      SCHEMA_REGISTRY_URL: http://schema-registry:8080/apis/ccompat/v7
       EMAIL_RECEIVED_PRODUCER_POLL_INTERVAL: 1s
       EMAIL_RECEIVED_PRODUCER_BATCH_SIZE: "100"
       EMAIL_RECEIVED_PRODUCER_MAX_ATTEMPTS: "5"
@@ -186,6 +200,7 @@ services:
       KAFKA_SASL_PASSWORD: ${CORE_CONSUMER_KAFKA_SASL_PASSWORD}
       KAFKA_SASL_MECHANISM: SCRAM-SHA-256
       KAFKA_TLS_ENABLED: "false"
+      SCHEMA_REGISTRY_URL: http://schema-registry:8080/apis/ccompat/v7
       EMAIL_RECEIVED_CONSUMER_GROUP_NAME: core-email-received-consumer
       EMAIL_RECEIVED_CONSUMER_POLL_INTERVAL: 1s
       EMAIL_RECEIVED_CONSUMER_BATCH_SIZE: "100"
