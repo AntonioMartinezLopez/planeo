@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"os/signal"
-	"planeo/libs/events/contracts"
+	"planeo/libs/eventschemas"
 	"planeo/libs/kafka"
 	"planeo/libs/logger"
 	"planeo/libs/outbox"
+	"planeo/libs/schemaregistry"
 	domainoutbox "planeo/services/email/internal/domain/outbox"
+	"planeo/services/email/internal/infra/events"
 	emailoutbox "planeo/services/email/internal/infra/outbox"
 	"planeo/services/email/internal/infra/postgres"
 	"strings"
@@ -41,11 +43,23 @@ func main() {
 	}
 	defer kafkaClient.Close()
 
-	producer := outbox.NewProducer(kafkaClient)
+	registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create schema registry client")
+	}
+	serde := schemaregistry.NewSerde(registryClient)
+	if err := schemaregistry.RegisterEncode[eventschemas.EmailReceived](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema,
+	); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register EmailReceived for encoding")
+	}
+
+	rawProducer := outbox.NewProducer(kafkaClient)
+	producer := events.NewEmailReceivedProducer(rawProducer, serde)
 
 	outboxService := domainoutbox.NewService(db, producer)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
-		outboxService, contracts.EmailReceivedTopic, uuid.NewString(),
+		outboxService, eventschemas.EmailReceivedTopic, uuid.NewString(),
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 
