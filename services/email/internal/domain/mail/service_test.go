@@ -38,7 +38,16 @@ func TestMailService(t *testing.T) {
 					return fn(ctx)
 				})
 			mockRepository.EXPECT().CreateMail(context.Background(), mock.AnythingOfType("NewMail")).Return(1, true, nil)
-			mockRepository.EXPECT().CreateOutboxEvent(context.Background(), 1, mock.AnythingOfType("OutboxEvent")).Return(nil)
+			mockRepository.EXPECT().
+				CreateOutboxEvent(context.Background(), 1, mock.MatchedBy(func(event OutboxEvent) bool {
+					return event.Fields.Subject == "Test" &&
+						event.Fields.Body == "body" &&
+						event.Fields.From == "sender@example.com" &&
+						event.Fields.MessageID == "abc123" &&
+						event.Fields.OrganizationID == 1 &&
+						string(event.Key) == "1"
+				})).
+				Return(nil)
 			mailService := NewService(mockRepository)
 
 			results, err := mailService.SaveFetchedMails(context.Background(), raws)

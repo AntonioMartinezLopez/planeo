@@ -24,12 +24,26 @@ type NewMail struct {
 	Date           time.Time
 }
 
+// EmailReceivedFields is the plain domain shape of an email-received event —
+// no wire-format knowledge (no avro/json tags, no schema import). The
+// mapping into the wire type lives in the infra repository (see
+// infra/postgres/outbox_repository.go), not here.
+type EmailReceivedFields struct {
+	Subject        string
+	Body           string
+	From           string
+	Date           time.Time
+	MessageID      string
+	OrganizationID int
+}
+
 // OutboxEvent is the Kafka event to be durably queued alongside a NewMail,
-// in the same local transaction.
+// in the same local transaction. Topic is not carried here — the infra
+// repository sets it from eventschemas.EmailReceivedTopic, since that
+// constant lives in a wire-format package this domain layer must not import.
 type OutboxEvent struct {
-	Topic   string
-	Key     []byte
-	Payload []byte
+	Key    []byte
+	Fields EmailReceivedFields
 }
 
 // RawFetchedMail is the raw data a fetch-side adapter (e.g. IMAP) hands to

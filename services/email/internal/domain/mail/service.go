@@ -2,8 +2,6 @@ package mail
 
 import (
 	"context"
-	"encoding/json"
-	"planeo/libs/events/contracts"
 	"strconv"
 )
 
@@ -23,10 +21,7 @@ func (s *service) SaveFetchedMails(ctx context.Context, raws []RawFetchedMail) (
 	var results []SaveResult
 	err := s.repository.WithTransaction(ctx, func(ctx context.Context) error {
 		for _, raw := range raws {
-			newMail, event, err := buildMailAndEvent(raw)
-			if err != nil {
-				return err
-			}
+			newMail, event := buildMailAndEvent(raw)
 
 			mailID, inserted, err := s.repository.CreateMail(ctx, newMail)
 			if err != nil {
@@ -50,7 +45,7 @@ func (s *service) SaveFetchedMails(ctx context.Context, raws []RawFetchedMail) (
 	return results, nil
 }
 
-func buildMailAndEvent(raw RawFetchedMail) (NewMail, OutboxEvent, error) {
+func buildMailAndEvent(raw RawFetchedMail) (NewMail, OutboxEvent) {
 	newMail := NewMail{
 		MessageID:      raw.MessageID,
 		SettingID:      raw.SettingID,
@@ -61,23 +56,17 @@ func buildMailAndEvent(raw RawFetchedMail) (NewMail, OutboxEvent, error) {
 		Date:           raw.Date,
 	}
 
-	payload, err := json.Marshal(contracts.EmailCreatedPayload{
-		Subject:        raw.Subject,
-		Body:           raw.Body,
-		From:           raw.Sender,
-		Date:           raw.Date,
-		MessageID:      raw.MessageID,
-		OrganizationId: raw.OrganizationID,
-	})
-	if err != nil {
-		return NewMail{}, OutboxEvent{}, err
-	}
-
 	event := OutboxEvent{
-		Topic:   contracts.EmailReceivedTopic,
-		Key:     []byte(strconv.Itoa(raw.OrganizationID)),
-		Payload: payload,
+		Key: []byte(strconv.Itoa(raw.OrganizationID)),
+		Fields: EmailReceivedFields{
+			Subject:        raw.Subject,
+			Body:           raw.Body,
+			From:           raw.Sender,
+			Date:           raw.Date,
+			MessageID:      raw.MessageID,
+			OrganizationID: raw.OrganizationID,
+		},
 	}
 
-	return newMail, event, nil
+	return newMail, event
 }
