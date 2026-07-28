@@ -1,4 +1,3 @@
-// libs/eventschemas/cmd/registerschemas/main.go
 package main
 
 import (
