@@ -2,6 +2,8 @@ package mail_test
 
 import (
 	"context"
+	"encoding/json"
+	"planeo/libs/eventschemas"
 	"planeo/services/email/internal/domain/mail"
 	"planeo/services/email/internal/test/utils"
 	"testing"
@@ -13,6 +15,7 @@ import (
 func TestMailRepository(t *testing.T) {
 	env := utils.NewIntegrationTestEnvironment(t)
 
+	mailDate := time.Now()
 	newMail := mail.NewMail{
 		MessageID:      "duplicate-test-1",
 		SettingID:      1,
@@ -20,12 +23,18 @@ func TestMailRepository(t *testing.T) {
 		Subject:        "Test Subject",
 		Sender:         "sender@example.com",
 		Body:           "Test body",
-		Date:           time.Now(),
+		Date:           mailDate,
 	}
 	event := mail.OutboxEvent{
-		Topic:   "email-received",
-		Key:     []byte("1"),
-		Payload: []byte(`{"subject":"Test Subject"}`),
+		Key: []byte("1"),
+		Fields: mail.EmailReceivedFields{
+			Subject:        "Test Subject",
+			Body:           "Test body",
+			From:           "sender@example.com",
+			Date:           mailDate,
+			MessageID:      "duplicate-test-1",
+			OrganizationID: 1,
+		},
 	}
 
 	saveOnce := func(t *testing.T) (mailID int, inserted bool) {
@@ -50,6 +59,22 @@ func TestMailRepository(t *testing.T) {
 			mailID, inserted := saveOnce(t)
 			assert.True(t, inserted)
 			assert.NotZero(t, mailID)
+
+			var rawPayload []byte
+			err := env.Pool.QueryRow(context.Background(),
+				`SELECT payload FROM outbox WHERE mail_id = $1`, mailID,
+			).Scan(&rawPayload)
+			assert.Nil(t, err)
+
+			var wire eventschemas.EmailReceived
+			err = json.Unmarshal(rawPayload, &wire)
+			assert.Nil(t, err, "outbox payload must be valid JSON matching eventschemas.EmailReceived")
+			assert.Equal(t, event.Fields.Subject, wire.Subject)
+			assert.Equal(t, event.Fields.Body, wire.Body)
+			assert.Equal(t, event.Fields.From, wire.From)
+			assert.Equal(t, event.Fields.MessageID, wire.MessageID)
+			assert.Equal(t, event.Fields.OrganizationID, wire.OrganizationID)
+			assert.WithinDuration(t, event.Fields.Date, wire.Date, time.Second)
 		})
 
 		t.Run("is idempotent on a duplicate setting_id+message_id", func(t *testing.T) {

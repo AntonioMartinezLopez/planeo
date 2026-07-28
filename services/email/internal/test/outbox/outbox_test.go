@@ -24,9 +24,15 @@ func seedOutboxEvent(t *testing.T, env *utils.IntegrationTestEnvironment, messag
 		Date:           time.Now(),
 	}
 	event := mail.OutboxEvent{
-		Topic:   "email-received",
-		Key:     []byte("1"),
-		Payload: []byte(`{"subject":"Subject"}`),
+		Key: []byte("1"),
+		Fields: mail.EmailReceivedFields{
+			Subject:        "Subject",
+			Body:           "Body",
+			From:           "sender@example.com",
+			Date:           time.Now(),
+			MessageID:      messageID,
+			OrganizationID: 1,
+		},
 	}
 
 	err := env.DB.WithTransaction(context.Background(), func(ctx context.Context) error {
