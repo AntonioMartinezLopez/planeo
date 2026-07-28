@@ -125,65 +125,128 @@ func (_c *MockService_FetchBatch_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
-// ProcessRecord provides a mock function for the type MockService
-func (_mock *MockService) ProcessRecord(ctx context.Context, rec outbox.Record, maxAttempts int) error {
-	ret := _mock.Called(ctx, rec, maxAttempts)
+// MarkFailed provides a mock function for the type MockService
+func (_mock *MockService) MarkFailed(ctx context.Context, id int64, sendErr error, maxAttempts int) error {
+	ret := _mock.Called(ctx, id, sendErr, maxAttempts)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ProcessRecord")
+		panic("no return value specified for MarkFailed")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, outbox.Record, int) error); ok {
-		r0 = returnFunc(ctx, rec, maxAttempts)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, error, int) error); ok {
+		r0 = returnFunc(ctx, id, sendErr, maxAttempts)
 	} else {
 		r0 = ret.Error(0)
 	}
 	return r0
 }
 
-// MockService_ProcessRecord_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProcessRecord'
-type MockService_ProcessRecord_Call struct {
+// MockService_MarkFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkFailed'
+type MockService_MarkFailed_Call struct {
 	*mock.Call
 }
 
-// ProcessRecord is a helper method to define mock.On call
+// MarkFailed is a helper method to define mock.On call
 //   - ctx context.Context
-//   - rec outbox.Record
+//   - id int64
+//   - sendErr error
 //   - maxAttempts int
-func (_e *MockService_Expecter) ProcessRecord(ctx interface{}, rec interface{}, maxAttempts interface{}) *MockService_ProcessRecord_Call {
-	return &MockService_ProcessRecord_Call{Call: _e.mock.On("ProcessRecord", ctx, rec, maxAttempts)}
+func (_e *MockService_Expecter) MarkFailed(ctx interface{}, id interface{}, sendErr interface{}, maxAttempts interface{}) *MockService_MarkFailed_Call {
+	return &MockService_MarkFailed_Call{Call: _e.mock.On("MarkFailed", ctx, id, sendErr, maxAttempts)}
 }
 
-func (_c *MockService_ProcessRecord_Call) Run(run func(ctx context.Context, rec outbox.Record, maxAttempts int)) *MockService_ProcessRecord_Call {
+func (_c *MockService_MarkFailed_Call) Run(run func(ctx context.Context, id int64, sendErr error, maxAttempts int)) *MockService_MarkFailed_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 outbox.Record
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(outbox.Record)
+			arg1 = args[1].(int64)
 		}
-		var arg2 int
+		var arg2 error
 		if args[2] != nil {
-			arg2 = args[2].(int)
+			arg2 = args[2].(error)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
 }
 
-func (_c *MockService_ProcessRecord_Call) Return(err error) *MockService_ProcessRecord_Call {
+func (_c *MockService_MarkFailed_Call) Return(err error) *MockService_MarkFailed_Call {
 	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *MockService_ProcessRecord_Call) RunAndReturn(run func(ctx context.Context, rec outbox.Record, maxAttempts int) error) *MockService_ProcessRecord_Call {
+func (_c *MockService_MarkFailed_Call) RunAndReturn(run func(ctx context.Context, id int64, sendErr error, maxAttempts int) error) *MockService_MarkFailed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MarkProcessed provides a mock function for the type MockService
+func (_mock *MockService) MarkProcessed(ctx context.Context, id int64) error {
+	ret := _mock.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkProcessed")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64) error); ok {
+		r0 = returnFunc(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_MarkProcessed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkProcessed'
+type MockService_MarkProcessed_Call struct {
+	*mock.Call
+}
+
+// MarkProcessed is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+func (_e *MockService_Expecter) MarkProcessed(ctx interface{}, id interface{}) *MockService_MarkProcessed_Call {
+	return &MockService_MarkProcessed_Call{Call: _e.mock.On("MarkProcessed", ctx, id)}
+}
+
+func (_c *MockService_MarkProcessed_Call) Run(run func(ctx context.Context, id int64)) *MockService_MarkProcessed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_MarkProcessed_Call) Return(err error) *MockService_MarkProcessed_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_MarkProcessed_Call) RunAndReturn(run func(ctx context.Context, id int64) error) *MockService_MarkProcessed_Call {
 	_c.Call.Return(run)
 	return _c
 }

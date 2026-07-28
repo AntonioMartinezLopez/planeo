@@ -6,10 +6,9 @@ import (
 	"planeo/libs/eventschemas"
 	"planeo/libs/kafka"
 	"planeo/libs/logger"
-	"planeo/libs/outbox"
+	libsoutbox "planeo/libs/outbox"
 	"planeo/libs/schemaregistry"
 	domainoutbox "planeo/services/email/internal/domain/outbox"
-	"planeo/services/email/internal/infra/events"
 	emailoutbox "planeo/services/email/internal/infra/outbox"
 	"planeo/services/email/internal/infra/postgres"
 	"strings"
@@ -53,22 +52,30 @@ func main() {
 	); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register EmailReceived for encoding")
 	}
+	encoder := schemaregistry.NewEncoder[eventschemas.EmailReceived](serde)
 
-	rawProducer := outbox.NewProducer(kafkaClient)
-	producer := events.NewEmailReceivedProducer(rawProducer, serde)
-
-	outboxService := domainoutbox.NewService(db, producer)
+	outboxService := domainoutbox.NewService(db)
 	emailReceivedProducer := emailoutbox.NewEmailReceivedProducer(
-		outboxService, eventschemas.EmailReceivedTopic, uuid.NewString(),
-		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
+		emailoutbox.Deps{
+			Service:  outboxService,
+			Producer: libsoutbox.NewProducer(kafkaClient),
+			Encoder:  encoder,
+		},
+		emailoutbox.Config{
+			Topic:        eventschemas.EmailReceivedTopic,
+			InstanceID:   uuid.NewString(),
+			BatchSize:    cfg.BatchSize,
+			MaxAttempts:  cfg.MaxAttempts,
+			ClaimTTL:     cfg.ClaimTTL,
+			PollInterval: cfg.PollInterval,
+		},
 	)
 
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	log.Info().Msg("Email-received producer running")
-	runner := outbox.NewRunner(outbox.WithPollInterval(cfg.PollInterval))
-	if err := runner.Run(runCtx, emailReceivedProducer.PollOnce); err != nil {
+	if err := emailReceivedProducer.Run(runCtx); err != nil {
 		log.Info().Err(err).Msg("Email-received producer stopped")
 	}
 }

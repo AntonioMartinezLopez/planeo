@@ -13,5 +13,4 @@ packages:
   planeo/services/email/internal/domain/outbox:
     interfaces:
       Repository: {}
-      Producer: {}
       Service: {}

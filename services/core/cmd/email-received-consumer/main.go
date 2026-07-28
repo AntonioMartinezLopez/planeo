@@ -4,7 +4,7 @@ import (
 	"context"
 	"os/signal"
 	"planeo/libs/eventschemas"
-	"planeo/libs/inbox"
+	libsinbox "planeo/libs/inbox"
 	"planeo/libs/kafka"
 	"planeo/libs/logger"
 	"planeo/libs/schemaregistry"
@@ -51,17 +51,9 @@ func main() {
 	); err != nil {
 		log.Fatal().Err(err).Msg("Failed to register EmailReceived for decoding")
 	}
-
-	instanceID := uuid.NewString()
+	decoder := schemaregistry.NewDecoder[eventschemas.EmailReceived](serde, eventschemas.EmailReceivedSchema)
 
 	inboxService := domaininbox.NewService(db, requestService, categoryService, llmClient)
-	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
-		inboxService, serde, eventschemas.EmailReceivedTopic, instanceID,
-		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
-	)
-
-	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	brokers := strings.Split(cfg.KafkaBrokers, ",")
 	kafkaClient, err := kafka.NewClient(
@@ -80,14 +72,29 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 
-	consumer := inbox.NewConsumer(kafkaClient, eventschemas.EmailReceivedTopic, inboxService)
-	if err := consumer.Run(runCtx); err != nil {
-		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
-	}
+	rawConsumer := libsinbox.NewConsumer(kafkaClient, eventschemas.EmailReceivedTopic, inboxService)
+
+	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
+		coreinbox.Deps{
+			KafkaConsumer: rawConsumer,
+			Service:       inboxService,
+			Decoder:       decoder,
+		},
+		coreinbox.Config{
+			Topic:        eventschemas.EmailReceivedTopic,
+			InstanceID:   uuid.NewString(),
+			BatchSize:    cfg.BatchSize,
+			MaxAttempts:  cfg.MaxAttempts,
+			ClaimTTL:     cfg.ClaimTTL,
+			PollInterval: cfg.PollInterval,
+		},
+	)
+
+	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	log.Info().Msg("Email-received consumer running")
-	runner := inbox.NewRunner(inbox.WithPollInterval(cfg.PollInterval))
-	if err := runner.Run(runCtx, emailReceivedConsumer.PollOnce); err != nil {
+	if err := emailReceivedConsumer.Run(runCtx); err != nil {
 		log.Info().Err(err).Msg("Email-received consumer stopped")
 	}
 }
