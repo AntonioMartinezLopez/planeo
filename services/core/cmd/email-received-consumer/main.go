@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"os/signal"
-	"planeo/libs/events/contracts"
+	"planeo/libs/eventschemas"
 	"planeo/libs/inbox"
 	"planeo/libs/kafka"
 	"planeo/libs/logger"
+	"planeo/libs/schemaregistry"
 	"planeo/services/core/internal/domain/category"
 	domaininbox "planeo/services/core/internal/domain/inbox"
 	"planeo/services/core/internal/domain/request"
@@ -40,11 +41,22 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create LLM client")
 	}
 
+	registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: cfg.SchemaRegistryURL})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create schema registry client")
+	}
+	serde := schemaregistry.NewSerde(registryClient)
+	if err := schemaregistry.RegisterDecode[eventschemas.EmailReceived](
+		ctx, serde, eventschemas.EmailReceivedSubject, eventschemas.EmailReceivedSchema,
+	); err != nil {
+		log.Fatal().Err(err).Msg("Failed to register EmailReceived for decoding")
+	}
+
 	instanceID := uuid.NewString()
 
 	inboxService := domaininbox.NewService(db, requestService, categoryService, llmClient)
 	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
-		inboxService, contracts.EmailReceivedTopic, instanceID,
+		inboxService, serde, eventschemas.EmailReceivedTopic, instanceID,
 		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
 	)
 
@@ -61,14 +73,14 @@ func main() {
 			TLSEnabled: cfg.KafkaTlsEnabled,
 		},
 		kgo.ConsumerGroup(cfg.GroupName),
-		kgo.ConsumeTopics(contracts.EmailReceivedTopic),
+		kgo.ConsumeTopics(eventschemas.EmailReceivedTopic),
 		kgo.DisableAutoCommit(),
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
 	}
 
-	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, inboxService)
+	consumer := inbox.NewConsumer(kafkaClient, eventschemas.EmailReceivedTopic, inboxService)
 	if err := consumer.Run(runCtx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
 	}
