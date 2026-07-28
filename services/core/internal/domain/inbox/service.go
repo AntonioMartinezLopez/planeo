@@ -2,11 +2,9 @@ package inbox
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"planeo/libs/events/contracts"
 	libsinbox "planeo/libs/inbox"
 	"planeo/libs/logger"
 	"planeo/services/core/internal/domain/category"
@@ -42,23 +40,22 @@ func (s *service) FetchBatch(ctx context.Context, topic, instanceID string, limi
 	return s.repo.FetchBatch(ctx, topic, instanceID, limit, claimTTL)
 }
 
+func (s *service) MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error {
+	return s.repo.MarkFailed(ctx, id, procErr, maxAttempts)
+}
+
 // ProcessEmailReceived gathers everything the write phase needs (categories,
 // LLM extraction, LLM classification) BEFORE opening any transaction — these
 // are slow, network-dependent calls, and holding a Postgres row lock and a
 // pooled connection across them would be an unnecessary cost. Only the
 // domain writes and the inbox row's final status are wrapped together.
-func (s *service) ProcessEmailReceived(ctx context.Context, rec libsinbox.Record, maxAttempts int) error {
-	var payload contracts.EmailCreatedPayload
-	if err := json.Unmarshal(rec.Payload, &payload); err != nil {
-		return s.repo.MarkFailed(ctx, rec.ID, err, maxAttempts)
-	}
-
+func (s *service) ProcessEmailReceived(ctx context.Context, recordID int64, event EmailReceivedEvent, maxAttempts int) error {
 	raw := fmt.Sprintf("Subject: %s\nFrom: %s\nDate: %s\nMessage-ID: %s\nBody: %s",
-		payload.Subject, payload.From, payload.Date.Format(time.RFC1123), payload.MessageID, payload.Body)
+		event.Subject, event.From, event.Date.Format(time.RFC1123), event.MessageID, event.Body)
 
-	categories, err := s.categoryService.GetCategories(ctx, payload.OrganizationId)
+	categories, err := s.categoryService.GetCategories(ctx, event.OrganizationID)
 	if err != nil {
-		return s.repo.MarkFailed(ctx, rec.ID, err, maxAttempts)
+		return s.repo.MarkFailed(ctx, recordID, err, maxAttempts)
 	}
 
 	extractedFields, err := s.llmClient.ExtractRequestFields(ctx, raw)
@@ -68,10 +65,10 @@ func (s *service) ProcessEmailReceived(ctx context.Context, rec libsinbox.Record
 		// not fatal - a missing extraction still allows classification and request creation to proceed
 	}
 
-	requestData := RequestData{Subject: payload.Subject, Text: payload.Body}
+	requestData := RequestData{Subject: event.Subject, Text: event.Body}
 	categoryId, err := s.llmClient.ClassifyRequest(ctx, requestData, categories)
 	if err != nil {
-		return s.repo.MarkFailed(ctx, rec.ID, err, maxAttempts)
+		return s.repo.MarkFailed(ctx, recordID, err, maxAttempts)
 	}
 
 	// Everything the request row needs (raw fields plus the LLM-derived
@@ -93,25 +90,25 @@ func (s *service) ProcessEmailReceived(ctx context.Context, rec libsinbox.Record
 	// attempts increment entirely.
 	txErr := s.repo.WithTransaction(ctx, func(txCtx context.Context) error {
 		_, err := s.requestService.UpsertRequest(txCtx, request.Request{
-			Subject:        payload.Subject,
+			Subject:        event.Subject,
 			Raw:            raw,
-			Text:           payload.Body,
-			Email:          payload.From,
+			Text:           event.Body,
+			Email:          event.From,
 			Name:           extractedFields.Name,
 			Address:        extractedFields.Address,
 			Telephone:      extractedFields.Phone,
 			CategoryId:     categoryIdPtr,
-			OrganizationId: payload.OrganizationId,
-			ReferenceId:    payload.MessageID,
+			OrganizationId: event.OrganizationID,
+			ReferenceId:    event.MessageID,
 		})
 		if err != nil {
 			return err
 		}
 
-		return s.repo.MarkProcessed(txCtx, rec.ID)
+		return s.repo.MarkProcessed(txCtx, recordID)
 	})
 	if txErr != nil {
-		return s.repo.MarkFailed(ctx, rec.ID, txErr, maxAttempts)
+		return s.repo.MarkFailed(ctx, recordID, txErr, maxAttempts)
 	}
 	return nil
 }

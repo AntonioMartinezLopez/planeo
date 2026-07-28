@@ -7,6 +7,7 @@ package mocks
 import (
 	"context"
 	"planeo/libs/inbox"
+	inbox0 "planeo/services/core/internal/domain/inbox"
 	"time"
 
 	mock "github.com/stretchr/testify/mock"
@@ -125,17 +126,86 @@ func (_c *MockService_FetchBatch_Call) RunAndReturn(run func(ctx context.Context
 	return _c
 }
 
+// MarkFailed provides a mock function for the type MockService
+func (_mock *MockService) MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error {
+	ret := _mock.Called(ctx, id, procErr, maxAttempts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkFailed")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, error, int) error); ok {
+		r0 = returnFunc(ctx, id, procErr, maxAttempts)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockService_MarkFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkFailed'
+type MockService_MarkFailed_Call struct {
+	*mock.Call
+}
+
+// MarkFailed is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id int64
+//   - procErr error
+//   - maxAttempts int
+func (_e *MockService_Expecter) MarkFailed(ctx interface{}, id interface{}, procErr interface{}, maxAttempts interface{}) *MockService_MarkFailed_Call {
+	return &MockService_MarkFailed_Call{Call: _e.mock.On("MarkFailed", ctx, id, procErr, maxAttempts)}
+}
+
+func (_c *MockService_MarkFailed_Call) Run(run func(ctx context.Context, id int64, procErr error, maxAttempts int)) *MockService_MarkFailed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 int64
+		if args[1] != nil {
+			arg1 = args[1].(int64)
+		}
+		var arg2 error
+		if args[2] != nil {
+			arg2 = args[2].(error)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockService_MarkFailed_Call) Return(err error) *MockService_MarkFailed_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockService_MarkFailed_Call) RunAndReturn(run func(ctx context.Context, id int64, procErr error, maxAttempts int) error) *MockService_MarkFailed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ProcessEmailReceived provides a mock function for the type MockService
-func (_mock *MockService) ProcessEmailReceived(ctx context.Context, rec inbox.Record, maxAttempts int) error {
-	ret := _mock.Called(ctx, rec, maxAttempts)
+func (_mock *MockService) ProcessEmailReceived(ctx context.Context, recordID int64, event inbox0.EmailReceivedEvent, maxAttempts int) error {
+	ret := _mock.Called(ctx, recordID, event, maxAttempts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ProcessEmailReceived")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inbox.Record, int) error); ok {
-		r0 = returnFunc(ctx, rec, maxAttempts)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int64, inbox0.EmailReceivedEvent, int) error); ok {
+		r0 = returnFunc(ctx, recordID, event, maxAttempts)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -149,30 +219,36 @@ type MockService_ProcessEmailReceived_Call struct {
 
 // ProcessEmailReceived is a helper method to define mock.On call
 //   - ctx context.Context
-//   - rec inbox.Record
+//   - recordID int64
+//   - event inbox0.EmailReceivedEvent
 //   - maxAttempts int
-func (_e *MockService_Expecter) ProcessEmailReceived(ctx interface{}, rec interface{}, maxAttempts interface{}) *MockService_ProcessEmailReceived_Call {
-	return &MockService_ProcessEmailReceived_Call{Call: _e.mock.On("ProcessEmailReceived", ctx, rec, maxAttempts)}
+func (_e *MockService_Expecter) ProcessEmailReceived(ctx interface{}, recordID interface{}, event interface{}, maxAttempts interface{}) *MockService_ProcessEmailReceived_Call {
+	return &MockService_ProcessEmailReceived_Call{Call: _e.mock.On("ProcessEmailReceived", ctx, recordID, event, maxAttempts)}
 }
 
-func (_c *MockService_ProcessEmailReceived_Call) Run(run func(ctx context.Context, rec inbox.Record, maxAttempts int)) *MockService_ProcessEmailReceived_Call {
+func (_c *MockService_ProcessEmailReceived_Call) Run(run func(ctx context.Context, recordID int64, event inbox0.EmailReceivedEvent, maxAttempts int)) *MockService_ProcessEmailReceived_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 inbox.Record
+		var arg1 int64
 		if args[1] != nil {
-			arg1 = args[1].(inbox.Record)
+			arg1 = args[1].(int64)
 		}
-		var arg2 int
+		var arg2 inbox0.EmailReceivedEvent
 		if args[2] != nil {
-			arg2 = args[2].(int)
+			arg2 = args[2].(inbox0.EmailReceivedEvent)
+		}
+		var arg3 int
+		if args[3] != nil {
+			arg3 = args[3].(int)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -183,7 +259,7 @@ func (_c *MockService_ProcessEmailReceived_Call) Return(err error) *MockService_
 	return _c
 }
 
-func (_c *MockService_ProcessEmailReceived_Call) RunAndReturn(run func(ctx context.Context, rec inbox.Record, maxAttempts int) error) *MockService_ProcessEmailReceived_Call {
+func (_c *MockService_ProcessEmailReceived_Call) RunAndReturn(run func(ctx context.Context, recordID int64, event inbox0.EmailReceivedEvent, maxAttempts int) error) *MockService_ProcessEmailReceived_Call {
 	_c.Call.Return(run)
 	return _c
 }

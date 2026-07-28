@@ -2,8 +2,6 @@ package inbox_test
 
 import (
 	"context"
-	"encoding/json"
-	"planeo/libs/events/contracts"
 	"planeo/services/core/internal/domain/category"
 	"planeo/services/core/internal/domain/inbox"
 	"planeo/services/core/internal/domain/inbox/mocks"
@@ -16,13 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// TestEmailReceivedConsumerServiceRollback exercises a real Postgres
-// transaction rollback, which mocked-repository unit tests cannot reproduce:
-// once a statement inside a transaction errors (here, a foreign key
-// violation), Postgres aborts the whole transaction and every subsequent
-// statement on it also fails (SQLSTATE 25P02). This guards against a
-// regression where MarkFailed is accidentally called with the aborted
-// transaction's context instead of the outer one.
 func TestEmailReceivedConsumerServiceRollback(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -45,24 +36,25 @@ func TestEmailReceivedConsumerServiceRollback(t *testing.T) {
 
 	// organization 999999 does not exist, so CreateRequest's INSERT violates
 	// the requests.organization_id foreign key and the transaction aborts.
-	payload := contracts.EmailCreatedPayload{
-		Subject:        "Broken organization reference",
-		Body:           "body",
-		From:           "someone@example.com",
-		Date:           time.Now(),
-		MessageID:      "rollback-test-1",
-		OrganizationId: 999999,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	assert.Nil(t, err)
-
-	_, err = env.DB.Save(context.Background(), "email-received", 0, 1, payloadBytes)
+	// The saved payload bytes are never decoded by the code path under test
+	// (ProcessEmailReceived takes an already-decoded event, not raw bytes) —
+	// only a real row needs to exist for FetchBatch/MarkFailed to act on.
+	_, err := env.DB.Save(context.Background(), "email-received", 0, 1, []byte("{}"))
 	assert.Nil(t, err)
 
 	records, err := env.DB.FetchBatch(context.Background(), "email-received", "instance-a", 10, 30*time.Second)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(records))
 	rec := records[0]
+
+	event := inbox.EmailReceivedEvent{
+		Subject:        "Broken organization reference",
+		Body:           "body",
+		From:           "someone@example.com",
+		Date:           time.Now(),
+		MessageID:      "rollback-test-1",
+		OrganizationID: 999999,
+	}
 
 	// maxAttempts=2 so the failure resets the row to 'pending' (attempts=1 <
 	// maxAttempts=2) rather than quarantining it. This is the only outcome
@@ -71,7 +63,7 @@ func TestEmailReceivedConsumerServiceRollback(t *testing.T) {
 	// but a row stuck at 'processing' is only reclaimable by a different
 	// instance once its claimTTL elapses. A quarantined ('failed') row would
 	// be invisible to everyone either way, masking the distinction.
-	err = service.ProcessEmailReceived(context.Background(), rec, 2)
+	err = service.ProcessEmailReceived(context.Background(), rec.ID, event, 2)
 	assert.Nil(t, err, "ProcessEmailReceived succeeds once MarkFailed successfully records the failure")
 
 	// A different instance, well within the original claim's TTL, must see
