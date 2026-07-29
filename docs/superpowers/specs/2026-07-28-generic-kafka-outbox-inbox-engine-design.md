@@ -13,6 +13,7 @@ Both loops are now proven twice over (once per direction) with identical shape, 
 - Keep a thin, named, discoverable adapter per service (`infra/outbox.NewEmailReceivedProducer`, `infra/inbox.NewEmailReceivedConsumer`) so "the email-received producer/consumer" still has an obvious home in each service's own tree, even though it now only maps identity and wires function values.
 - Preserve the existing, deliberate per-topic method naming on domain services (`ProcessEmailReceived`, not a generic `Process`) — resolved via function-value injection (Go method values match by signature, not name) rather than requiring domain services to implement a uniformly-named interface.
 - Keep the fast, fake-based unit tests introduced in the consolidation refactor working — now living in `libs/outbox`/`libs/inbox`, generic over a test type instead of hardcoded to `eventschemas.EmailReceived`.
+- `libs/outbox.BuildConfig`/`libs/inbox.BuildConfig` (Section 1, 2) use only flat scalar fields — no `kafka.Config`, no `schemaregistry.Config` — so populating one doesn't require importing either package just to wrap one or five values in a struct someone else owns. `libs/outbox`/`libs/inbox` still import both internally (unavoidable — they're the ones actually calling `kafka.NewClient`/`schemaregistry.NewClient`); this is about decoupling the caller's `Config` shape from theirs, not eliminating the dependency altogether.
 - Zero change to `domain/outbox`/`domain/inbox` themselves. `domain/outbox`'s three methods bind directly as `Deps[T]` function values with no adapter needed. `domain/inbox`'s `Save`/`FetchBatch`/`MarkFailed` do too — but `ProcessEmailReceived` takes `domaininbox.EmailReceivedEvent` (the domain-owned event type), not `eventschemas.EmailReceived` (the wire type `Consumer[T]` decodes into), by the original Kafka spec's own deliberate design (Section 8 there: keep `domain/inbox` free of wire-format types). `Consumer[T]`'s single type parameter is the wire type throughout, so this mapping can't collapse away — it moves into the thin adapter as a small closure (Section 3), the same six-field copy that lived in `infra/inbox.EmailReceivedConsumer.processRecord` before this spec, just relocated.
 
 ## Non-goals
@@ -108,12 +109,21 @@ func New[T any](rawProducer RawProducer, encoder Encoder[T], deps Deps[T], cfg C
 }
 
 // BuildConfig is the connection-level configuration NewFromConfig needs to
-// build the raw Kafka producer and schema-registry encoder itself.
+// build the raw Kafka producer and schema-registry encoder itself. Flat
+// scalar fields only — no kafka.Config or schemaregistry.Config — so a
+// caller populating this doesn't need to import either package just to
+// wrap one or five values in a struct. libs/outbox still imports both
+// internally (it has to, to actually call kafka.NewClient/schemaregistry.NewClient);
+// this only decouples the caller's Config shape from theirs.
 type BuildConfig struct {
-    Kafka    kafka.Config
-    Registry schemaregistry.Config
-    Subject  string
-    Schema   avro.Schema
+    KafkaBrokers    []string
+    KafkaUsername   string
+    KafkaPassword   string
+    KafkaMechanism  string
+    KafkaTLSEnabled bool
+    RegistryURL     string
+    Subject         string
+    Schema          avro.Schema
 }
 
 // NewFromConfig is the high-level, one-call constructor most callers use:
@@ -121,12 +131,15 @@ type BuildConfig struct {
 // encoding, and returns a ready-to-run Producer[T]. The caller owns calling
 // Close() (it owns the Kafka client's lifecycle now, unlike New).
 func NewFromConfig[T any](ctx context.Context, build BuildConfig, deps Deps[T], cfg Config) (*Producer[T], error) {
-    kafkaClient, err := kafka.NewClient(build.Kafka)
+    kafkaClient, err := kafka.NewClient(kafka.Config{
+        Brokers: build.KafkaBrokers, Username: build.KafkaUsername,
+        Password: build.KafkaPassword, Mechanism: build.KafkaMechanism, TLSEnabled: build.KafkaTLSEnabled,
+    })
     if err != nil {
         return nil, fmt.Errorf("connect to kafka: %w", err)
     }
 
-    registryClient, err := schemaregistry.NewClient(build.Registry)
+    registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: build.RegistryURL})
     if err != nil {
         kafkaClient.Close()
         return nil, fmt.Errorf("create schema registry client: %w", err)
@@ -298,18 +311,27 @@ func (f SaveFunc) Save(ctx context.Context, topic string, partition int32, offse
 }
 
 // BuildConfig is the connection-level configuration NewFromConfig needs to
-// build the raw Kafka consumer and schema-registry decoder itself.
+// build the raw Kafka consumer and schema-registry decoder itself. Flat
+// scalar fields only, for the same reason as libs/outbox.BuildConfig — see
+// its doc comment.
 type BuildConfig struct {
-    Kafka     kafka.Config
-    GroupName string
-    Registry  schemaregistry.Config
-    Subject   string
-    Schema    avro.Schema
+    KafkaBrokers    []string
+    KafkaUsername   string
+    KafkaPassword   string
+    KafkaMechanism  string
+    KafkaTLSEnabled bool
+    GroupName       string
+    RegistryURL     string
+    Subject         string
+    Schema          avro.Schema
 }
 
 // NewFromConfig is the high-level, one-call constructor most callers use.
 func NewFromConfig[T any](ctx context.Context, build BuildConfig, save SaveFunc, deps Deps[T], cfg Config) (*Consumer[T], error) {
-    kafkaClient, err := kafka.NewClient(build.Kafka,
+    kafkaClient, err := kafka.NewClient(kafka.Config{
+        Brokers: build.KafkaBrokers, Username: build.KafkaUsername,
+        Password: build.KafkaPassword, Mechanism: build.KafkaMechanism, TLSEnabled: build.KafkaTLSEnabled,
+    },
         kgo.ConsumerGroup(build.GroupName),
         kgo.ConsumeTopics(cfg.Topic),
         kgo.DisableAutoCommit(),
@@ -318,7 +340,7 @@ func NewFromConfig[T any](ctx context.Context, build BuildConfig, save SaveFunc,
         return nil, fmt.Errorf("connect to kafka: %w", err)
     }
 
-    registryClient, err := schemaregistry.NewClient(build.Registry)
+    registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: build.RegistryURL})
     if err != nil {
         return nil, fmt.Errorf("create schema registry client: %w", err)
     }
@@ -400,7 +422,6 @@ import (
     "planeo/libs/eventschemas"
     "planeo/libs/kafka"
     libsoutbox "planeo/libs/outbox"
-    "planeo/libs/schemaregistry"
     domainoutbox "planeo/services/email/internal/domain/outbox"
 )
 
@@ -417,10 +438,14 @@ type Config struct {
 func NewEmailReceivedProducer(ctx context.Context, service domainoutbox.Service, cfg Config) (*EmailReceivedProducer, error) {
     return libsoutbox.NewFromConfig[eventschemas.EmailReceived](ctx,
         libsoutbox.BuildConfig{
-            Kafka:    cfg.Kafka,
-            Registry: schemaregistry.Config{URL: cfg.RegistryURL},
-            Subject:  eventschemas.EmailReceivedSubject,
-            Schema:   eventschemas.EmailReceivedSchema,
+            KafkaBrokers:    cfg.Kafka.Brokers,
+            KafkaUsername:   cfg.Kafka.Username,
+            KafkaPassword:   cfg.Kafka.Password,
+            KafkaMechanism:  cfg.Kafka.Mechanism,
+            KafkaTLSEnabled: cfg.Kafka.TLSEnabled,
+            RegistryURL:     cfg.RegistryURL,
+            Subject:         eventschemas.EmailReceivedSubject,
+            Schema:          eventschemas.EmailReceivedSchema,
         },
         libsoutbox.Deps[eventschemas.EmailReceived]{
             FetchBatch:    service.FetchBatch,
@@ -447,7 +472,6 @@ import (
     "planeo/libs/eventschemas"
     "planeo/libs/kafka"
     libsinbox "planeo/libs/inbox"
-    "planeo/libs/schemaregistry"
     domaininbox "planeo/services/core/internal/domain/inbox"
 )
 
@@ -465,11 +489,15 @@ type Config struct {
 func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, cfg Config) (*EmailReceivedConsumer, error) {
     return libsinbox.NewFromConfig[eventschemas.EmailReceived](ctx,
         libsinbox.BuildConfig{
-            Kafka:     cfg.Kafka,
-            GroupName: cfg.GroupName,
-            Registry:  schemaregistry.Config{URL: cfg.RegistryURL},
-            Subject:   eventschemas.EmailReceivedSubject,
-            Schema:    eventschemas.EmailReceivedSchema,
+            KafkaBrokers:    cfg.Kafka.Brokers,
+            KafkaUsername:   cfg.Kafka.Username,
+            KafkaPassword:   cfg.Kafka.Password,
+            KafkaMechanism:  cfg.Kafka.Mechanism,
+            KafkaTLSEnabled: cfg.Kafka.TLSEnabled,
+            GroupName:       cfg.GroupName,
+            RegistryURL:     cfg.RegistryURL,
+            Subject:         eventschemas.EmailReceivedSubject,
+            Schema:          eventschemas.EmailReceivedSchema,
         },
         service.Save,
         libsinbox.Deps[eventschemas.EmailReceived]{
@@ -502,6 +530,8 @@ func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, 
 ```
 
 Note `service.ProcessEmailReceived` passed directly as the `Process` function value — no rename, no shim, per Goals.
+
+**A deliberate asymmetry, worth flagging:** each thin adapter's own `Config` still holds `Kafka kafka.Config` and destructures it into `BuildConfig`'s flat fields at the call site (5 lines each). This is scoped intentionally — the request was about `libs/outbox`/`libs/inbox`'s own constructors not forcing a caller to import `libs/kafka`/`libs/schemaregistry` just to populate `BuildConfig`, not about eliminating `kafka.Config` everywhere. The thin adapter is app-level glue, and `kafka.Config` is already the established, multi-field, genuinely-reused shape for Kafka connection settings everywhere else in this codebase (built once in `cmd/main.go` today). Flattening it here too is possible — it would remove the 5-line destructuring at the cost of the thin adapter's own `Config` no longer being able to just take a `kafka.Config` value directly — but wasn't asked for; call it out during plan review if wanted.
 
 ## 4. `cmd/main.go` changes
 
