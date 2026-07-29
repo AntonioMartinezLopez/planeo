@@ -8,11 +8,19 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
+// RawConsumer starts the raw Kafka-to-inbox-table ingestion loop. Declared
+// here so the generic Consumer[T] (generic_consumer.go) can be driven by a
+// fake in tests without a live broker; *KafkaConsumer satisfies this
+// structurally, no wrapper needed.
+type RawConsumer interface {
+	Run(ctx context.Context) error
+}
+
 type saver interface {
 	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (inserted bool, err error)
 }
 
-// fetchClient is the narrow slice of *kgo.Client's API Consumer needs -
+// fetchClient is the narrow slice of *kgo.Client's API KafkaConsumer needs -
 // declared here (not imported) so Run can be driven by a fake in tests
 // without a live broker. *kgo.Client (built via planeo/libs/kafka.NewClient)
 // satisfies this structurally; production code never constructs a
@@ -23,20 +31,20 @@ type fetchClient interface {
 	Close()
 }
 
-// Consumer reads from Kafka and persists into the inbox, committing the
+// KafkaConsumer reads from Kafka and persists into the inbox, committing the
 // offset only after Save succeeds. No Handler is invoked here. The given
 // client must already be configured with its consumer group and topic
 // subscription (via kgo.ConsumerGroup/kgo.ConsumeTopics passed as extraOpts
-// to planeo/libs/kafka.NewClient) - Consumer only drives it, it doesn't
+// to planeo/libs/kafka.NewClient) - KafkaConsumer only drives it, it doesn't
 // configure it.
-type Consumer struct {
+type KafkaConsumer struct {
 	client fetchClient
 	topic  string
 	store  saver
 }
 
-func NewConsumer(client fetchClient, topic string, store saver) *Consumer {
-	return &Consumer{
+func NewKafkaConsumer(client fetchClient, topic string, store saver) *KafkaConsumer {
+	return &KafkaConsumer{
 		client: client,
 		topic:  topic,
 		store:  store,
@@ -47,7 +55,7 @@ func NewConsumer(client fetchClient, topic string, store saver) *Consumer {
 // into the inbox, deduped on the Kafka coordinate, committing the offset
 // only after a successful Save. Non-blocking — starts its own background
 // goroutine and returns immediately.
-func (c *Consumer) Run(ctx context.Context) error {
+func (c *KafkaConsumer) Run(ctx context.Context) error {
 	log := logger.FromContext(ctx)
 
 	go func() {
