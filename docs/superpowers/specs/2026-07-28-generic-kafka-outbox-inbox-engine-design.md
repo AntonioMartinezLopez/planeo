@@ -13,7 +13,7 @@ Both loops are now proven twice over (once per direction) with identical shape, 
 - Keep a thin, named, discoverable adapter per service (`infra/outbox.NewEmailReceivedProducer`, `infra/inbox.NewEmailReceivedConsumer`) so "the email-received producer/consumer" still has an obvious home in each service's own tree, even though it now only maps identity and wires function values.
 - Preserve the existing, deliberate per-topic method naming on domain services (`ProcessEmailReceived`, not a generic `Process`) — resolved via function-value injection (Go method values match by signature, not name) rather than requiring domain services to implement a uniformly-named interface.
 - Keep the fast, fake-based unit tests introduced in the consolidation refactor working — now living in `libs/outbox`/`libs/inbox`, generic over a test type instead of hardcoded to `eventschemas.EmailReceived`.
-- `libs/outbox.BuildConfig`/`libs/inbox.BuildConfig` (Section 1, 2) use only flat scalar fields — no `kafka.Config`, no `schemaregistry.Config` — so populating one doesn't require importing either package just to wrap one or five values in a struct someone else owns. `libs/outbox`/`libs/inbox` still import both internally (unavoidable — they're the ones actually calling `kafka.NewClient`/`schemaregistry.NewClient`); this is about decoupling the caller's `Config` shape from theirs, not eliminating the dependency altogether.
+- `libs/outbox.BuildConfig`/`libs/inbox.BuildConfig` (Section 1, 2), and the thin per-service adapters' own `Config` one level up (Section 3), use only flat scalar fields — no `kafka.Config`, no `schemaregistry.Config` — anywhere on the path from `cmd/main.go` down to `NewFromConfig`. `libs/outbox`/`libs/inbox` still import both internally (unavoidable — they're the ones actually calling `kafka.NewClient`/`schemaregistry.NewClient`), but that's the only place either type gets constructed; `cmd/main.go` and the thin adapters need neither import.
 - Zero change to `domain/outbox`/`domain/inbox` themselves. `domain/outbox`'s three methods bind directly as `Deps[T]` function values with no adapter needed. `domain/inbox`'s `Save`/`FetchBatch`/`MarkFailed` do too — but `ProcessEmailReceived` takes `domaininbox.EmailReceivedEvent` (the domain-owned event type), not `eventschemas.EmailReceived` (the wire type `Consumer[T]` decodes into), by the original Kafka spec's own deliberate design (Section 8 there: keep `domain/inbox` free of wire-format types). `Consumer[T]`'s single type parameter is the wire type throughout, so this mapping can't collapse away — it moves into the thin adapter as a small closure (Section 3), the same six-field copy that lived in `infra/inbox.EmailReceivedConsumer.processRecord` before this spec, just relocated.
 
 ## Non-goals
@@ -420,15 +420,21 @@ import (
     "time"
 
     "planeo/libs/eventschemas"
-    "planeo/libs/kafka"
     libsoutbox "planeo/libs/outbox"
     domainoutbox "planeo/services/email/internal/domain/outbox"
 )
 
 type EmailReceivedProducer = libsoutbox.Producer[eventschemas.EmailReceived]
 
+// Config is flat all the way through — no kafka.Config, no schemaregistry.Config
+// — so this package, and cmd/main.go one level up, need neither import just
+// to build one.
 type Config struct {
-    Kafka           kafka.Config
+    KafkaBrokers    []string
+    KafkaUsername   string
+    KafkaPassword   string
+    KafkaMechanism  string
+    KafkaTLSEnabled bool
     RegistryURL     string
     InstanceID      string
     BatchSize, MaxAttempts int
@@ -438,11 +444,11 @@ type Config struct {
 func NewEmailReceivedProducer(ctx context.Context, service domainoutbox.Service, cfg Config) (*EmailReceivedProducer, error) {
     return libsoutbox.NewFromConfig[eventschemas.EmailReceived](ctx,
         libsoutbox.BuildConfig{
-            KafkaBrokers:    cfg.Kafka.Brokers,
-            KafkaUsername:   cfg.Kafka.Username,
-            KafkaPassword:   cfg.Kafka.Password,
-            KafkaMechanism:  cfg.Kafka.Mechanism,
-            KafkaTLSEnabled: cfg.Kafka.TLSEnabled,
+            KafkaBrokers:    cfg.KafkaBrokers,
+            KafkaUsername:   cfg.KafkaUsername,
+            KafkaPassword:   cfg.KafkaPassword,
+            KafkaMechanism:  cfg.KafkaMechanism,
+            KafkaTLSEnabled: cfg.KafkaTLSEnabled,
             RegistryURL:     cfg.RegistryURL,
             Subject:         eventschemas.EmailReceivedSubject,
             Schema:          eventschemas.EmailReceivedSchema,
@@ -470,7 +476,6 @@ import (
     "time"
 
     "planeo/libs/eventschemas"
-    "planeo/libs/kafka"
     libsinbox "planeo/libs/inbox"
     domaininbox "planeo/services/core/internal/domain/inbox"
 )
@@ -478,7 +483,11 @@ import (
 type EmailReceivedConsumer = libsinbox.Consumer[eventschemas.EmailReceived]
 
 type Config struct {
-    Kafka           kafka.Config
+    KafkaBrokers    []string
+    KafkaUsername   string
+    KafkaPassword   string
+    KafkaMechanism  string
+    KafkaTLSEnabled bool
     GroupName       string
     RegistryURL     string
     InstanceID      string
@@ -489,11 +498,11 @@ type Config struct {
 func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, cfg Config) (*EmailReceivedConsumer, error) {
     return libsinbox.NewFromConfig[eventschemas.EmailReceived](ctx,
         libsinbox.BuildConfig{
-            KafkaBrokers:    cfg.Kafka.Brokers,
-            KafkaUsername:   cfg.Kafka.Username,
-            KafkaPassword:   cfg.Kafka.Password,
-            KafkaMechanism:  cfg.Kafka.Mechanism,
-            KafkaTLSEnabled: cfg.Kafka.TLSEnabled,
+            KafkaBrokers:    cfg.KafkaBrokers,
+            KafkaUsername:   cfg.KafkaUsername,
+            KafkaPassword:   cfg.KafkaPassword,
+            KafkaMechanism:  cfg.KafkaMechanism,
+            KafkaTLSEnabled: cfg.KafkaTLSEnabled,
             GroupName:       cfg.GroupName,
             RegistryURL:     cfg.RegistryURL,
             Subject:         eventschemas.EmailReceivedSubject,
@@ -531,7 +540,7 @@ func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, 
 
 Note `service.ProcessEmailReceived` passed directly as the `Process` function value — no rename, no shim, per Goals.
 
-**A deliberate asymmetry, worth flagging:** each thin adapter's own `Config` still holds `Kafka kafka.Config` and destructures it into `BuildConfig`'s flat fields at the call site (5 lines each). This is scoped intentionally — the request was about `libs/outbox`/`libs/inbox`'s own constructors not forcing a caller to import `libs/kafka`/`libs/schemaregistry` just to populate `BuildConfig`, not about eliminating `kafka.Config` everywhere. The thin adapter is app-level glue, and `kafka.Config` is already the established, multi-field, genuinely-reused shape for Kafka connection settings everywhere else in this codebase (built once in `cmd/main.go` today). Flattening it here too is possible — it would remove the 5-line destructuring at the cost of the thin adapter's own `Config` no longer being able to just take a `kafka.Config` value directly — but wasn't asked for; call it out during plan review if wanted.
+Neither thin adapter imports `libs/kafka` or `libs/schemaregistry` at all now. `kafka.Config`/`schemaregistry.Config` are fully internal to `libs/outbox`/`libs/inbox` — constructed nowhere else, in exactly one place each (`NewFromConfig`).
 
 ## 4. `cmd/main.go` changes
 
@@ -543,14 +552,15 @@ defer db.Close()
 
 outboxService := domainoutbox.NewService(db)
 producer, err := emailoutbox.NewEmailReceivedProducer(ctx, outboxService, emailoutbox.Config{
-    Kafka: kafka.Config{
-        Brokers: strings.Split(cfg.KafkaBrokers, ","), Username: cfg.KafkaSaslUsername,
-        Password: cfg.KafkaSaslPassword, Mechanism: cfg.KafkaSaslMechanism, TLSEnabled: cfg.KafkaTlsEnabled,
-    },
-    RegistryURL: cfg.SchemaRegistryURL,
-    InstanceID:  uuid.NewString(),
-    BatchSize:   cfg.BatchSize, MaxAttempts: cfg.MaxAttempts,
-    ClaimTTL:    cfg.ClaimTTL, PollInterval: cfg.PollInterval,
+    KafkaBrokers:    strings.Split(cfg.KafkaBrokers, ","),
+    KafkaUsername:   cfg.KafkaSaslUsername,
+    KafkaPassword:   cfg.KafkaSaslPassword,
+    KafkaMechanism:  cfg.KafkaSaslMechanism,
+    KafkaTLSEnabled: cfg.KafkaTlsEnabled,
+    RegistryURL:     cfg.SchemaRegistryURL,
+    InstanceID:      uuid.NewString(),
+    BatchSize:       cfg.BatchSize, MaxAttempts: cfg.MaxAttempts,
+    ClaimTTL:        cfg.ClaimTTL, PollInterval: cfg.PollInterval,
 })
 if err != nil {
     log.Fatal().Err(err).Msg("Failed to create email-received producer")
@@ -566,7 +576,7 @@ if err := producer.Run(runCtx); err != nil {
 }
 ```
 
-`main.go` no longer imports `libs/schemaregistry`, `libs/eventschemas`'s registration helpers, or calls `kafka.NewClient` directly — only `libs/kafka` for the `kafka.Config` value type, and `emailoutbox`/`domainoutbox` for wiring.
+`main.go` no longer imports `libs/kafka`, `libs/schemaregistry`, or `libs/eventschemas` at all — topic/subject/schema are fixed inside `emailoutbox.NewEmailReceivedProducer` itself (Section 3), so nothing about `eventschemas.EmailReceived` needs to be named at this call site either. Only `emailoutbox`/`domainoutbox` (for wiring) and the usual `postgres`/`logger`/`uuid`/`signal`/`syscall` imports remain.
 
 **Consumer** (`services/core/cmd/email-received-consumer/main.go`) mirrors this exactly, with `GroupName` added to `Config` and no `Close()` call (per Section 2, `Consumer[T]`'s raw ingestion loop closes its own Kafka client).
 
