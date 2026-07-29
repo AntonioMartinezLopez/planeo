@@ -511,21 +511,8 @@ func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, 
         service.Save,
         libsinbox.Deps[eventschemas.EmailReceived]{
             FetchBatch: service.FetchBatch,
-            // ProcessEmailReceived takes domaininbox.EmailReceivedEvent, the
-            // domain-owned event type — not eventschemas.EmailReceived, the
-            // wire type Consumer[T] decodes into. This six-field mapping is
-            // the one piece of logic this adapter carries; it existed
-            // before this spec too (infra/inbox.EmailReceivedConsumer.processRecord),
-            // just inline in the loop instead of at the boundary.
             Process: func(ctx context.Context, id int64, wire eventschemas.EmailReceived, maxAttempts int) error {
-                return service.ProcessEmailReceived(ctx, id, domaininbox.EmailReceivedEvent{
-                    Subject:        wire.Subject,
-                    Body:           wire.Body,
-                    From:           wire.From,
-                    Date:           wire.Date,
-                    MessageID:      wire.MessageID,
-                    OrganizationID: wire.OrganizationID,
-                }, maxAttempts)
+                return service.ProcessEmailReceived(ctx, id, mapEmailReceivedEvent(wire), maxAttempts)
             },
             MarkFailed: service.MarkFailed,
         },
@@ -535,6 +522,28 @@ func NewEmailReceivedConsumer(ctx context.Context, service domaininbox.Service, 
             ClaimTTL: cfg.ClaimTTL, PollInterval: cfg.PollInterval,
         },
     )
+}
+
+// mapEmailReceivedEvent converts the Avro-decoded wire type into the
+// domain-owned event type ProcessEmailReceived expects — not
+// eventschemas.EmailReceived, the wire type Consumer[T] decodes into, by
+// the original Kafka spec's own deliberate design (keep domain/inbox free
+// of wire-format types). This six-field mapping is the one piece of real
+// logic this adapter carries; it existed before this spec too
+// (infra/inbox.EmailReceivedConsumer.processRecord), just inline in the
+// loop instead of at the boundary. Extracted as its own function (rather
+// than left as an inline closure) so it can be tested directly, without
+// needing to construct a full Consumer[T] — which would otherwise require
+// a live schema registry just to exercise a six-field struct copy.
+func mapEmailReceivedEvent(wire eventschemas.EmailReceived) domaininbox.EmailReceivedEvent {
+    return domaininbox.EmailReceivedEvent{
+        Subject:        wire.Subject,
+        Body:           wire.Body,
+        From:           wire.From,
+        Date:           wire.Date,
+        MessageID:      wire.MessageID,
+        OrganizationID: wire.OrganizationID,
+    }
 }
 ```
 
@@ -592,9 +601,9 @@ if err := producer.Run(runCtx); err != nil {
 - `libs/outbox`/`libs/inbox` gain their own unit test suites for the `New[T]` constructor path — fetch/process/mark loop resilience, one-bad-record-doesn't-stop-the-batch, decode/encode-failure-marks-failed-and-continues — using hand-rolled fakes (`fakeProducer`/`fakeEncoder`/`fakeRawConsumer`/`fakeDecoder`) and a local test type (`testRecordV1`-shaped, matching the fixture style already established in `libs/schemaregistry/serde_test.go`), not `eventschemas.EmailReceived`. These are the exact tests written for the consolidation refactor's `infra/outbox`/`infra/inbox` packages, moved here and made generic.
 - One new integration-style test per package for `NewFromConfig[T]` itself — proves the full build path (real Kafka client, real Apicurio registry, real `RegisterEncode`/`RegisterDecode`) wires correctly end to end. This is new coverage; today nothing automated exercises "build everything from scratch," only the manual smoke test performed during the consolidation refactor.
 - `infra/outbox.NewEmailReceivedProducer` carries no logic of its own — pure identity mapping and function-value wiring — so it gets no dedicated test file; the generic engine's tests already cover the loop/error-handling logic, and `domain/outbox`'s own tests cover `FetchBatch`/`MarkProcessed`/`MarkFailed`.
-- `infra/inbox.NewEmailReceivedConsumer` carries one real piece of logic — the wire-to-domain-event mapping closure passed as `Deps.Process` (Section 3) — and today's `TestPollOnce_decodesAndProcesses` (written in the consolidation refactor) splits across the boundary this spec introduces:
+- `infra/inbox.NewEmailReceivedConsumer` carries one real piece of logic — `mapEmailReceivedEvent` (Section 3) — and today's `TestPollOnce_decodesAndProcesses` (written in the consolidation refactor) splits across the boundary this spec introduces:
   - The decode-then-call-Process wiring it exercises (real registry, decode failure → `MarkFailed` + continue, decode success → `Process` called with the decoded value) moves to `libs/inbox`'s own generic tests, using a local test type instead of `eventschemas.EmailReceived`.
-  - The six-field mapping itself — the actual thing that was app-specific about the old test — gets a new, small, `-short`-compatible unit test directly in `infra/inbox`: construct the `Process` closure (or drive it through `NewEmailReceivedConsumer` with a mocked `domaininbox.Service`) with a hand-built `eventschemas.EmailReceived`, and assert the domain service receives the correctly-mapped `EmailReceivedEvent`. This needs no live registry — the closure never touches Avro, only struct fields.
+  - The six-field mapping itself — the actual thing that was app-specific about the old test — gets a new, small, `-short`-compatible unit test directly in `infra/inbox`: call `mapEmailReceivedEvent` with a hand-built `eventschemas.EmailReceived` and assert the returned `domaininbox.EmailReceivedEvent` has the correctly-mapped fields. This needs no live registry and no mocked service — `mapEmailReceivedEvent` is a pure function, deliberately extracted (rather than left as an inline closure) so it's testable without constructing a full `Consumer[T]`, which would otherwise require a live schema registry just to exercise a struct copy.
 - `domain/outbox`, `domain/inbox`: untouched, no test changes.
 
 ## Explicitly deferred / out of scope
