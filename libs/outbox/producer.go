@@ -1,4 +1,3 @@
-// libs/outbox/producer.go
 package outbox
 
 import (

@@ -103,10 +103,12 @@ func NewFromConfig[T any](ctx context.Context, build BuildConfig, save SaveFunc,
 
 	registryClient, err := schemaregistry.NewClient(schemaregistry.Config{URL: build.RegistryURL})
 	if err != nil {
+		kafkaClient.Close()
 		return nil, fmt.Errorf("create schema registry client: %w", err)
 	}
 	serde := schemaregistry.NewSerde(registryClient)
 	if err := schemaregistry.RegisterDecode[T](ctx, serde, build.Subject, build.Schema); err != nil {
+		kafkaClient.Close()
 		return nil, fmt.Errorf("register %s for decoding: %w", build.Subject, err)
 	}
 
