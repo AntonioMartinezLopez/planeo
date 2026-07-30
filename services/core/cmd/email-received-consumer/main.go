@@ -3,10 +3,6 @@ package main
 import (
 	"context"
 	"os/signal"
-	"planeo/libs/events/contracts"
-	"planeo/libs/inbox"
-	"planeo/libs/kafka"
-	"planeo/libs/logger"
 	"planeo/services/core/internal/domain/category"
 	domaininbox "planeo/services/core/internal/domain/inbox"
 	"planeo/services/core/internal/domain/request"
@@ -16,8 +12,9 @@ import (
 	"strings"
 	"syscall"
 
+	"planeo/libs/logger"
+
 	"github.com/google/uuid"
-	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func main() {
@@ -40,42 +37,29 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create LLM client")
 	}
 
-	instanceID := uuid.NewString()
-
 	inboxService := domaininbox.NewService(db, requestService, categoryService, llmClient)
-	emailReceivedConsumer := coreinbox.NewEmailReceivedConsumer(
-		inboxService, contracts.EmailReceivedTopic, instanceID,
-		cfg.BatchSize, cfg.MaxAttempts, cfg.ClaimTTL,
-	)
+
+	consumer, err := coreinbox.NewEmailReceivedConsumer(ctx, inboxService, coreinbox.Config{
+		KafkaBrokers:    strings.Split(cfg.KafkaBrokers, ","),
+		KafkaUsername:   cfg.KafkaSaslUsername,
+		KafkaPassword:   cfg.KafkaSaslPassword,
+		KafkaMechanism:  cfg.KafkaSaslMechanism,
+		KafkaTLSEnabled: cfg.KafkaTlsEnabled,
+		GroupName:       cfg.GroupName,
+		RegistryURL:     cfg.SchemaRegistryURL,
+		InstanceID:      uuid.NewString(),
+		BatchSize:       cfg.BatchSize, MaxAttempts: cfg.MaxAttempts,
+		ClaimTTL: cfg.ClaimTTL, PollInterval: cfg.PollInterval,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create email-received consumer")
+	}
 
 	runCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	brokers := strings.Split(cfg.KafkaBrokers, ",")
-	kafkaClient, err := kafka.NewClient(
-		kafka.Config{
-			Brokers:    brokers,
-			Username:   cfg.KafkaSaslUsername,
-			Password:   cfg.KafkaSaslPassword,
-			Mechanism:  cfg.KafkaSaslMechanism,
-			TLSEnabled: cfg.KafkaTlsEnabled,
-		},
-		kgo.ConsumerGroup(cfg.GroupName),
-		kgo.ConsumeTopics(contracts.EmailReceivedTopic),
-		kgo.DisableAutoCommit(),
-	)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to Kafka")
-	}
-
-	consumer := inbox.NewConsumer(kafkaClient, contracts.EmailReceivedTopic, inboxService)
-	if err := consumer.Run(runCtx); err != nil {
-		log.Fatal().Err(err).Msg("Failed to start email-received consumer")
-	}
-
 	log.Info().Msg("Email-received consumer running")
-	runner := inbox.NewRunner(inbox.WithPollInterval(cfg.PollInterval))
-	if err := runner.Run(runCtx, emailReceivedConsumer.PollOnce); err != nil {
+	if err := consumer.Run(runCtx); err != nil {
 		log.Info().Err(err).Msg("Email-received consumer stopped")
 	}
 }

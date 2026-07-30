@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "EmailReceived",
+  "namespace": "planeo.email",
+  "fields": [
+    {"name": "subject", "type": "string"},
+    {"name": "body", "type": "string"},
+    {"name": "from", "type": "string"},
+    {"name": "date", "type": {"type": "long", "logicalType": "timestamp-millis"}},
+    {"name": "messageId", "type": "string"},
+    {"name": "organizationId", "type": "int"}
+  ]
+}

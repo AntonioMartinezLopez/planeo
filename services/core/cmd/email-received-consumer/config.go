@@ -22,6 +22,7 @@ type Config struct {
 	KafkaSaslPassword  string
 	KafkaSaslMechanism string
 	KafkaTlsEnabled    bool
+	SchemaRegistryURL  string
 	GroupName          string
 	PollInterval       time.Duration
 	BatchSize          int
@@ -51,6 +52,7 @@ func LoadConfig(ctx context.Context, filenames ...string) *Config {
 		KafkaSaslPassword:  readEnvVariable(ctx, "KAFKA_SASL_PASSWORD"),
 		KafkaSaslMechanism: readStringEnvVariableWithDefault("KAFKA_SASL_MECHANISM", "SCRAM-SHA-256"),
 		KafkaTlsEnabled:    readBoolEnvVariableWithDefault("KAFKA_TLS_ENABLED", false),
+		SchemaRegistryURL:  readEnvVariable(ctx, "SCHEMA_REGISTRY_URL"),
 		GroupName:          readStringEnvVariableWithDefault("EMAIL_RECEIVED_CONSUMER_GROUP_NAME", "core-email-received-consumer"),
 		PollInterval:       readDurationEnvVariable(ctx, "EMAIL_RECEIVED_CONSUMER_POLL_INTERVAL", 1*time.Second),
 		BatchSize:          readIntEnvVariable(ctx, "EMAIL_RECEIVED_CONSUMER_BATCH_SIZE", 100),

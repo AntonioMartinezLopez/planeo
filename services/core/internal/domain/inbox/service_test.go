@@ -2,10 +2,7 @@ package inbox_test
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"planeo/libs/events/contracts"
-	libsinbox "planeo/libs/inbox"
 	"planeo/services/core/internal/domain/category"
 	categorymocks "planeo/services/core/internal/domain/category/mocks"
 	. "planeo/services/core/internal/domain/inbox"
@@ -15,30 +12,25 @@ import (
 	"testing"
 	"time"
 
+	libsinbox "planeo/libs/inbox"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// wantRaw is the "raw" string ProcessEmailReceived builds from validPayload's
-// fixed fields - hardcoded here (rather than recomputed) so a test failure
-// clearly shows a divergence from the service's own formatting.
 const wantRaw = "Subject: Need a permit\nFrom: jane@example.com\nDate: Thu, 01 Jan 2026 00:00:00 UTC\nMessage-ID: msg-1\nBody: Please help"
 
 func categoryIDPtr(id int) *int { return &id }
 
-func validPayload(t *testing.T) []byte {
-	t.Helper()
-	payload := contracts.EmailCreatedPayload{
+func validEvent() EmailReceivedEvent {
+	return EmailReceivedEvent{
 		Subject:        "Need a permit",
 		Body:           "Please help",
 		From:           "jane@example.com",
 		Date:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
 		MessageID:      "msg-1",
-		OrganizationId: 1,
+		OrganizationID: 1,
 	}
-	raw, err := json.Marshal(payload)
-	assert.Nil(t, err)
-	return raw
 }
 
 func TestService(t *testing.T) {
@@ -61,6 +53,18 @@ func TestService(t *testing.T) {
 		assert.Equal(t, []libsinbox.Record{record}, records)
 	})
 
+	t.Run("MarkFailed delegates to the repository", func(t *testing.T) {
+		mockRepository := mocks.NewMockRepository(t)
+		procErr := errors.New("decode failed")
+		mockRepository.EXPECT().MarkFailed(context.Background(), int64(9), procErr, 5).Return(nil)
+
+		service := NewService(mockRepository, requestmocks.NewMockService(t), categorymocks.NewMockService(t), mocks.NewMockLLMClient(t))
+
+		err := service.MarkFailed(context.Background(), 9, procErr, 5)
+
+		assert.Nil(t, err)
+	})
+
 	t.Run("ProcessEmailReceived", func(t *testing.T) {
 		t.Run("upserts the request, then marks the record processed", func(t *testing.T) {
 			mockRepository := mocks.NewMockRepository(t)
@@ -68,7 +72,6 @@ func TestService(t *testing.T) {
 			mockCategoryService := categorymocks.NewMockService(t)
 			mockLLMClient := mocks.NewMockLLMClient(t)
 
-			rec := libsinbox.Record{ID: 1, Topic: "email-received", Payload: validPayload(t)}
 			categories := []category.Category{{Id: 5, Label: "Permits"}}
 
 			mockCategoryService.EXPECT().GetCategories(context.Background(), 1).Return(categories, nil)
@@ -102,20 +105,7 @@ func TestService(t *testing.T) {
 
 			service := NewService(mockRepository, mockRequestService, mockCategoryService, mockLLMClient)
 
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
-
-			assert.Nil(t, err)
-		})
-
-		t.Run("marks the record failed when the payload is not valid JSON", func(t *testing.T) {
-			mockRepository := mocks.NewMockRepository(t)
-			rec := libsinbox.Record{ID: 2, Topic: "email-received", Payload: []byte("not-json")}
-
-			mockRepository.EXPECT().MarkFailed(context.Background(), int64(2), mock.Anything, 5).Return(nil)
-
-			service := NewService(mockRepository, requestmocks.NewMockService(t), categorymocks.NewMockService(t), mocks.NewMockLLMClient(t))
-
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
+			err := service.ProcessEmailReceived(context.Background(), 1, validEvent(), 5)
 
 			assert.Nil(t, err)
 		})
@@ -123,7 +113,6 @@ func TestService(t *testing.T) {
 		t.Run("marks the record failed when fetching categories errors", func(t *testing.T) {
 			mockRepository := mocks.NewMockRepository(t)
 			mockCategoryService := categorymocks.NewMockService(t)
-			rec := libsinbox.Record{ID: 3, Topic: "email-received", Payload: validPayload(t)}
 			categoryErr := errors.New("category lookup failed")
 
 			mockCategoryService.EXPECT().GetCategories(context.Background(), 1).Return(nil, categoryErr)
@@ -131,7 +120,7 @@ func TestService(t *testing.T) {
 
 			service := NewService(mockRepository, requestmocks.NewMockService(t), mockCategoryService, mocks.NewMockLLMClient(t))
 
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
+			err := service.ProcessEmailReceived(context.Background(), 3, validEvent(), 5)
 
 			assert.Nil(t, err)
 		})
@@ -142,7 +131,6 @@ func TestService(t *testing.T) {
 			mockCategoryService := categorymocks.NewMockService(t)
 			mockLLMClient := mocks.NewMockLLMClient(t)
 
-			rec := libsinbox.Record{ID: 4, Topic: "email-received", Payload: validPayload(t)}
 			categories := []category.Category{{Id: 5, Label: "Permits"}}
 
 			mockCategoryService.EXPECT().GetCategories(context.Background(), 1).Return(categories, nil)
@@ -165,7 +153,7 @@ func TestService(t *testing.T) {
 
 			service := NewService(mockRepository, mockRequestService, mockCategoryService, mockLLMClient)
 
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
+			err := service.ProcessEmailReceived(context.Background(), 4, validEvent(), 5)
 
 			assert.Nil(t, err)
 		})
@@ -175,7 +163,6 @@ func TestService(t *testing.T) {
 			mockCategoryService := categorymocks.NewMockService(t)
 			mockLLMClient := mocks.NewMockLLMClient(t)
 
-			rec := libsinbox.Record{ID: 5, Topic: "email-received", Payload: validPayload(t)}
 			categories := []category.Category{{Id: 5, Label: "Permits"}}
 			classifyErr := errors.New("classification failed")
 
@@ -190,7 +177,7 @@ func TestService(t *testing.T) {
 
 			service := NewService(mockRepository, requestmocks.NewMockService(t), mockCategoryService, mockLLMClient)
 
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
+			err := service.ProcessEmailReceived(context.Background(), 5, validEvent(), 5)
 
 			assert.Nil(t, err)
 		})
@@ -201,7 +188,6 @@ func TestService(t *testing.T) {
 			mockCategoryService := categorymocks.NewMockService(t)
 			mockLLMClient := mocks.NewMockLLMClient(t)
 
-			rec := libsinbox.Record{ID: 6, Topic: "email-received", Payload: validPayload(t)}
 			categories := []category.Category{{Id: 5, Label: "Permits"}}
 			txErr := errors.New("write failed")
 
@@ -225,7 +211,7 @@ func TestService(t *testing.T) {
 
 			service := NewService(mockRepository, mockRequestService, mockCategoryService, mockLLMClient)
 
-			err := service.ProcessEmailReceived(context.Background(), rec, 5)
+			err := service.ProcessEmailReceived(context.Background(), 6, validEvent(), 5)
 
 			assert.Nil(t, err)
 		})

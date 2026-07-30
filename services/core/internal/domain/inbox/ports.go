@@ -37,5 +37,6 @@ type LLMClient interface {
 type Service interface {
 	Save(ctx context.Context, topic string, partition int32, offset int64, payload []byte) (bool, error)
 	FetchBatch(ctx context.Context, topic, instanceID string, limit int, claimTTL time.Duration) ([]libsinbox.Record, error)
-	ProcessEmailReceived(ctx context.Context, rec libsinbox.Record, maxAttempts int) error
+	ProcessEmailReceived(ctx context.Context, recordID int64, event EmailReceivedEvent, maxAttempts int) error
+	MarkFailed(ctx context.Context, id int64, procErr error, maxAttempts int) error
 }

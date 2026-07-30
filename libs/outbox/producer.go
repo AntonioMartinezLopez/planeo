@@ -6,10 +6,10 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// Producer sends a single record to Kafka. Implemented by kafkaProducer in
+// RawProducer sends a single record to Kafka. Implemented by kafkaProducer in
 // production; test code can supply a fake so an adapter's poll/mark logic is
 // unit-testable without a live broker.
-type Producer interface {
+type RawProducer interface {
 	ProduceSync(ctx context.Context, topic string, key, value []byte) error
 }
 
@@ -31,10 +31,10 @@ func (p *kafkaProducer) ProduceSync(ctx context.Context, topic string, key, valu
 	return result.FirstErr()
 }
 
-// NewProducer wraps an already-authenticated *kgo.Client (see
-// planeo/libs/kafka.NewClient) as a Producer. This package no longer
+// NewKafkaProducer wraps an already-authenticated *kgo.Client (see
+// planeo/libs/kafka.NewClient) as a RawProducer. This package no longer
 // constructs or owns the client's lifecycle - the caller does, and is
 // responsible for calling client.Close() on shutdown.
-func NewProducer(client syncProducer) Producer {
+func NewKafkaProducer(client syncProducer) RawProducer {
 	return &kafkaProducer{client: client}
 }

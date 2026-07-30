@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"planeo/libs/db"
+	"planeo/libs/eventschemas"
 	"planeo/libs/outbox"
 	"planeo/services/email/internal/domain/mail"
 	"time"
@@ -82,14 +84,27 @@ func (c *Client) MarkFailed(ctx context.Context, id int64, sendErr error, maxAtt
 }
 
 func (c *Client) CreateOutboxEvent(ctx context.Context, mailID int, event mail.OutboxEvent) error {
+	wire := eventschemas.EmailReceived{
+		Subject:        event.Fields.Subject,
+		Body:           event.Fields.Body,
+		From:           event.Fields.From,
+		Date:           event.Fields.Date,
+		MessageID:      event.Fields.MessageID,
+		OrganizationID: event.Fields.OrganizationID,
+	}
+	payload, err := json.Marshal(wire)
+	if err != nil {
+		return NewDatabaseError("error marshaling outbox payload", err)
+	}
+
 	query := `
 		INSERT INTO outbox (mail_id, topic, key, payload)
 		VALUES (@mailId, @topic, @key, @payload)`
 	args := pgx.NamedArgs{
 		"mailId":  mailID,
-		"topic":   event.Topic,
+		"topic":   eventschemas.EmailReceivedTopic,
 		"key":     event.Key,
-		"payload": event.Payload,
+		"payload": payload,
 	}
 
 	q := db.FromContext(ctx, c.db)

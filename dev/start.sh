@@ -49,6 +49,17 @@ echo "Preparing Kafka..."
 task infra:apply:kafka -- -auto-approve
 task infra:sync-secrets:kafka
 
+# Register event schemas before the sidecars start. schema-registry is
+# started unconditionally by the earlier bare `docker compose up` and is
+# reachable by now, but the registry starts empty. The consumer's startup
+# path does a fail-fast, non-creating schema lookup and calls log.Fatal if
+# its schema isn't registered yet, so registration must complete before the
+# consumer's first boot to avoid a permanently crashed container. Run from
+# the repo root since register:schemas invokes `go run` relative to cwd and
+# this script's cwd is dev/.
+echo "Registering event schemas..."
+(cd .. && task register:schemas)
+
 # First start of the two Kafka-client sidecars, now that
 # task infra:sync-secrets:kafka has written their real SASL passwords into
 # dev/.env. They were skipped by the earlier bare `docker compose up`

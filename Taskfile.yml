@@ -59,6 +59,7 @@ tasks:
       - cd dev && ./start.sh
       - task: migrate:core
       - task: migrate:email
+      - task: register:schemas
 
   down:
     desc: Stop all Docker services and remove volumes
@@ -120,6 +121,14 @@ tasks:
     dir: services/email/internal/infra/postgres
     cmds:
       - source .envrc && goose status
+
+  register:schemas:
+    desc: Register all event schemas with the local schema registry
+    env:
+      SCHEMA_REGISTRY_URL: http://localhost:8083/apis/ccompat/v7
+    cmds:
+      - echo "Registering event schemas..."
+      - go run ./libs/eventschemas/cmd/registerschemas
 
   # ========================================
   # Infrastructure (OpenTofu)

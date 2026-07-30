@@ -1,57 +1,35 @@
 package inbox_test
 
 import (
-	"context"
-	"errors"
-	libsinbox "planeo/libs/inbox"
-	"planeo/libs/logger"
-	"planeo/services/core/internal/domain/inbox/mocks"
-	"planeo/services/core/internal/infra/inbox"
 	"testing"
 	"time"
+
+	"planeo/libs/eventschemas"
+	domaininbox "planeo/services/core/internal/domain/inbox"
+	"planeo/services/core/internal/infra/inbox"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEmailReceivedConsumer(t *testing.T) {
-	if !testing.Short() {
-		t.Skip()
+func TestMapEmailReceivedEvent(t *testing.T) {
+	wire := eventschemas.EmailReceived{
+		Subject:        "hi",
+		Body:           "body",
+		From:           "a@b.com",
+		Date:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		MessageID:      "msg-1",
+		OrganizationID: 7,
 	}
 
-	ctx := logger.WithContext(context.Background(), logger.New("test"))
+	got := inbox.MapEmailReceivedEvent(wire)
 
-	t.Run("processes every fetched record, even if one fails", func(t *testing.T) {
-		mockService := mocks.NewMockService(t)
-
-		records := []libsinbox.Record{
-			{ID: 1, Topic: "email-received"},
-			{ID: 2, Topic: "email-received"},
-		}
-		mockService.EXPECT().
-			FetchBatch(ctx, "email-received", "instance-a", 10, 30*time.Second).
-			Return(records, nil)
-		mockService.EXPECT().ProcessEmailReceived(ctx, records[0], 5).Return(errors.New("boom"))
-		mockService.EXPECT().ProcessEmailReceived(ctx, records[1], 5).Return(nil)
-
-		consumer := inbox.NewEmailReceivedConsumer(mockService, "email-received", "instance-a", 10, 5, 30*time.Second)
-
-		err := consumer.PollOnce(ctx)
-
-		assert.Nil(t, err)
-	})
-
-	t.Run("propagates a FetchBatch error without calling ProcessEmailReceived", func(t *testing.T) {
-		mockService := mocks.NewMockService(t)
-
-		fetchErr := errors.New("fetch failed")
-		mockService.EXPECT().
-			FetchBatch(ctx, "email-received", "instance-a", 10, 30*time.Second).
-			Return(nil, fetchErr)
-
-		consumer := inbox.NewEmailReceivedConsumer(mockService, "email-received", "instance-a", 10, 5, 30*time.Second)
-
-		err := consumer.PollOnce(ctx)
-
-		assert.Equal(t, fetchErr, err)
-	})
+	want := domaininbox.EmailReceivedEvent{
+		Subject:        "hi",
+		Body:           "body",
+		From:           "a@b.com",
+		Date:           time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+		MessageID:      "msg-1",
+		OrganizationID: 7,
+	}
+	assert.Equal(t, want, got)
 }
