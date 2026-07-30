@@ -110,9 +110,11 @@ services:
     image: ghcr.io/kafbat/kafka-ui:latest
     depends_on:
       - kafka
+      - schema-registry
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8080/apis/ccompat/v7
     ports:
       - 8082:8080
 
