@@ -3,7 +3,7 @@ module planeo
 go 1.26.5
 
 require (
-	github.com/danielgtaylor/huma/v2 v2.39.0
+	github.com/danielgtaylor/huma/v2 v2.39.1
 	github.com/emersion/go-imap/v2 v2.0.0-beta.8
 	github.com/emersion/go-message v0.18.2
 	github.com/go-chi/chi/v5 v5.3.1
@@ -14,12 +14,12 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lestrrat-go/httprc/v3 v3.0.6
-	github.com/lestrrat-go/jwx/v3 v3.1.1
+	github.com/lestrrat-go/jwx/v3 v3.2.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stillya/testcontainers-keycloak v0.3.8
 	github.com/stretchr/testify v1.11.1
-	github.com/testcontainers/testcontainers-go v0.43.0
-	github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0
+	github.com/testcontainers/testcontainers-go v0.44.0
+	github.com/testcontainers/testcontainers-go/modules/postgres v0.44.0
 	github.com/tmc/langchaingo v0.1.14
 	github.com/twmb/franz-go v1.21.5
 	github.com/twmb/franz-go/pkg/sr v1.8.0
@@ -61,7 +61,7 @@ require (
 	github.com/klauspost/compress v1.19.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
-	github.com/lestrrat-go/dsig v1.2.1 // indirect
+	github.com/lestrrat-go/dsig v1.3.0 // indirect
 	github.com/lestrrat-go/dsig-secp256k1 v1.0.0 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/option/v2 v2.0.0 // indirect
@@ -109,6 +109,6 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/mattn/go-colorable v0.1.15 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/mattn/go-isatty v0.0.23 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )
